@@ -1,4 +1,3 @@
-# tools/database.py
 import requests
 from config import Config
 
@@ -11,16 +10,30 @@ class D1Client:
         }
 
     def execute(self, sql, params=None):
-        payload = {"sql": sql, "params": params or []}
+        """执行 SQL 并返回结果"""
+        payload = {
+            "sql": sql,
+            "params": params or []
+        }
         try:
-            r = requests.post(self.url, headers=self.headers, json=payload, timeout=10)
-            res = r.json()
-            if res.get('success'):
-                return res['result'][0]
-            return None
+            # 增加 proxies={...} 以跳过可能导致 SSL 错误的本地代理
+            response = requests.post(
+                self.url, 
+                headers=self.headers, 
+                json=payload, 
+                timeout=10,
+                proxies={"http": None, "https": None} 
+            )
+            result = response.json()
+            if result.get('success'):
+                return result['result'][0]
+            else:
+                print(f"D1 API Error: {result.get('errors')}")
+                return None
         except Exception as e:
-            print(f"D1 API Error: {e}")
+            print(f"D1 Connection Error: {e}")
+            print("提示：如果报错中含有 ProxyError，请尝试关闭梯子或检查网络代理设置。")
             return None
 
-# 初始化全局实例
+# 全局单例
 d1 = D1Client()

@@ -3,99 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>元器件库 - ToolPage</title>
-    <!-- 第三方库保持 CDN 引入以加快速度 -->
+    <title>元器件管理 - 对齐工具版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    
-    <!-- 分离出的本地样式文件 -->
-    <link rel="stylesheet" href="{{ url_for('inventory.static', filename='css/style.css') }}">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
+        
+        /* 层 1: Header (标题 + 居中搜索) */
+        .row-header {
+            background: white; height: 56px; display: flex; align-items: center;
+            padding: 0 1.5rem; position: relative; border-bottom: 1px solid #f1f5f9;
+        }
+        .abs-center {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 460px;
+        }
+        .search-box {
+            background: #f1f5f9; border-radius: 10px; padding: 0.35rem 0.8rem;
+            display: flex; align-items: center; transition: 0.2s;
+        }
+        .search-box:focus-within {
+            background: white; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6;
+        }
+        .search-box input {
+            background: transparent; border: none; outline: none; width: 100%;
+            font-size: 0.85rem; font-weight: 600; margin-left: 0.5rem;
+        }
+
+        /* 层 2: 高级筛选 (静默切换) */
+        .row-filters {
+            background: white; border-bottom: 1px solid #f1f5f9;
+            padding: 0.4rem 1.5rem; display: flex; justify-content: center; gap: 1rem;
+        }
+        .d-none-custom { display: none !important; }
+        
+        .f-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; color: #64748b; font-weight: 700; }
+        .f-item input, .f-item select {
+            border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.1rem 0.3rem;
+            font-size: 0.7rem; background: #f8fafc; outline: none; max-width: 85px;
+        }
+        .f-item input[type="date"] { max-width: 110px; }
+
+        /* 层 3: 核心操作行 (左侧批量与右侧入库水平对齐) */
+        .row-actions {
+            background: #ffffff; border-bottom: 1px solid #e2e8f0;
+            padding: 0.4rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
+            height: 42px; /* 固定高度确保水平绝对对齐 */
+        }
+        
+        /* 批量操作组件 */
+        .batch-btn {
+            font-size: 0.7rem; font-weight: 800; color: #94a3b8; padding: 0.2rem 0.6rem;
+            border-radius: 4px; border: 1px solid transparent; transition: 0.1s; cursor: pointer;
+            display: flex; align-items: center; gap: 0.2rem;
+        }
+        .batch-btn.active { color: #ef4444; background: #fee2e2; border-color: #fca5a5; }
+        .batch-btn.edit-active { color: #3b82f6; background: #eff6ff; border-color: #93c5fd; }
+        .batch-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+
+        /* 入库按钮组 */
+        .btn-entry-group { 
+            display: flex; border-radius: 6px; overflow: hidden; height: 28px; 
+        }
+        .btn-entry {
+            background: #0f172a; color: white; font-size: 0.7rem; font-weight: 900;
+            padding: 0 0.8rem; border: none; display: flex; align-items: center; transition: 0.2s;
+        }
+        .btn-entry:hover { background: #334155; }
+        .btn-entry-split { 
+            padding: 0 0.4rem; border-left: 1px solid #334155; display: flex; align-items: center;
+        }
+
+        .table-container { margin: 1rem 1.5rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+        .table thead th { background: #f8fafc; font-size: 0.65rem; font-weight: 900; color: #94a3b8; padding: 0.6rem 1rem; }
+        .part-img { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; }
+    </style>
 </head>
 <body>
 
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold text-dark"><i class="bi bi-cpu me-2"></i>元器件管理系统</h2>
-        <button class="btn btn-add px-4 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#addModal">
-            <i class="bi bi-plus-lg me-1"></i> 新增物料
-        </button>
+<!-- 第一层 -->
+<div class="row-header">
+    <div class="flex items-center gap-2">
+        <div class="bg-blue-600 text-white p-1 rounded"><i class="bi bi-cpu-fill text-xs"></i></div>
+        <h1 class="text-sm font-black tracking-tighter m-0">DATABASE</h1>
     </div>
 
-    <div class="glass-card p-4">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr class="text-secondary">
-                        <th>分类</th>
-                        <th>型号/规格</th>
-                        <th>库存数量</th>
-                        <th>存放位置</th>
-                        <th class="text-end">操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in items %}
-                    <tr>
-                        <td><span class="badge bg-light text-dark border">{{ item.category }}</span></td>
-                        <td class="fw-bold">{{ item.model }}</td>
-                        <td><span class="badge badge-qty text-dark">{{ item.quantity }}</span></td>
-                        <td><i class="bi bi-geo-alt me-1 text-muted"></i>{{ item.location }}</td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-outline-primary border-0"><i class="bi bi-pencil"></i></button>
-                            <button class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash"></i></button>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">暂无数据，点击上方“新增物料”开始吧</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="abs-center">
+        <form action="{{ url_for('inventory.index') }}" method="GET" id="search-form">
+            <div class="search-box">
+                <i class="bi bi-search text-slate-400 text-[10px]"></i>
+                <input type="text" name="q" id="main-search" placeholder="输入关键字..." value="{{ q }}" autocomplete="off">
+                <button type="button" onclick="toggleFilterBar()" class="text-slate-300 hover:text-blue-500 ms-2">
+                    <i class="bi bi-sliders2 text-xs"></i>
+                </button>
+            </div>
+            {% for k, v in filters.items() if v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+        </form>
     </div>
 </div>
 
-<!-- 新增模态框 (逻辑保持在 routes.py 处理) -->
+<!-- 第二层: 高级搜索 -->
+{% set has_filter = filters.values()|select('ne', '')|list|length > 0 %}
+<div class="row-filters {{ '' if has_filter else 'd-none-custom' }}" id="filterBar">
+    <form action="{{ url_for('inventory.index') }}" method="GET" class="flex items-center gap-3">
+        <input type="hidden" name="q" value="{{ q }}">
+        <div class="f-item"><i class="bi bi-info-circle text-blue-400"></i><input type="text" name="name" placeholder="品名" value="{{ filters.name }}" onchange="this.form.submit()"></div>
+        <div class="f-item"><i class="bi bi-tag text-indigo-400"></i><select name="category" onchange="this.form.submit()"><option value="">分类</option>{% for c in categories %}<option value="{{ c }}" {{ 'selected' if filters.category == c }}>{{ c }}</option>{% endfor %}</select></div>
+        <div class="f-item"><i class="bi bi-geo-alt text-orange-400"></i><select name="location" onchange="this.form.submit()"><option value="">位置</option>{% for l in locations %}<option value="{{ l }}" {{ 'selected' if filters.location == l }}>{{ l }}</option>{% endfor %}</select></div>
+        <div class="f-item"><i class="bi bi-box text-emerald-400"></i><input type="text" name="package" placeholder="封装" value="{{ filters.package }}" onchange="this.form.submit()"></div>
+        <div class="f-item"><i class="bi bi-calendar text-red-400"></i><input type="date" name="buy_time" value="{{ filters.buy_time }}" onchange="this.form.submit()"></div>
+        <div class="f-item"><i class="bi bi-shop text-purple-400"></i><input type="text" name="supplier" placeholder="供应商" value="{{ filters.supplier }}" onchange="this.form.submit()"></div>
+        <a href="{{ url_for('inventory.index') }}" class="text-[9px] text-slate-300 hover:text-red-400 font-bold no-underline">RESET</a>
+    </form>
+</div>
+
+<!-- 第三层: 操作行 (全选、批量编辑、批量删除、入库登记全在一条水平线上) -->
+<div class="row-actions">
+    <!-- 左侧: 批量操作 -->
+    <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1">
+            <input class="form-check-input row-checkbox-all" type="checkbox" id="selectAll" onclick="toggleSelectAll()" style="width: 14px; height: 14px; margin: 0;">
+            <label class="text-[11px] font-black text-slate-500 cursor-pointer" for="selectAll">全选</label>
+        </div>
+        <div class="h-3 w-px bg-slate-200"></div>
+        <button class="batch-btn" id="btnBatchEdit" disabled><i class="bi bi-pencil-square"></i> 批量编辑</button>
+        <button class="batch-btn" id="btnBatchDel" disabled onclick="batchDelete()"><i class="bi bi-trash"></i> 批量删除</button>
+    </div>
+
+    <!-- 右侧: 入库功能 -->
+    <div class="btn-entry-group shadow-sm">
+        <button type="button" class="btn-entry" data-bs-toggle="modal" data-bs-target="#addModal">
+            <i class="bi bi-plus-lg me-1"></i> 新增入库
+        </button>
+        <button type="button" class="btn-entry btn-entry-split dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 text-[11px] font-bold">
+            <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#importModal"><i class="bi bi-file-earmark-spreadsheet me-2 text-green-500"></i>批量导入 Excel</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-slate-400 py-2" href="#"><i class="bi bi-download me-2"></i>下载模板</a></li>
+        </ul>
+    </div>
+</div>
+
+<!-- 表格主体 -->
+<div class="table-container">
+    <table class="table mb-0 w-full align-middle">
+        <thead>
+            <tr>
+                <th class="ps-4" style="width: 40px;"></th>
+                <th style="width: 60px;">Img</th>
+                <th>Part / Category</th>
+                <th>Model / Package</th>
+                <th class="text-center">Qty</th>
+                <th>Loc</th>
+                <th>Price</th>
+                <th>Vendor / Channel</th>
+                <th class="text-end pe-6">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="text-[12px]">
+            {% for item in items %}
+            <tr class="hover:bg-slate-50/50">
+                <td class="ps-4 py-2"><input class="form-check-input row-checkbox" type="checkbox" value="{{ item.id }}" onclick="updateBatchBtn()" style="width: 14px; height: 14px;"></td>
+                <td class="py-2"><img src="{{ item.img_path }}" onerror="this.src='https://via.placeholder.com/40'" class="part-img"></td>
+                <td>
+                    <div class="flex items-center gap-1">
+                        <span class="font-bold text-slate-800">{{ item.name }}</span>
+                        <i class="bi bi-file-earmark-medical doc-icon text-slate-300 cursor-pointer hover:text-blue-500 text-xs"></i>
+                    </div>
+                    <div class="text-[9px] font-black text-blue-500 uppercase">{{ item.category }}</div>
+                </td>
+                <td>
+                    <div class="font-mono font-bold text-slate-600">{{ item.model }}</div>
+                    <div class="text-[9px] text-slate-400 uppercase">{{ item.package }}</div>
+                </td>
+                <td class="text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-black {{ 'bg-red-50 text-red-500' if item.quantity < 10 else 'bg-green-50 text-green-600' }}">{{ item.quantity }}</span></td>
+                <td class="font-bold text-slate-500">{{ item.location }}</td>
+                <td class="font-bold text-slate-800">¥{{ "%.2f"|format(item.price) }}</td>
+                <td>
+                    <div class="text-[10px] font-bold text-slate-600">{{ item.supplier or '-' }}</div>
+                    <div class="text-[9px] text-slate-400 italic">{{ item.channel or '-' }}</div>
+                </td>
+                <td class="text-end pe-6">
+                    <div class="flex justify-end gap-2 text-slate-200">
+                        <button class="hover:text-blue-500"><i class="bi bi-pencil-square"></i></button>
+                        <a href="{{ url_for('inventory.delete', id=item.id) }}" class="hover:text-red-500" onclick="return confirm('Delete?')"><i class="bi bi-trash"></i></a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- 模态框逻辑保持 -->
 <div class="modal fade" id="addModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">新增物料记录</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-xl overflow-hidden">
             <form action="{{ url_for('inventory.add') }}" method="POST">
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label small text-muted">所属分类</label>
-                        <input type="text" name="category" class="form-control rounded-3" placeholder="例如：电阻, 芯片" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small text-muted">型号规格</label>
-                        <input type="text" name="model" class="form-control rounded-3" placeholder="例如：ESP32" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label small text-muted">库存数量</label>
-                            <input type="number" name="quantity" class="form-control rounded-3" value="0" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label small text-muted">存放位置</label>
-                            <input type="text" name="location" class="form-control rounded-3" placeholder="A1-01">
-                        </div>
-                    </div>
+                <div class="bg-slate-900 px-6 py-3 text-white flex justify-between items-center"><h5 class="m-0 font-black text-xs uppercase">Entry</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body p-6 grid grid-cols-2 gap-3 bg-white text-xs">
+                    <input type="text" name="img_path" class="form-control text-xs col-span-2" placeholder="Image URL">
+                    <input type="text" name="category" class="form-control text-xs" required placeholder="Category">
+                    <input type="text" name="name" class="form-control text-xs" required placeholder="Name">
+                    <input type="text" name="model" class="form-control text-xs font-bold" required placeholder="Model">
+                    <input type="text" name="package" class="form-control text-xs" placeholder="Package">
+                    <input type="number" name="quantity" class="form-control text-xs" value="0">
+                    <input type="number" step="0.01" name="price" class="form-control text-xs" value="0.00">
+                    <input type="text" name="location" class="form-control text-xs" placeholder="Loc">
+                    <input type="text" name="supplier" class="form-control text-xs" placeholder="Vendor">
+                    <input type="text" name="channel" class="form-control text-xs" placeholder="Channel">
+                    <input type="date" name="buy_time" class="form-control text-xs">
+                    <input type="text" name="remark" class="form-control text-xs col-span-2" placeholder="Remark">
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">保存入库</button>
-                </div>
+                <div class="px-6 py-3 bg-slate-50 text-end"><button type="submit" class="bg-blue-600 text-white px-8 py-2 rounded-lg text-xs font-black">SAVE</button></div>
             </form>
         </div>
     </div>
 </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- 工具专属 JS -->
-    <script src="{{ url_for('inventory.static', filename='js/inventory.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    window.onload = function() {
+        const input = document.getElementById('main-search');
+        if (input) { input.focus(); const val = input.value; input.value = ''; input.value = val; }
+    };
+    function toggleFilterBar() { document.getElementById('filterBar').classList.toggle('d-none-custom'); }
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = selectAll.checked);
+        updateBatchBtn();
+    }
+    function updateBatchBtn() {
+        const count = document.querySelectorAll('.row-checkbox:checked').length;
+        document.getElementById('btnBatchDel').disabled = document.getElementById('btnBatchEdit').disabled = count === 0;
+        if (count > 0) {
+            document.getElementById('btnBatchDel').classList.add('active');
+            document.getElementById('btnBatchEdit').classList.add('edit-active');
+        } else {
+            document.getElementById('btnBatchDel').classList.remove('active');
+            document.getElementById('btnBatchEdit').classList.remove('edit-active');
+        }
+    }
+    function batchDelete() {
+        const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+        if (confirm(`Confirm delete ${ids.length} items?`)) {
+            fetch("{{ url_for('inventory.batch_delete') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ 'ids[]': ids })
+            }).then(res => { if (res.ok) window.location.reload(); });
+        }
+    }
+</script>
 </body>
 </html>

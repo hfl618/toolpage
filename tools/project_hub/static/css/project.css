@@ -1,0 +1,22 @@
+body {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+    font-family: 'Inter', sans-serif;
+}
+.project-card {
+    background: #2d2d2d;
+    border: 1px solid #3d3d3d;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: transform 0.2s;
+}
+.project-card:hover {
+    transform: translateY(-5px);
+    border-color: #4facfe;
+}
+.status-badge {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+}
