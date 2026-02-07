@@ -1,2 +1,6 @@
 flask
+flask-sqlalchemy
 flask-cors
+pandas
+qrcode
+Pillow
