@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元器件库 - ToolPage</title>
+    <!-- 第三方库保持 CDN 引入以加快速度 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- 分离出的本地样式文件 -->
+    <link rel="stylesheet" href="{{ url_for('inventory.static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark"><i class="bi bi-cpu me-2"></i>元器件管理系统</h2>
+        <button class="btn btn-add px-4 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+            <i class="bi bi-plus-lg me-1"></i> 新增物料
+        </button>
+    </div>
+
+    <div class="glass-card p-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr class="text-secondary">
+                        <th>分类</th>
+                        <th>型号/规格</th>
+                        <th>库存数量</th>
+                        <th>存放位置</th>
+                        <th class="text-end">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td><span class="badge bg-light text-dark border">{{ item.category }}</span></td>
+                        <td class="fw-bold">{{ item.model }}</td>
+                        <td><span class="badge badge-qty text-dark">{{ item.quantity }}</span></td>
+                        <td><i class="bi bi-geo-alt me-1 text-muted"></i>{{ item.location }}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary border-0"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">暂无数据，点击上方“新增物料”开始吧</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 新增模态框 (逻辑保持在 routes.py 处理) -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">新增物料记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('inventory.add') }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">所属分类</label>
+                        <input type="text" name="category" class="form-control rounded-3" placeholder="例如：电阻, 芯片" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">型号规格</label>
+                        <input type="text" name="model" class="form-control rounded-3" placeholder="例如：ESP32" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small text-muted">库存数量</label>
+                            <input type="number" name="quantity" class="form-control rounded-3" value="0" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small text-muted">存放位置</label>
+                            <input type="text" name="location" class="form-control rounded-3" placeholder="A1-01">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">保存入库</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 工具专属 JS -->
+    <script src="{{ url_for('inventory.static', filename='js/inventory.js') }}"></script>
+</body>
+</html>
