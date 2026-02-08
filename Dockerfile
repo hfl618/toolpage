@@ -1,21 +1,21 @@
-FROM python:3.9-slim
+FROM python:3.9
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    DEBIAN_FRONTEND=noninteractive \
-    HOME=/home/user \
+# 创建并切换到 HF 要求的用户
+RUN useradd -m -u 1000 user
+USER user
+ENV HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH
 
-RUN useradd -m -u 1000 user
-WORKDIR /home/user/app
+WORKDIR $HOME/app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+# 先拷贝 requirements 并安装，利用缓存
+COPY --chown=user requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
 
+# 拷贝全量代码
 COPY --chown=user . .
 
-USER user
 EXPOSE 7860
 
-# Fixed: point to app:app
+# 启动命令
 CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app"]
