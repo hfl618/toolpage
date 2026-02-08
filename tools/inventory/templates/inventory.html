@@ -173,7 +173,7 @@
                     {% endif %}
                 </td>
                 <td class="text-center"><span class="badge-category">{{ item.category }}</span></td>
-                <td class="text-center"><div class="col-name justify-center"><span>{{ item.name or '-' }}</span>{% if item.doc_path %}<a href="{{ item.doc_path }}" target="_blank" class="bi bi-file-earmark-text btn-doc btn-action-icon" title="手册"></a>{% else %}<i class="bi bi-file-earmark-text btn-doc opacity-20" title="无手册"></i>{% endif %}</div></td>
+                <td class="text-center"><div class="col-name justify-center"><span>{{ item.name or '-' }}</span>{% if item.doc_path %}<a href="{{ url_for('inventory.view_doc', id=item.id) }}" target="_blank" class="bi bi-file-earmark-text btn-doc btn-action-icon" title="手册"></a>{% else %}<i class="bi bi-file-earmark-text btn-doc opacity-20" title="无手册"></i>{% endif %}</div></td>
                 <td class="text-center"><div class="font-mono font-bold text-slate-600 text-sm">{{ item.model }}</div><div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{{ item.package }}</div></td>
                 <td class="text-center">
                     <span class="qty-text {{'qty-low' if item.quantity<10 else 'qty-normal'}}">{{ item.quantity }}</span>
@@ -240,7 +240,7 @@
             const docLinks = document.querySelectorAll('#editModal .doc-link');
             docLinks.forEach(link => {
                 if(d.doc_path) { 
-                    if(link.tagName === 'A') link.href = d.doc_path;
+                    if(link.tagName === 'A') link.href = `/inventory/view_doc/${id}`;
                     link.classList.remove('hidden'); 
                 }
                 else { link.classList.add('hidden'); }

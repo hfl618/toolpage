@@ -389,6 +389,15 @@ def delete_file(id, field):
         if url: delete_from_r2(url); d1.execute(f"UPDATE components SET {field} = '' WHERE id=? AND user_id=?", [id, uid]); return jsonify(success=True)
     return jsonify(success=False, error="文件未找到")
 
+@inventory_bp.route('/view_doc/<int:id>')
+def view_doc(id):
+    uid = get_current_uid()
+    res = d1.execute("SELECT doc_path FROM components WHERE id=? AND user_id=?", [id, uid])
+    if res and res.get('results'):
+        url = res['results'][0].get('doc_path')
+        if url: return redirect(url)
+    abort(404, description="文档未找到")
+
 @inventory_bp.route('/regenerate_qr/<int:id>')
 def regenerate_qr_api(id):
     uid = get_current_uid()
