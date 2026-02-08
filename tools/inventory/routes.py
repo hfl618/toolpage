@@ -288,18 +288,32 @@ def import_execute():
     uid = get_current_uid()
     data = request.json
     uniques, resolved = data.get('uniques', []), data.get('resolved', [])
+    
+    added, updated, skipped = 0, 0, 0
+    
     for item in uniques:
         item['user_id'] = uid
-        keys = list(item.keys()); d1.execute(f"INSERT INTO components ({','.join(keys)}) VALUES ({','.join(['?']*len(keys))})", [item[k] for k in keys])
+        keys = list(item.keys())
+        d1.execute(f"INSERT INTO components ({','.join(keys)}) VALUES ({','.join(['?']*len(keys))})", [item[k] for k in keys])
+        added += 1
         res = d1.execute("SELECT id FROM components WHERE user_id = ? ORDER BY id DESC LIMIT 1", [uid])
-        if res and res.get('results'): generate_qr(res['results'][0]['id'], item.get('name',''), item.get('model',''), uid)
+        if res and res.get('results'):
+            generate_qr(res['results'][0]['id'], item.get('name',''), item.get('model',''), uid)
+            
     for entry in resolved:
         strat, new, old_id = entry.get('strategy'), entry.get('new'), entry.get('old_id')
-        if strat == 'merge': d1.execute("UPDATE components SET quantity = quantity + ? WHERE id = ? AND user_id = ?", [new.get('quantity',0), old_id, uid])
+        if strat == 'merge':
+            d1.execute("UPDATE components SET quantity = quantity + ? WHERE id = ? AND user_id = ?", [new.get('quantity',0), old_id, uid])
+            updated += 1
         elif strat == 'cover':
             new['user_id'] = uid
-            keys = [k for k in new.keys() if k != 'id']; d1.execute(f"UPDATE components SET {', '.join([f'{k}=?' for k in keys])} WHERE id=? AND user_id=?", [new[k] for k in keys] + [old_id, uid])
-    return jsonify(success=True)
+            keys = [k for k in new.keys() if k != 'id']
+            d1.execute(f"UPDATE components SET {', '.join([f'{k}=?' for k in keys])} WHERE id=? AND user_id=?", [new[k] for k in keys] + [old_id, uid])
+            updated += 1
+        else:
+            skipped += 1
+            
+    return jsonify(success=True, added=added, updated=updated, skipped=skipped)
 
 @inventory_bp.route('/get_export_files')
 def get_export_files():
