@@ -1,5 +1,10 @@
-flask
-requests
-python-dotenv
-jwt
+﻿flask
 PyJWT
+requests
+pandas
+openpyxl
+python-dotenv
+boto3
+qrcode
+urllib3
+gunicorn

@@ -1,21 +1,18 @@
-FROM python:3.9
+FROM python:3.9-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    HOME=/home/user \
-    PATH=/home/user/.local/bin:$PATH
+WORKDIR /app
 
-RUN useradd -m -u 1000 user
-WORKDIR $HOME/app
+# 安装系统依赖（如 pandas 需要的一些库）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# 安装 Flask
-RUN pip install --no-cache-dir flask
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 拷贝文件
-COPY --chown=user . .
+COPY . .
 
-USER user
+# Zeabur 默认会自动识别 PORT 环境变量，Flask 已在代码中适配
 EXPOSE 7860
 
-# 直接执行 Python，不使用 shell 脚本，避免 CRLF 问题
 CMD ["python", "app.py"]
