@@ -1,21 +1,23 @@
 FROM python:3.9
 
-# 创建并切换到 HF 要求的用户
-RUN useradd -m -u 1000 user
-USER user
-ENV HOME=/home/user \
-    PATH=/home/user/.local/bin:$PATH
+WORKDIR /code
 
-WORKDIR $HOME/app
+# 复制依赖文件
+COPY requirements.txt .
 
-# 先拷贝 requirements 并安装，利用缓存
-COPY --chown=user requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+# 增加构建时的日志输出
+RUN echo "Step: Installing dependencies..."
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
+RUN echo "Step: Dependencies installed successfully."
 
-# 拷贝全量代码
-COPY --chown=user . .
+# 复制所有文件
+COPY . .
+RUN echo "Step: Files copied to container."
+
+# 环境变量：确保日志不被缓存，直接输出
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 7860
 
-# 启动命令：直接使用 Python 启动，绕过 Gunicorn 以便于调试
+# 启动
 CMD ["python", "app.py"]

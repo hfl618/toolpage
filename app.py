@@ -1,5 +1,9 @@
 import os
 import sys
+
+# 极其关键：这是容器启动后第一行执行的代码
+print("🚀 [CRITICAL] app.py execution started!", flush=True)
+
 # 强制日志立即输出，不缓存
 sys.stdout.reconfigure(line_buffering=True)
 
