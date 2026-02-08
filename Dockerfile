@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Zeabur 默认会自动识别 PORT 环境变量，Flask 已在代码中适配
-EXPOSE 7860
+# Zeabur/Koyeb 默认端口建议
+EXPOSE 8080
 
 CMD ["python", "app.py"]

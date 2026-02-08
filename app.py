@@ -30,29 +30,37 @@ def create_app():
     # --- 3. 核心中间件：身份模拟与网关安全校验 ---
     @app.before_request
     def handle_auth_and_security():
-        # 放行健康检查和静态资源
-        if request.path == '/health' or request.path.startswith('/static'):
+        # 放开认证、健康检查和静态资源
+        if request.path.startswith('/auth') or request.path == '/health' or request.path.startswith('/static'):
             return
 
-        # 【生产环境】安全校验：必须携带网关密钥
+        # 1. 尝试获取 UID (从 Header 或 Cookie)
+        uid = request.headers.get('X-User-Id')
+        
+        # 如果 Header 没有，尝试从 Cookie 解析 JWT (方便直接浏览器访问)
+        if not uid:
+            token = request.cookies.get('auth_token')
+            if token:
+                try:
+                    payload = jwt.decode(token, Config.SECRET_KEY, algorithms=["HS256"])
+                    uid = str(payload.get('uid'))
+                    request.environ['HTTP_X_USER_ID'] = uid
+                    request.environ['HTTP_X_USER_ROLE'] = str(payload.get('role'))
+                except:
+                    pass
+
+        # 2. 如果依然没有 UID，且不是在 API 路径下，重定向到登录
+        if not uid:
+            if request.path.startswith('/api/'):
+                return jsonify(success=False, error="Unauthorized: Missing identity"), 401
+            return redirect(url_for('auth.login', next=request.path))
+
+        # 3. 【生产环境】安全校验：如果是来自网关的请求，校验密钥
         if Config.ENV == 'prod':
             client_secret = request.headers.get('X-Gateway-Secret')
-            if client_secret != Config.GATEWAY_SECRET:
-                # 记录一下被拦截的请求，方便调试
-                app.logger.warning(f"Access denied for {request.path} from {request.remote_addr}")
-                return "Forbidden: Direct access not allowed. Please use the official gateway.", 403
-
-        # 【本地环境】身份模拟
-        elif Config.ENV == 'local':
-            if not request.headers.get('X-User-Id'):
-                token = request.cookies.get('auth_token')
-                if token:
-                    try:
-                        payload = jwt.decode(token, Config.SECRET_KEY, algorithms=["HS256"])
-                        request.environ['HTTP_X_USER_ID'] = str(payload.get('uid'))
-                        request.environ['HTTP_X_USER_ROLE'] = str(payload.get('role'))
-                    except:
-                        pass
+            # 只有当请求头包含 X-Gateway-Secret 时才校验（允许直接访问或网关访问）
+            if client_secret and client_secret != Config.GATEWAY_SECRET:
+                return "Forbidden: Invalid gateway secret.", 403
 
     @app.route('/health')
     def health():
@@ -76,7 +84,7 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 7860))
+    port = int(os.environ.get('PORT', 8080))
     print(f"--- Starting Flask App on port {port} ---")
     app.run(
         host='0.0.0.0', 
