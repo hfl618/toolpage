@@ -1,5 +1,9 @@
 import requests
+import urllib3
 from config import Config
+
+# 禁用 SSL 警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class D1Client:
     def __init__(self):
@@ -16,13 +20,13 @@ class D1Client:
             "params": params or []
         }
         try:
-            # 增加 proxies={...} 以跳过可能导致 SSL 错误的本地代理
+            # 允许走系统代理，并禁用 SSL 验证以绕过代理证书干扰
             response = requests.post(
                 self.url, 
                 headers=self.headers, 
                 json=payload, 
-                timeout=10,
-                proxies={"http": None, "https": None} 
+                timeout=30,
+                verify=False
             )
             result = response.json()
             if result.get('success'):

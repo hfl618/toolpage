@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template
 from tools.database import d1
 
-# 使用 __name__ 让 Flask 自动处理相对路径
+# 使用 __name__ 让 Flask 自动处理路径
 project_bp = Blueprint(
     'projects', 
     __name__, 
