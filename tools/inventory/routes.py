@@ -10,7 +10,7 @@ from datetime import datetime
 from io import BytesIO
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, send_file
 from tools.database import d1
-from .r2_utils import upload_to_r2, delete_from_r2
+from tools.r2_client import upload_to_r2, delete_from_r2
 
 curr_dir = os.path.dirname(os.path.abspath(__file__))
 export_dir = os.path.join(curr_dir, 'static', 'exports')
@@ -49,7 +49,7 @@ def smart_match(cols):
     return mapping
 
 def generate_qr(id, name, model):
-    """Generate QR code as SVG and upload to R2 using fixed ID-based filename"""
+    """生成二维码 SVG 并上传至 R2，使用基于 ID 的固定文件名"""
     try:
         qr_data = json.dumps({"id": id, "name": name, "model": model}, ensure_ascii=False)
         factory = qrcode.image.svg.SvgImage
@@ -57,7 +57,8 @@ def generate_qr(id, name, model):
         img_byte_arr = io.BytesIO()
         img.save(img_byte_arr)
         img_byte_arr.seek(0)
-        qr_url = upload_to_r2(img_byte_arr, "qrcodes", fixed_name=f"qr_{id}")
+        # 固定命名规范：qr_ID
+        qr_url = upload_to_r2(img_byte_arr, "qrcodes", fixed_name=f"qr_{id}", app_name="inventory")
         if qr_url:
             d1.execute("UPDATE components SET qrcode_path = ? WHERE id = ?", [qr_url, id])
             return qr_url
@@ -67,7 +68,7 @@ def generate_qr(id, name, model):
 
 @inventory_bp.route('/backup')
 def backup():
-    """全量数据深度备份 (含 R2 附件)"""
+    """全量数据深度备份 (强制标准化资产命名)"""
     try:
         res = d1.execute("SELECT * FROM components")
         items = res.get('results', []) if res else []
@@ -77,40 +78,95 @@ def backup():
         with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zf:
             zf.writestr('inventory_data.json', data_json)
             for item in items:
-                for field, folder in [('img_path', 'images'), ('qrcode_path', 'qrcodes'), ('doc_path', 'docs')]:
+                # 强制映射关系，确保包内文件名统一
+                for field, folder, prefix in [('img_path', 'images', 'img'), ('qrcode_path', 'qrcodes', 'qr'), ('doc_path', 'docs', 'doc')]:
                     url = item.get(field)
                     if url and url.startswith('http'):
                         try:
                             resp = requests.get(url, timeout=10, verify=False)
                             if resp.status_code == 200:
                                 ext = url.split('.')[-1].split('?')[0]
-                                zf.writestr(f"{folder}/{item['id']}_file.{ext}", resp.content)
+                                # 强制规范：inventory/images/img_140.jpg
+                                zf.writestr(f"inventory/{folder}/{prefix}_{item['id']}.{ext}", resp.content)
                         except: pass
-            readme = f"FULL BACKUP REPORT\nTime: {datetime.now()}\nCount: {len(items)}\nStatus: Database + Cloud Assets Included"
+            readme = f"FULL BACKUP REPORT\nTime: {datetime.now()}\nCount: {len(items)}\nStatus: Standardized ID-Based Naming"
             zf.writestr('README.txt', readme)
         output.seek(0)
         return send_file(output, mimetype='application/zip', as_attachment=True, 
-                         download_name=f"FULL_Inventory_Backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip")
+                         download_name=f"Standard_Inventory_Backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip")
     except Exception as e: return jsonify(success=False, error=str(e))
 
 @inventory_bp.route('/restore', methods=['POST'])
 def restore():
-    """全量数据还原 (纯数据填充)"""
+    """全量数据恢复 (包含记录恢复 + 资产重传 + 智能兼容路径修复)"""
     try:
         file = request.files.get('backup_zip')
         if not file: return jsonify(success=False, error="未检测到文件")
+        
         with zipfile.ZipFile(file, 'r') as zf:
+            # 1. 恢复数据库文字记录
             if 'inventory_data.json' not in zf.namelist(): return jsonify(success=False, error="无效备份包")
             items = json.loads(zf.read('inventory_data.json').decode('utf-8'))
-        if not items: return jsonify(success=False, error="无有效记录")
-        count = 0
-        for item in items:
-            keys = [k for k in item.keys() if k in ['id','img_path','doc_path','qrcode_path','category','name','model','package','quantity','unit','location','supplier','channel','price','buy_time','remark','creator']]
-            placeholders = ', '.join(['?'] * len(keys))
-            sql = f"INSERT OR REPLACE INTO components ({', '.join(keys)}) VALUES ({placeholders})"
-            d1.execute(sql, [item[k] for k in keys])
-            count += 1
-        return jsonify(success=True, count=count)
+            if not items: return jsonify(success=False, error="无有效记录")
+            
+            db_count = 0
+            for item in items:
+                keys = [k for k in item.keys() if k in ['id','img_path','doc_path','qrcode_path','category','name','model','package','quantity','unit','location','supplier','channel','price','buy_time','remark','creator']]
+                placeholders = ', '.join(['?'] * len(keys))
+                sql = f"INSERT OR REPLACE INTO components ({', '.join(keys)}) VALUES ({placeholders})"
+                d1.execute(sql, [item[k] for k in keys])
+                db_count += 1
+            
+            # 2. 恢复云端资产并智能修复数据库链接
+            asset_count = 0
+            field_map = {'images': 'img_path', 'docs': 'doc_path', 'qrcodes': 'qrcode_path'}
+            
+            for filepath in zf.namelist():
+                if filepath.startswith('inventory/') and not filepath.endswith('/'):
+                    parts = filepath.split('/')
+                    if len(parts) == 3:
+                        folder, full_name = parts[1], parts[2]
+                        if folder in field_map:
+                            content = zf.read(filepath)
+                            if not content: continue
+                            
+                            # 【智能 ID 提取引擎】：兼容多种命名格式
+                            name_no_ext = full_name.rsplit('.', 1)[0]
+                            target_id = None
+                            
+                            if '_' in name_no_ext:
+                                segments = name_no_ext.split('_')
+                                # 模式 A: prefix_ID (如 img_140, qr_140)
+                                if segments[-1].isdigit(): target_id = segments[-1]
+                                # 模式 B: ID_suffix (如 140_file)
+                                elif segments[0].isdigit(): target_id = segments[0]
+                            elif name_no_ext.isdigit():
+                                # 模式 C: 纯 ID (如 140)
+                                target_id = name_no_ext
+                            
+                            if target_id:
+                                file_obj = BytesIO(content)
+                                file_obj.filename = full_name
+                                
+                                # 【终极修正】强制使用标准命名规范重传，无视 ZIP 原名
+                                # 这确保了 "142_file.jpg" 还原后会自动变为 "img_142.jpg"
+                                final_fixed_name = name_no_ext # 默认兜底
+                                
+                                if folder == 'images':
+                                    final_fixed_name = f"img_{target_id}"
+                                elif folder == 'qrcodes':
+                                    final_fixed_name = f"qr_{target_id}"
+                                elif folder == 'docs':
+                                    final_fixed_name = f"doc_{target_id}"
+                                
+                                # 上传并获取最新的云端 URL
+                                new_url = upload_to_r2(file_obj, folder, fixed_name=final_fixed_name, app_name="inventory")
+                                
+                                # 强制更新数据库记录
+                                d1.execute(f"UPDATE components SET {field_map[folder]} = ? WHERE id = ?", [new_url, target_id])
+                                asset_count += 1
+
+        return jsonify(success=True, count=db_count, asset_count=asset_count)
     except Exception as e: return jsonify(success=False, error=str(e))
 
 @inventory_bp.route('/get_export_files')
@@ -128,6 +184,39 @@ def get_export_files():
     files.sort(key=lambda x: x['time'], reverse=True)
     return jsonify({'files': files[:20]})
 
+@inventory_bp.route('/delete_export_file/<filename>')
+def delete_export_file(filename):
+    """删除本地导出的历史文件"""
+    try:
+        if '..' in filename or '/' in filename or '\\' in filename:
+            return jsonify(success=False, error="非法文件名")
+        fp = os.path.join(export_dir, filename)
+        if os.path.exists(fp):
+            os.remove(fp)
+            return jsonify(success=True)
+        return jsonify(success=False, error="文件不存在")
+    except Exception as e:
+        return jsonify(success=False, error=str(e))
+
+@inventory_bp.route('/clear_export_history')
+def clear_export_history():
+    """一键清空本地导出历史文件"""
+    try:
+        if os.path.exists(export_dir):
+            for f in os.listdir(export_dir):
+                if f.endswith(('.xlsx', '.csv', '.zip')):
+                    os.remove(os.path.join(export_dir, f))
+        return jsonify(success=True)
+    except Exception as e:
+        return jsonify(success=False, error=str(e))
+
+def sanitize_filename(name):
+    """清理文件名中的非法字符"""
+    if not name: return "unnamed"
+    for char in ['/', '\\', ':', '*', '?', '"', '<', '>', '|']:
+        name = name.replace(char, '_')
+    return name.strip()
+
 @inventory_bp.route('/export', methods=['POST'])
 def export():
     data = request.form
@@ -135,11 +224,14 @@ def export():
     ids = [int(i) for i in ids_str.split(',') if i.strip().isdigit()] if ids_str else []
     fmt, with_assets = data.get('format', 'xlsx'), data.get('with_assets') == '1'
     filename_mode, custom_name = data.get('filename_mode', 'default'), data.get('custom_filename', '').strip()
+    
     if ids:
         sql = f"SELECT * FROM components WHERE id IN ({','.join(['?']*len(ids))})"; res = d1.execute(sql, ids)
     else: sql = "SELECT * FROM components"; res = d1.execute(sql)
+    
     items = res.get('results', []) if res else []
     if not items: return jsonify(success=False, error="没有数据可导出")
+    
     export_data = []
     field_map = {k: v for k, v in SYSTEM_FIELDS}
     for item in items:
@@ -147,7 +239,15 @@ def export():
         for f in fields: row[field_map.get(f, f)] = item.get(f, '')
         export_data.append(row)
     df = pd.DataFrame(export_data)
-    base_name = custom_name if (filename_mode == 'custom' and custom_name) else f"库存导出_{datetime.now().strftime('%Y%m%d%H%M')}"
+    
+    if filename_mode == 'custom' and custom_name:
+        base_name = sanitize_filename(custom_name)
+    elif len(items) == 1:
+        it = items[0]
+        base_name = sanitize_filename(f"{it.get('name')}_{it.get('model')}_{it.get('package')}")
+    else:
+        base_name = f"库存导出_{datetime.now().strftime('%Y%m%d_%H%M')}"
+
     try:
         output = BytesIO()
         if fmt == 'zip' and with_assets:
@@ -155,19 +255,20 @@ def export():
             with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zf:
                 excel_buf = BytesIO(); df.to_excel(excel_buf, index=False); zf.writestr(f"{base_name}.xlsx", excel_buf.getvalue())
                 for item in items:
+                    file_id_name = sanitize_filename(f"{item.get('name')}_{item.get('model')}_{item.get('package')}")
                     for field, folder in [('img_path', 'images'), ('qrcode_path', 'qrcodes')]:
                         url = item.get(field)
                         if url and url.startswith('http'):
                             try:
                                 c = requests.get(url, timeout=5, verify=False).content
                                 ext = url.split('.')[-1].split('?')[0]
-                                zf.writestr(f"{folder}/{item['id']}_{item.get('model','').replace('/','_')}.{ext}", c)
+                                zf.writestr(f"inventory/{folder}/{file_id_name}.{ext}", c)
                             except: pass
         elif fmt == 'xlsx':
             final_name, mimetype = f"{base_name}.xlsx", 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             df.to_excel(output, index=False)
-            server_path = os.path.join(export_dir, final_name)
-            with open(server_path, 'wb') as f: f.write(output.getvalue())
+            if not os.path.exists(export_dir): os.makedirs(export_dir)
+            with open(os.path.join(export_dir, final_name), 'wb') as f: f.write(output.getvalue())
         else:
             final_name, mimetype = f"{base_name}.csv", 'text/csv'
             df.to_csv(output, index=False, encoding='utf-8-sig')
@@ -211,8 +312,8 @@ def add():
     res = d1.execute("SELECT id FROM components ORDER BY id DESC LIMIT 1")
     if res and res.get('results'):
         new_id = res['results'][0]['id']
-        img_url = upload_to_r2(f.get('img_file'), 'images', fixed_name=f"img_{new_id}") if f.get('img_file') else ''
-        doc_url = upload_to_r2(f.get('doc_file'), 'docs', fixed_name=f"doc_{new_id}") if f.get('doc_file') else ''
+        img_url = upload_to_r2(f.get('img_file'), 'images', fixed_name=f"img_{new_id}", app_name="inventory") if f.get('img_file') else ''
+        doc_url = upload_to_r2(f.get('doc_file'), 'docs', fixed_name=f"doc_{new_id}", app_name="inventory") if f.get('doc_file') else ''
         d1.execute("UPDATE components SET img_path = ?, doc_path = ? WHERE id = ?", [img_url, doc_url, new_id])
         generate_qr(new_id, d.get('name',''), d.get('model',''))
     return redirect(url_for('inventory.index'))
@@ -236,11 +337,16 @@ def update(id):
     }
     try: updates['price'] = float(str(d.get('price', '0')).replace('¥','').replace(',','').strip() or 0.0)
     except: updates['price'] = 0.0
-    if f.get('img_file'): updates['img_path'] = upload_to_r2(f['img_file'], 'images', fixed_name=f"img_{id}")
-    if f.get('doc_file'): updates['doc_path'] = upload_to_r2(f['doc_file'], 'docs', fixed_name=f"doc_{id}")
+    if f.get('img_file'):
+        if curr.get('img_path'): delete_from_r2(curr['img_path'])
+        updates['img_path'] = upload_to_r2(f['img_file'], 'images', fixed_name=f"img_{id}", app_name="inventory")
+    if f.get('doc_file'):
+        if curr.get('doc_path'): delete_from_r2(curr['doc_path'])
+        updates['doc_path'] = upload_to_r2(f['doc_file'], 'docs', fixed_name=f"doc_{id}", app_name="inventory")
     set_sql = ", ".join([f"{c}=?" for c in updates.keys()])
     d1.execute(f"UPDATE components SET {set_sql} WHERE id=?", list(updates.values()) + [id])
     if not curr.get('qrcode_path') or d.get('name') != curr.get('name') or d.get('model') != curr.get('model'):
+        if curr.get('qrcode_path'): delete_from_r2(curr['qrcode_path'])
         generate_qr(id, d.get('name'), d.get('model'))
     return redirect(url_for('inventory.index'))
 
@@ -331,7 +437,7 @@ def import_verify():
             if field in fields_to_check and col in row: 
                 val = row.get(col, '')
                 item[field] = str(val).strip() if val is not None else ''
-        try: item['quantity'] = int(float(str(item.get('quantity',0)).replace(',','').strip() or 0))
+        try: item['quantity'] = int(float(item.get('quantity',0) or 0))
         except: item['quantity'] = 0
         try: item['price'] = float(str(item.get('price',0)).replace('¥','').replace(',','').strip() or 0.0)
         except: item['price'] = 0.0

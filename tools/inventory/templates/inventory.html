@@ -17,7 +17,7 @@
         .search-box { background: #f1f5f9; border-radius: 12px; padding: 0.5rem 1rem; display: flex; align-items: center; }
         .search-box input { background: transparent; border: none; outline: none; width: 100%; font-size: 1rem; font-weight: 600; margin-left: 0.5rem; }
         
-        .row-filters { margin: 1rem 2rem; background: white; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 0.75rem 1.5rem; display: flex; justify-content: center; gap: 1.2rem; flex-wrap: wrap; shadow: 0 1px 3px rgba(0,0,0,0.05); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+        .row-filters { margin: 1rem 2rem; background: white; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 0.75rem 1.5rem; display: flex; justify-content: center; gap: 1.2rem; flex-wrap: wrap; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
         .d-none-custom { display: none !important; }
         .f-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #64748b; font-weight: 700; }
         .f-item input, .f-item select { border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.3rem 0.6rem; font-size: 0.8rem; background: #f8fafc; outline: none; transition: 0.2s; }
@@ -29,9 +29,8 @@
         .batch-btn.active-edit { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); }
         .batch-btn.active-del { color: #ef4444; background: #fef2f2; border-color: #fecaca; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1); }
         
-        /* BOM 动作组高级样式 */
         .bom-group { background: #0f172a; border-radius: 14px; padding: 3px; display: flex; align-items: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); }
-        .bom-btn { color: #f8fafc; border: none; background: transparent; padding: 7px 18px; font-size: 11px; font-weight: 900; letter-spacing: 0.05em; transition: 0.2s; border-radius: 10px; display: flex; align-items: center; gap: 6px; }
+        .bom-btn { color: #f8fafc; border: none; background: transparent; padding: 8px 20px; font-size: 11px; font-weight: 900; letter-spacing: 0.05em; transition: 0.2s; border-radius: 10px; display: flex; align-items: center; gap: 6px; }
         .bom-btn i { font-size: 14px; opacity: 0.7; }
         .bom-btn:hover { background: rgba(255,255,255,0.08); color: #60a5fa; }
         .bom-btn:hover i { opacity: 1; }
@@ -96,12 +95,7 @@
     <div class="flex items-center gap-2"><div class="bg-blue-600 text-white p-1 rounded shadow-sm"><i class="bi bi-cpu-fill"></i></div><h1 class="text-sm font-black m-0 tracking-widest text-slate-900">DATABASE</h1></div>
     <div class="abs-center">
         <form action="{{ url_for('inventory.index') }}" method="GET">
-            <div class="search-box">
-                <i class="bi bi-search text-slate-400"></i>
-                <input type="text" name="q" id="main-search" placeholder="全局搜索..." value="{{ q }}" autocomplete="off">
-                <button type="button" onclick="openScanModal()" class="text-slate-300 hover:text-blue-500 ms-2" title="扫码查找"><i class="bi bi-qr-code-scan"></i></button>
-                <button type="button" onclick="toggleFilterBar()" class="text-slate-300 hover:text-blue-500 ms-2"><i class="bi bi-sliders2"></i></button>
-            </div>
+            <div class="search-box"><i class="bi bi-search text-slate-400"></i><input type="text" name="q" id="main-search" placeholder="全局搜索..." value="{{ q }}" autocomplete="off"><button type="button" onclick="openScanModal()" class="text-slate-300 hover:text-blue-500 ms-2" title="扫码查找"><i class="bi bi-qr-code-scan"></i></button><button type="button" onclick="toggleFilterBar()" class="text-slate-300 hover:text-blue-500 ms-2"><i class="bi bi-sliders2"></i></button></div>
         </form>
     </div>
     <div class="ms-auto flex items-center gap-2">
@@ -210,176 +204,6 @@
     </table>
 </div>
 
-<!-- ================= 批量修改：全字段网格 ================= -->
-<div class="modal fade" id="batchEditModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-2xl rounded-[2rem] overflow-hidden"><div class="bg-blue-600 px-8 py-6 text-white flex justify-between items-center"><div><h5 class="m-0 font-black text-lg">全字段批量修改</h5><p class="text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest">选中 <span id="batchCount">0</span> 项 | 留空不改</p></div><button type="button" class="btn-close btn-close-white" onclick="closeModal('batchEditModal')"></button></div><div class="modal-body p-8 bg-white"><div class="grid grid-cols-2 gap-x-8 gap-y-4"><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">品类</label><input type="text" id="batch_category" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">品名</label><input type="text" id="batch_name" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">封装规格</label><input type="text" id="batch_package" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">位置</label><input type="text" id="batch_location" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">供应商</label><input type="text" id="batch_supplier" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">采购渠道</label><input type="text" id="batch_channel" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">单位</label><input type="text" id="batch_unit" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">单价 (¥)</label><input type="number" step="0.01" id="batch_price" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1 col-span-2"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">采购时间</label><input type="date" id="batch_buy_time" class="form-control font-bold"></div><div class="space-y-1 col-span-2"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">备注说明</label><input type="text" id="batch_remark" class="form-control font-bold" placeholder="不修改请留空"></div></div></div><div class="px-8 py-6 bg-slate-50 text-end"><button class="bg-blue-600 text-white px-12 py-3 rounded-2xl font-black text-sm shadow-xl" onclick="submitBatchEdit()">应用并保存</button></div></div></div></div>
-<div class="modal fade" id="editModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-2xl rounded-2xl overflow-hidden"><form id="editForm" method="POST" enctype="multipart/form-data"><div class="bg-blue-600 px-6 py-4 text-white flex justify-between items-center"><h5 class="m-0 font-black text-sm uppercase">编辑详情</h5><button type="button" class="btn-close btn-close-white" onclick="closeModal('editModal')"></button></div><div class="modal-body p-8 grid grid-cols-2 gap-4 bg-white"><input type="text" name="category" id="edit_category" class="form-control" required placeholder="品类"><input type="text" name="name" id="edit_name" class="form-control" required placeholder="品名"><input type="text" name="model" id="edit_model" class="form-control font-bold" required placeholder="型号"><input type="text" name="package" id="edit_package" class="form-control" placeholder="封装"><input type="number" name="quantity" id="edit_quantity" class="form-control" value="0"><input type="text" name="unit" id="edit_unit" class="form-control" placeholder="单位"><input type="number" step="0.01" name="price" id="edit_price" class="form-control" value="0.00"><input type="text" name="location" id="edit_location" class="form-control" placeholder="位置"><input type="text" name="supplier" id="edit_supplier" class="form-control" placeholder="供应商"><input type="text" name="channel" id="edit_channel" class="form-control" placeholder="渠道"><input type="date" name="buy_time" id="edit_buy_time" class="form-control"><div class="flex items-center gap-2"><a href="#" target="_blank" class="doc-link hidden text-blue-500 text-xs font-bold"><i class="bi bi-file-pdf"></i> 查看当前手册</a><button type="button" onclick="deleteFile('doc_path')" class="doc-link hidden text-red-400 hover:text-red-600 transition ms-1"><i class="bi bi-trash"></i></button></div><div class="col-span-2 grid grid-cols-2 gap-6 bg-slate-50 p-4 rounded-2xl border border-slate-100"><div><label class="text-[10px] font-black text-slate-400 uppercase">主图管理</label><div class="flex items-center gap-4 mt-2"><div class="relative group/img"><img src="" class="part-img-preview w-16 h-16 rounded-lg border bg-white object-contain"><button type="button" onclick="deleteFile('img_path')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-lg opacity-0 group-hover/img:opacity-100 transition"><i class="bi bi-x"></i></button></div><input type="file" name="img_file" class="form-control form-control-sm"></div></div><div><label class="text-[10px] font-black text-slate-400 uppercase">二维码预览</label><div class="flex items-center gap-4 mt-2"><img src="" class="qr-preview w-16 h-16 rounded-lg border bg-white object-contain cursor-pointer" onclick="window.open(this.src)"><div class="flex flex-col gap-1"><div class="text-[9px] text-slate-400 font-bold uppercase leading-tight">扫描快速查询</div><button type="button" onclick="regenerateQR()" class="text-[10px] font-black text-blue-500 hover:text-blue-700 bg-transparent border-0 p-0 text-left">重新生成</button></div></div></div><div class="col-span-2 mt-2"><label class="text-[10px] font-black text-slate-400 uppercase">技术手册 (PDF)</label><input type="file" name="doc_file" class="form-control form-control-sm mt-1"></div></div><input type="text" name="remark" id="edit_remark" class="form-control col-span-2" placeholder="备注"></div><div class="px-8 py-4 bg-slate-50 flex justify-between items-center"><button type="button" onclick="deleteComponent()" class="text-red-500 text-xs font-black uppercase tracking-widest hover:text-red-700 transition"><i class="bi bi-trash me-1"></i>删除此元器件</button><button type="submit" class="btn btn-primary rounded-xl px-10 font-black">更新</button></div></form></div></div></div>
-<div class="modal fade" id="addModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-2xl rounded-2xl overflow-hidden"><form action="{{ url_for('inventory.add') }}" method="POST" enctype="multipart/form-data"><div class="bg-slate-900 px-6 py-4 text-white flex justify-between items-center"><h5 class="m-0 font-black text-sm uppercase">单个元器件入库</h5><button type="button" class="btn-close btn-close-white" onclick="closeModal('addModal')"></button></div><div class="modal-body p-8 grid grid-cols-2 gap-4 bg-white"><input type="text" name="category" class="form-control" required placeholder="品类*"><input type="text" name="name" class="form-control" required placeholder="品名*"><input type="text" name="model" class="form-control font-bold" required placeholder="型号*"><input type="text" name="package" class="form-control" placeholder="封装规格"><input type="number" name="quantity" class="form-control" value="0"><input type="text" name="unit" class="form-control" value="个"><input type="text" name="location" class="form-control" placeholder="存放位置"><input type="number" step="0.01" name="price" class="form-control" value="0.00" placeholder="单价"><input type="text" name="supplier" class="form-control" placeholder="供应商"><input type="text" name="channel" class="form-control" placeholder="采购渠道"><div class="col-span-2 grid grid-cols-2 gap-4"><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase">图片上传</label><input type="file" name="img_file" class="form-control"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase">手册上传 (PDF)</label><input type="file" name="doc_file" class="form-control"></div></div></div><div class="px-8 py-4 bg-slate-50 text-end"><button type="submit" class="btn btn-dark rounded-xl px-10 font-black">保存</button></div></form></div></div></div>
-
-<div id="importModal" class="fixed inset-0 bg-black/60 backdrop-blur hidden z-50 flex items-center justify-center p-4"><div class="bg-white w-full max-w-6xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[85vh] glass-panel"><div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white/80"><div class="flex items-center gap-6"><div><h5 class="m-0 font-black text-xl text-slate-800 tracking-tight">智能导入向导</h5><p class="text-xs text-slate-400 mt-1 font-bold">1.选择 -> 2.映射 -> 3.校验</p></div><div id="importStatsHeader" class="hidden flex gap-4 items-center bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100"></div></div><div class="flex gap-4 items-center"><div id="stepDot1" class="w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center font-bold text-sm shadow-lg">1</div><div class="h-[2px] w-10 bg-slate-200"></div><div id="stepDot2" class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-sm">2</div><div class="h-[2px] w-10 bg-slate-100"></div><div id="stepDot3" class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-sm">3</div></div><button onclick="closeImportModal()" class="text-slate-400 hover:text-black transition text-3xl font-light">×</button></div><div class="p-10 overflow-y-auto flex-1 bg-slate-50/30"><div id="stepContent1" class="space-y-10"><div class="grid grid-cols-2 gap-10 h-64"><div id="dropZone" onclick="document.getElementById('fileInput').click()" class="border-4 border-dashed border-slate-200 rounded-[2.5rem] p-12 text-center hover:border-blue-500 transition-all cursor-pointer group flex flex-col justify-center items-center h-64 bg-white"><i class="bi bi-file-earmark-excel-fill text-6xl text-slate-200 group-hover:text-blue-500 mb-6"></i><h3 class="text-lg font-black text-slate-800">上传 Excel</h3><p class="text-xs text-slate-400 mt-2 font-bold">支持拖拽</p><input type="file" id="fileInput" class="hidden" accept=".xlsx,.csv" onchange="uploadSource('file')"></div><div class="border-4 border-dashed border-slate-200 rounded-[2.5rem] p-10 flex flex-col bg-white h-64"><textarea id="pasteInput" class="flex-1 bg-slate-50 rounded-2xl p-6 text-sm font-mono outline-none focus:ring-4 focus:ring-blue-100 resize-none mb-4" placeholder="粘贴 Excel 内容..."></textarea><button onclick="uploadSource('paste')" class="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-sm hover:bg-black transition">解析数据</button></div></div></div><div id="stepContent2" class="hidden">
-    <div class="flex justify-between items-end mb-6">
-        <div id="parseStats" class="font-bold text-slate-500"></div>
-        <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">智能匹配结果</span>
-    </div>
-    <!-- 数据预览移至上方 -->
-    <div class="rounded-2xl border-2 border-slate-100 overflow-hidden shadow-sm mb-8">
-        <div class="bg-slate-50 px-4 py-2 border-b text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">数据预览 (Top 3)</div>
-        <div class="overflow-x-auto"><table class="w-full text-left text-xs bg-white" id="rawPreviewTab"></table></div>
-    </div>
-    <!-- 映射选项移至下方 -->
-    <div id="mappingGrid" class="grid grid-cols-4 gap-4 mb-8"></div>
-
-    <!-- 新增：系统识别效果预览 -->
-    <div id="mappedPreviewContainer" class="hidden rounded-2xl border-2 border-blue-500/20 overflow-hidden shadow-lg">
-        <div class="bg-blue-600 px-4 py-2 text-white flex justify-between items-center">
-            <span class="text-[10px] font-black uppercase tracking-widest">系统识别效果预览 (实时)</span>
-            <span class="text-[9px] opacity-80 font-bold">基于当前映射逻辑</span>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs bg-white" id="mappedPreviewTab"></table>
-        </div>
-    </div>
-</div><div id="stepContent3" class="hidden h-full flex flex-col"><div id="conflictList" class="flex-1 overflow-y-auto space-y-3 p-2"></div></div></div><div class="p-8 border-t border-slate-100 flex justify-end gap-6 bg-white/80 backdrop-blur-sm"><button id="nextBtn" class="hidden px-12 py-4 bg-black text-white rounded-2xl font-black text-sm shadow-xl hover:scale-105 transition active:scale-95">下一步</button></div></div></div>
-</div>
-
-<!-- 导出模态框 -->
-<div id="exportModal" class="fixed inset-0 bg-black/60 backdrop-blur hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[85vh] glass-panel">
-        <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white/80">
-            <div>
-                <h5 class="m-0 font-black text-xl text-slate-800 tracking-tight">数据导出中心</h5>
-                <p class="text-xs text-slate-400 mt-1 font-bold">选中 <span id="exportCount" class="text-blue-600">0</span> 条数据 | 支持图片/二维码打包</p>
-            </div>
-            <button onclick="closeExportModal()" class="text-slate-400 hover:text-black transition text-3xl font-light">×</button>
-        </div>
-        
-        <div class="p-10 overflow-y-auto flex-1 bg-slate-50/30 grid grid-cols-3 gap-8">
-            <!-- 左侧：导出配置 -->
-            <div class="col-span-2 space-y-8">
-                <!-- 1. 字段选择 -->
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">导出字段</h6>
-                    <div class="grid grid-cols-4 gap-3">
-                        {% for f_code, f_name in system_fields if f_code %}
-                        <label class="flex items-center gap-2 cursor-pointer bg-slate-50 p-2 rounded-xl hover:bg-blue-50 transition border border-transparent hover:border-blue-100">
-                            <input type="checkbox" name="export_fields" value="{{ f_code }}" checked class="form-check-input mt-0">
-                            <span class="text-xs font-bold text-slate-700">{{ f_name }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- 2. 格式与选项 -->
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">导出格式</h6>
-                    <div class="grid grid-cols-3 gap-4">
-                        <label class="cursor-pointer">
-                            <input type="radio" name="export_fmt" value="xlsx" checked class="peer hidden">
-                            <div class="peer-checked:bg-green-50 peer-checked:border-green-200 peer-checked:text-green-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition">
-                                <i class="bi bi-file-earmark-excel text-2xl mb-2 block"></i>
-                                <span class="text-xs font-black">Excel 表格</span>
-                            </div>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="export_fmt" value="csv" class="peer hidden">
-                            <div class="peer-checked:bg-blue-50 peer-checked:border-blue-200 peer-checked:text-blue-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition">
-                                <i class="bi bi-file-text text-2xl mb-2 block"></i>
-                                <span class="text-xs font-black">CSV 文本</span>
-                            </div>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="export_fmt" value="zip" class="peer hidden">
-                            <div class="peer-checked:bg-purple-50 peer-checked:border-purple-200 peer-checked:text-purple-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition">
-                                <i class="bi bi-file-zip text-2xl mb-2 block"></i>
-                                <span class="text-xs font-black">ZIP 数据包</span>
-                                <div class="text-[9px] mt-1 opacity-60">+图片/二维码</div>
-                            </div>
-                        </label>
-                    </div>
-                    
-                    <!-- ZIP 选项 -->
-                    <div id="zipOptions" class="hidden mt-4 pt-4 border-t border-slate-100">
-                        <label class="flex items-center gap-2">
-                            <input type="checkbox" id="exportAssets" class="form-check-input">
-                            <span class="text-xs font-bold text-slate-600">包含主图和二维码 (R2资源下载耗时较长)</span>
-                        </label>
-                    </div>
-                </div>
-                
-                <!-- 3. 文件名设置 -->
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">文件名设置</h6>
-                    <div class="flex gap-4">
-                        <select id="filenameMode" class="form-select text-xs font-bold w-1/3 rounded-xl border-slate-200" onchange="toggleFilenameInput()">
-                            <option value="default">默认 (库存导出_时间)</option>
-                            <option value="custom">自定义名称</option>
-                        </select>
-                        <input type="text" id="customFilename" placeholder="输入文件名..." class="form-control text-xs font-bold flex-1 rounded-xl border-slate-200 hidden">
-                    </div>
-                </div>
-            </div>
-
-            <!-- 右侧：历史导出 -->
-            <div class="bg-slate-100 rounded-[2rem] p-6 flex flex-col h-full">
-                <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">最近导出记录</h6>
-                <div id="exportHistoryList" class="flex-1 overflow-y-auto space-y-2 pr-2">
-                    <!-- 动态加载 -->
-                </div>
-            </div>
-        </div>
-
-        <div class="p-8 border-t border-slate-100 flex justify-end bg-white/80 backdrop-blur-sm">
-            <button onclick="submitExport()" class="px-12 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm shadow-xl hover:scale-105 transition active:scale-95 flex items-center gap-2">
-                <i class="bi bi-cloud-download"></i> 立即导出
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- 数据还原模态框 -->
-<div class="modal fade" id="restoreModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-2xl rounded-[2rem] overflow-hidden">
-            <div class="bg-orange-500 px-8 py-6 text-white flex justify-between items-center">
-                <div>
-                    <h5 class="m-0 font-black text-lg uppercase tracking-tight">数据还原中心</h5>
-                    <p class="text-[10px] font-bold opacity-80 mt-1">请上传之前备份的 .zip 文件进行恢复</p>
-                </div>
-                <button type="button" class="btn-close btn-close-white" onclick="closeModal('restoreModal')"></button>
-            </div>
-            <div class="modal-body p-10 bg-white">
-                <div class="border-4 border-dashed border-slate-100 rounded-[2rem] p-10 text-center hover:border-orange-200 transition-all cursor-pointer group flex flex-col items-center" onclick="document.getElementById('restoreFile').click()">
-                    <i class="bi bi-file-earmark-zip-fill text-6xl text-slate-100 group-hover:text-orange-500 mb-6 transition"></i>
-                    <h3 class="text-sm font-black text-slate-800">选择备份包</h3>
-                    <p class="text-[10px] text-slate-400 mt-2 font-bold uppercase">支持 .zip 格式备份文件</p>
-                    <input type="file" id="restoreFile" accept=".zip" class="hidden" onchange="submitRestore(this)">
-                </div>
-                
-                <div class="mt-8 p-4 bg-orange-50 rounded-2xl border border-orange-100">
-                    <div class="flex gap-3 text-orange-700">
-                        <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
-                        <div class="text-[10px] font-bold leading-relaxed">
-                            <strong>风险提示：</strong> 还原操作将根据备份文件中的数据覆盖当前数据库。如果备份中的记录 ID 与现有记录冲突，现有记录将被替换。请确保您上传的是由本系统生成的合法备份文件。
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="scanModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow-2xl rounded-2xl overflow-hidden"><div class="bg-slate-900 px-6 py-4 text-white flex justify-between items-center"><h5 class="m-0 font-black text-sm uppercase">扫码查找</h5><button type="button" class="btn-close btn-close-white" onclick="closeScanModal()"></button></div><div class="modal-body p-6 bg-white"><div id="cameraArea" class="relative rounded-xl overflow-hidden bg-black h-64 mb-4 hidden"><video id="videoElement" class="w-full h-full object-cover"></video><div class="absolute inset-0 border-4 border-white/20 m-8 rounded-lg pointer-events-none"></div><div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="w-48 h-1 bg-red-500/50 shadow-[0_0_10px_rgba(255,0,0,0.8)] animate-pulse"></div></div></div><div id="scanResult" class="text-center py-4 hidden"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-xs font-bold text-slate-400">正在查询...</p></div><div class="grid grid-cols-2 gap-4"><button onclick="startScanner()" class="btn btn-outline-dark rounded-xl font-bold py-3"><i class="bi bi-camera-video me-2"></i>摄像头扫描</button><button onclick="document.getElementById('qrFileInput').click()" class="btn btn-outline-dark rounded-xl font-bold py-3"><i class="bi bi-upload me-2"></i>上传图片</button><input type="file" id="qrFileInput" accept="image/*" class="hidden" onchange="scanFromFile(this)"></div></div></div></div></div>
-
-<!-- 全局加载遮罩 -->
-<div id="globalLoading" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[1000] hidden flex flex-col items-center justify-center">
-    <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-4">
-        <div class="spinner-border text-blue-600 w-12 h-12" role="status"></div>
-        <div class="text-center">
-            <h5 class="font-black text-slate-800 m-0">正在执行入库</h5>
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">正在同步云端二维码及数据库...</p>
-        </div>
-    </div>
-</div>
-
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -427,20 +251,21 @@
     }
     async function regenerateQR() {
         if(!currentId) return;
-        const btn = event.target;
-        btn.innerText = '正在生成...';
+        showLoading('正在重新生成', '正在同步新二维码至云端 R2...');
         const res = await fetch(`/inventory/regenerate_qr/${currentId}`).then(r => r.json());
+        hideLoading();
         if(res.success) {
             document.querySelector('#editModal .qr-preview').src = res.qrcode_path;
             alert('二维码已重新生成并同步至云端');
         } else {
             alert('生成失败: ' + res.error);
         }
-        btn.innerText = '重新生成';
     }
     async function deleteFile(field) {
         if(!currentId || !confirm('确定要删除这个文件吗？')) return;
+        showLoading('正在移除附件', '正在从云端彻底销毁该资源...');
         const res = await fetch(`/inventory/delete_file/${currentId}/${field}`).then(r => r.json());
+        hideLoading();
         if(res.success) {
             // 刷新当前编辑框状态
             if(field === 'img_path') document.querySelector('#editModal .part-img-preview').src = '';
@@ -450,9 +275,133 @@
     }
     function deleteComponent() {
         if(!currentId || !confirm('确定要永久删除这项数据及云端文件吗？')) return;
+        showLoading('正在彻底删除', '正在清理数据库记录及所有关联云端文件...');
         window.location.href = `/inventory/delete/${currentId}`;
     }
 </script>
 <script src="{{ url_for('inventory.static', filename='js/inventory.js') }}?v=5"></script>
+
+<!-- ================= 模态框区域 (移至底部以防嵌套) ================= -->
+
+<!-- 批量修改模态框 -->
+<div class="modal fade" id="batchEditModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-[2rem] overflow-hidden">
+            <div class="bg-blue-600 px-8 py-6 text-white flex justify-between items-center"><div><h5 class="m-0 font-black text-lg">全字段批量修改</h5><p class="text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest">选中 <span id="batchCount">0</span> 项 | 留空不改</p></div><button type="button" class="btn-close btn-close-white" onclick="closeModal('batchEditModal')"></button></div>
+            <div class="modal-body p-8 bg-white"><div class="grid grid-cols-2 gap-x-8 gap-y-4"><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">品类</label><input type="text" id="batch_category" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">品名</label><input type="text" id="batch_name" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">封装规格</label><input type="text" id="batch_package" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">位置</label><input type="text" id="batch_location" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">供应商</label><input type="text" id="batch_supplier" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">采购渠道</label><input type="text" id="batch_channel" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">单位</label><input type="text" id="batch_unit" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">单价</label><input type="number" step="0.01" id="batch_price" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">采购时间</label><input type="date" id="batch_buy_time" class="form-control font-bold"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">备注</label><input type="text" id="batch_remark" class="form-control font-bold" placeholder="不修改请留空"></div></div></div>
+            <div class="px-8 py-4 bg-slate-50 text-end"><button type="button" class="btn btn-primary rounded-xl px-10 font-black" onclick="submitBatchEdit()">确认修改</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑详情模态框 -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-2xl overflow-hidden">
+            <form id="editForm" method="POST" enctype="multipart/form-data">
+                <div class="bg-blue-600 px-6 py-4 text-white flex justify-between items-center"><h5 class="m-0 font-black text-sm uppercase">编辑详情</h5><button type="button" class="btn-close btn-close-white" onclick="closeModal('editModal')"></button></div>
+                <div class="modal-body p-8 grid grid-cols-2 gap-4 bg-white"><input type="text" name="category" id="edit_category" class="form-control" required placeholder="品类"><input type="text" name="name" id="edit_name" class="form-control" required placeholder="品名"><input type="text" name="model" id="edit_model" class="form-control font-bold" required placeholder="型号"><input type="text" name="package" id="edit_package" class="form-control" placeholder="封装"><input type="number" name="quantity" id="edit_quantity" class="form-control" value="0"><input type="text" name="unit" id="edit_unit" class="form-control" placeholder="单位"><input type="number" step="0.01" name="price" id="edit_price" class="form-control" value="0.00"><input type="text" name="location" id="edit_location" class="form-control" placeholder="位置"><input type="text" name="supplier" id="edit_supplier" class="form-control" placeholder="供应商"><input type="text" name="channel" id="edit_channel" class="form-control" placeholder="渠道"><input type="date" name="buy_time" id="edit_buy_time" class="form-control"><div class="flex items-center gap-2"><a href="#" target="_blank" class="doc-link hidden text-blue-500 text-xs font-bold"><i class="bi bi-file-pdf"></i> 查看当前手册</a><button type="button" onclick="deleteFile('doc_path')" class="doc-link hidden text-red-400 hover:text-red-600 transition ms-1"><i class="bi bi-trash"></i></button></div><div class="col-span-2 grid grid-cols-2 gap-6 bg-slate-50 p-4 rounded-2xl border border-slate-100"><div><label class="text-[10px] font-black text-slate-400 uppercase">主图管理</label><div class="flex items-center gap-4 mt-2"><div class="relative group/img"><img src="" class="part-img-preview w-16 h-16 rounded-lg border bg-white object-contain"><button type="button" onclick="deleteFile('img_path')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-lg opacity-0 group-hover/img:opacity-100 transition"><i class="bi bi-x"></i></button></div><input type="file" name="img_file" class="form-control form-control-sm"></div></div><div><label class="text-[10px] font-black text-slate-400 uppercase">二维码预览</label><div class="flex items-center gap-4 mt-2"><img src="" class="qr-preview w-16 h-16 rounded-lg border bg-white object-contain cursor-pointer" onclick="window.open(this.src)"><div class="flex flex-col gap-1"><div class="text-[9px] text-slate-400 font-bold uppercase leading-tight">扫描快速查询</div><button type="button" onclick="regenerateQR()" class="text-[10px] font-black text-blue-500 hover:text-blue-700 bg-transparent border-0 p-0 text-left">重新生成</button></div></div></div><div class="col-span-2 mt-2"><label class="text-[10px] font-black text-slate-400 uppercase">技术手册 (PDF)</label><input type="file" name="doc_file" class="form-control form-control-sm mt-1"></div></div><input type="text" name="remark" id="edit_remark" class="form-control col-span-2" placeholder="备注"></div><div class="px-8 py-4 bg-slate-50 flex justify-between items-center"><button type="button" onclick="deleteComponent()" class="text-red-500 text-xs font-black uppercase tracking-widest hover:text-red-700 transition"><i class="bi bi-trash me-1"></i>删除此元器件</button><button type="submit" class="btn btn-primary rounded-xl px-10 font-black">更新</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 单个入库模态框 -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-2xl overflow-hidden">
+            <form action="{{ url_for('inventory.add') }}" method="POST" enctype="multipart/form-data">
+                <div class="bg-slate-900 px-6 py-4 text-white flex justify-between items-center"><h5 class="m-0 font-black text-sm uppercase">单个元器件入库</h5><button type="button" class="btn-close btn-close-white" onclick="closeModal('addModal')"></button></div>
+                <div class="modal-body p-8 grid grid-cols-2 gap-4 bg-white"><input type="text" name="category" class="form-control" required placeholder="品类*"><input type="text" name="name" class="form-control" required placeholder="品名*"><input type="text" name="model" class="form-control font-bold" required placeholder="型号*"><input type="text" name="package" class="form-control" placeholder="封装规格"><input type="number" name="quantity" class="form-control" value="0"><input type="text" name="unit" class="form-control" value="个"><input type="text" name="location" class="form-control" placeholder="存放位置"><input type="number" step="0.01" name="price" class="form-control" value="0.00" placeholder="单价"><input type="text" name="supplier" class="form-control" placeholder="供应商"><input type="text" name="channel" class="form-control" placeholder="采购渠道"><div class="col-span-2 grid grid-cols-2 gap-4"><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase">图片上传</label><input type="file" name="img_file" class="form-control"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase">手册上传 (PDF)</label><input type="file" name="doc_file" class="form-control"></div></div></div><div class="px-8 py-4 bg-slate-50 text-end"><button type="submit" class="btn btn-dark rounded-xl px-10 font-black">保存</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- BOM 导入向导 -->
+<div id="importModal" class="fixed inset-0 bg-black/60 backdrop-blur hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-6xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[85vh] glass-panel">
+        <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white/80"><div class="flex items-center gap-6"><div><h5 class="m-0 font-black text-xl text-slate-800 tracking-tight">智能导入向导</h5><p class="text-xs text-slate-400 mt-1 font-bold">1.选择 -> 2.映射 -> 3.校验</p></div><div id="importStatsHeader" class="hidden flex gap-4 items-center bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100"></div></div><div class="flex gap-4 items-center"><div id="stepDot1" class="w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center font-bold text-sm shadow-lg">1</div><div class="h-[2px] w-10 bg-slate-200"></div><div id="stepDot2" class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-sm">2</div><div class="h-[2px] w-10 bg-slate-100"></div><div id="stepDot3" class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-sm">3</div></div><button onclick="closeImportModal()" class="text-slate-400 hover:text-black transition text-3xl font-light">×</button></div>
+        <div class="p-10 overflow-y-auto flex-1 bg-slate-50/30"><div id="stepContent1" class="space-y-10"><div class="grid grid-cols-2 gap-10 h-64"><div id="dropZone" onclick="document.getElementById('fileInput').click()" class="border-4 border-dashed border-slate-200 rounded-[2.5rem] p-12 text-center hover:border-blue-500 transition-all cursor-pointer group flex flex-col justify-center items-center h-64 bg-white"><i class="bi bi-file-earmark-excel-fill text-6xl text-slate-200 group-hover:text-blue-500 mb-6"></i><h3 class="text-lg font-black text-slate-800">上传 Excel</h3><p class="text-xs text-slate-400 mt-2 font-bold">支持拖拽</p><input type="file" id="fileInput" class="hidden" accept=".xlsx,.csv" onchange="uploadSource('file')"></div><div class="border-4 border-dashed border-slate-200 rounded-[2.5rem] p-10 flex flex-col bg-white h-64"><textarea id="pasteInput" class="flex-1 bg-slate-50 rounded-2xl p-6 text-sm font-mono outline-none focus:ring-4 focus:ring-blue-100 resize-none mb-4" placeholder="粘贴 Excel 内容..."></textarea><button onclick="uploadSource('paste')" class="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-sm hover:bg-black transition">解析数据</button></div></div></div><div id="stepContent2" class="hidden"><div class="flex justify-between items-end mb-6"><div id="parseStats" class="font-bold text-slate-500"></div><span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">智能匹配结果</span></div><div class="rounded-2xl border-2 border-slate-100 overflow-hidden shadow-sm mb-8"><div class="bg-slate-50 px-4 py-2 border-b text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">数据预览 (Top 3)</div><div class="overflow-x-auto"><table class="w-full text-left text-xs bg-white" id="rawPreviewTab"></table></div></div><div id="mappingGrid" class="grid grid-cols-4 gap-4 mb-8"></div><div id="mappedPreviewContainer" class="hidden rounded-2xl border-2 border-blue-500/20 overflow-hidden shadow-lg"><div class="bg-blue-600 px-4 py-2 text-white flex justify-between items-center"><span class="text-[10px] font-black uppercase tracking-widest">系统识别效果预览 (实时)</span><span class="text-[9px] opacity-80 font-bold">基于当前映射逻辑</span></div><div class="overflow-x-auto"><table class="w-full text-left text-xs bg-white" id="mappedPreviewTab"></table></div></div></div><div id="stepContent3" class="hidden h-full flex flex-col"><div id="conflictList" class="flex-1 overflow-y-auto space-y-3 p-2"></div></div></div>
+        <div class="p-8 border-t border-slate-100 flex justify-end gap-6 bg-white/80 backdrop-blur-sm"><button id="nextBtn" class="hidden px-12 py-4 bg-black text-white rounded-2xl font-black text-sm shadow-xl hover:scale-105 transition active:scale-95">下一步</button></div>
+    </div>
+</div>
+
+<!-- 导出模态框 -->
+<div id="exportModal" class="fixed inset-0 bg-black/60 backdrop-blur hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[85vh] glass-panel">
+        <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white/80">
+            <div><h5 class="m-0 font-black text-xl text-slate-800 tracking-tight">数据导出中心</h5><p class="text-xs text-slate-400 mt-1 font-bold">选中 <span id="exportCount" class="text-blue-600">0</span> 条数据 | 支持图片/二维码打包</p></div><button onclick="closeExportModal()" class="text-slate-400 hover:text-black transition text-3xl font-light">×</button>
+        </div>
+        <div class="p-10 overflow-y-auto flex-1 bg-slate-50/30 grid grid-cols-3 gap-8">
+            <div class="col-span-2 space-y-8">
+                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+                    <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">导出字段</h6>
+                    <div class="grid grid-cols-4 gap-3">
+                        {% for f_code, f_name in system_fields if f_code %}
+                        <label class="flex items-center gap-2 cursor-pointer bg-slate-50 p-2 rounded-xl hover:bg-blue-50 transition border border-transparent hover:border-blue-100"><input type="checkbox" name="export_fields" value="{{ f_code }}" checked class="form-check-input mt-0"><span class="text-xs font-bold text-slate-700">{{ f_name }}</span></label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+                    <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">导出格式</h6>
+                    <div class="grid grid-cols-3 gap-4">
+                        <label class="cursor-pointer"><input type="radio" name="export_fmt" value="xlsx" checked class="peer hidden"><div class="peer-checked:bg-green-50 peer-checked:border-green-200 peer-checked:text-green-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition"><i class="bi bi-file-earmark-excel text-2xl mb-2 block"></i><span class="text-xs font-black">Excel 表格</span></div></label>
+                        <label class="cursor-pointer"><input type="radio" name="export_fmt" value="csv" class="peer hidden"><div class="peer-checked:bg-blue-50 peer-checked:border-blue-200 peer-checked:text-blue-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition"><i class="bi bi-file-text text-2xl mb-2 block"></i><span class="text-xs font-black">CSV 文本</span></div></label>
+                        <label class="cursor-pointer"><input type="radio" name="export_fmt" value="zip" class="peer hidden"><div class="peer-checked:bg-purple-50 peer-checked:border-purple-200 peer-checked:text-purple-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition"><i class="bi bi-file-zip text-2xl mb-2 block"></i><span class="text-xs font-black">ZIP 数据包</span><div class="text-[9px] mt-1 opacity-60">+图片/二维码</div></div></label>
+                    </div>
+                    <div id="zipOptions" class="hidden mt-4 pt-4 border-t border-slate-100"><label class="flex items-center gap-2"><input type="checkbox" id="exportAssets" class="form-check-input"><span class="text-xs font-bold text-slate-600">包含主图和二维码 (R2资源下载耗时较长)</span></label></div>
+                </div>
+                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+                    <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">文件名设置</h6>
+                    <div class="flex gap-4"><select id="filenameMode" class="form-select text-xs font-bold w-1/3 rounded-xl border-slate-200" onchange="toggleFilenameInput()"><option value="default">默认</option><option value="custom">自定义名称</option></select><input type="text" id="customFilename" placeholder="输入文件名..." class="form-control text-xs font-bold flex-1 rounded-xl border-slate-200 hidden"></div>
+                </div>
+            </div>
+            <div class="bg-slate-100 rounded-[2rem] p-6 flex flex-col h-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest m-0">最近导出记录</h6>
+                    <button onclick="clearExportHistory()" class="text-slate-400 hover:text-red-500 transition-all text-sm" title="清空全部记录"><i class="bi bi-trash3-fill"></i></button>
+                </div>
+                <div id="exportHistoryList" class="flex-1 overflow-y-auto space-y-2 pr-2"></div>
+            </div>
+        </div>
+        <div class="p-8 border-t border-slate-100 flex justify-end bg-white/80 backdrop-blur-sm"><button onclick="submitExport()" class="px-12 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm shadow-xl hover:scale-105 transition active:scale-95 flex items-center gap-2"><i class="bi bi-cloud-download"></i> 立即导出</button></div>
+    </div>
+</div>
+
+<!-- 数据还原模态框 -->
+<div class="modal fade" id="restoreModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-[2rem] overflow-hidden">
+            <div class="bg-orange-500 px-8 py-6 text-white flex justify-between items-center"><div><h5 class="m-0 font-black text-lg uppercase tracking-tight">数据还原中心</h5><p class="text-[10px] font-bold opacity-80 mt-1">请上传之前备份的 .zip 文件进行恢复</p></div><button type="button" class="btn-close btn-close-white" onclick="closeModal('restoreModal')"></button></div>
+            <div class="modal-body p-10 bg-white">
+                <div class="border-4 border-dashed border-slate-100 rounded-[2rem] p-10 text-center hover:border-orange-200 transition-all cursor-pointer group flex flex-col items-center" onclick="document.getElementById('restoreFile').click()">
+                    <i class="bi bi-file-earmark-zip-fill text-6xl text-slate-100 group-hover:text-orange-500 mb-6 transition"></i><h3 class="text-sm font-black text-slate-800">选择备份包</h3><p class="text-[10px] text-slate-400 mt-2 font-bold uppercase">支持 .zip 格式备份文件</p><input type="file" id="restoreFile" accept=".zip" class="hidden" onchange="submitRestore(this)">
+                </div>
+                <div class="mt-8 p-4 bg-orange-50 rounded-2xl border border-orange-100"><div class="flex gap-3 text-orange-700"><i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i><div class="text-[10px] font-bold leading-relaxed"><strong>风险提示：</strong> 还原操作将根据备份文件中的数据覆盖当前数据库。请确保您上传的是合法备份文件。</div></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 扫码查找模态框 -->
+<div class="modal fade" id="scanModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-2xl overflow-hidden">
+            <div class="bg-slate-900 px-6 py-4 text-white flex justify-between items-center"><h5 class="m-0 font-black text-sm uppercase">扫码查找</h5><button type="button" class="btn-close btn-close-white" onclick="closeScanModal()"></button></div>
+            <div class="modal-body p-6 bg-white">
+                <div id="cameraArea" class="relative rounded-xl overflow-hidden bg-black h-64 mb-4 hidden"><video id="videoElement" class="w-full h-full object-cover"></video><div class="absolute inset-0 border-4 border-white/20 m-8 rounded-lg pointer-events-none"></div><div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="w-48 h-1 bg-red-500/50 shadow-[0_0_10px_rgba(255,0,0,0.8)] animate-pulse"></div></div></div>
+                <div id="scanResult" class="text-center py-4 hidden"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-xs font-bold text-slate-400">正在查询...</p></div>
+                <div class="grid grid-cols-2 gap-4"><button onclick="startScanner()" class="btn btn-outline-dark rounded-xl font-bold py-3"><i class="bi bi-camera-video me-2"></i>摄像头扫描</button><button onclick="document.getElementById('qrFileInput').click()" class="btn btn-outline-dark rounded-xl font-bold py-3"><i class="bi bi-upload me-2"></i>上传图片</button><input type="file" id="qrFileInput" accept="image/*" class="hidden" onchange="scanFromFile(this)"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 全局加载遮罩 -->
+<div id="globalLoading" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[2000] hidden flex flex-col items-center justify-center">
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-4"><div class="spinner-border text-blue-600 w-12 h-12" role="status"></div><div class="text-center"><h5 class="font-black text-slate-800 m-0">正在处理</h5><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">系统正在努力工作中...</p></div></div>
+</div>
+
 </body>
 </html>

@@ -124,6 +124,7 @@ async function submitBatchEdit() {
     });
     if (Object.keys(updates).length === 0) return alert('未输入任何修改内容');
     
+    closeModal('batchEditModal');
     showLoading('正在执行批量修改', '正在更新数据库记录...');
     try {
         const res = await fetch(CONFIG.apiBatchUpd, {
@@ -131,8 +132,8 @@ async function submitBatchEdit() {
             body: JSON.stringify({ ids, updates })
         }).then(r => r.json());
         if (res.success) window.location.reload();
-        else { hideLoading(); alert('修改失败: ' + res.error); }
-    } catch(e) { hideLoading(); alert('网络错误'); }
+        else { hideLoading(); alert('修改失败: ' + res.error); openModal('batchEditModal'); }
+    } catch(e) { hideLoading(); alert('网络错误'); openModal('batchEditModal'); }
 }
 
 // ---------------- 扫码查找逻辑 ----------------
@@ -297,15 +298,24 @@ function updateMappedPreview() {
 }
 
 async function verifyConflicts(url) {
-    const res = await fetch(url, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ mapping: importData.mapping, raw_data: importData.raw_data })
-    }).then(r => r.json());
-    if(res.success) {
-        importData.conflicts = res.conflicts;
-        importData.uniques = res.uniques;
-        if(importData.conflicts.length === 0) executeImport(CONFIG.apiImportExecute);
-        else { renderConflictStep(); switchStep(3); }
+    showLoading('正在校验冲突', '正在比对本地数据与云端记录，请稍候...');
+    try {
+        const res = await fetch(url, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ mapping: importData.mapping, raw_data: importData.raw_data })
+        }).then(r => r.json());
+        if(res.success) {
+            importData.conflicts = res.conflicts;
+            importData.uniques = res.uniques;
+            if(importData.conflicts.length === 0) executeImport(CONFIG.apiImportExecute);
+            else { renderConflictStep(); switchStep(3); }
+        } else {
+            alert('校验失败: ' + res.error);
+        }
+    } catch(e) {
+        alert('网络请求失败');
+    } finally {
+        hideLoading();
     }
 }
 
@@ -471,10 +481,49 @@ async function loadExportHistory() {
     try {
         const res = await fetch('/inventory/get_export_files').then(r => r.json());
         if(res.files && res.files.length > 0) {
-            list.innerHTML = res.files.map(f => `<div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center group"><div class="truncate"><div class="text-xs font-bold text-slate-700 truncate" title="${f.name}">${f.name}</div><div class="text-[9px] text-slate-400 mt-0.5">${f.time} · ${f.size}</div></div><a href="/inventory/static/exports/${f.name}" download class="text-slate-300 hover:text-blue-600 transition p-2"><i class="bi bi-download"></i></a></div>`).join('');
+            list.innerHTML = res.files.map(f => `
+                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center group relative">
+                    <div class="truncate">
+                        <div class="text-xs font-bold text-slate-700 truncate" title="${f.name}">${f.name}</div>
+                        <div class="text-[9px] text-slate-400 mt-0.5">${f.time} · ${f.size}</div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a href="/inventory/static/exports/${f.name}" download class="text-slate-400 hover:text-blue-600 transition p-2"><i class="bi bi-download"></i></a>
+                        <button onclick="deleteExportFile('${f.name}')" class="text-slate-400 hover:text-red-500 transition p-2"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>`).join('');
         } else { list.innerHTML = '<div class="text-center text-slate-300 text-xs py-10 italic">暂无导出记录</div>'; }
     } catch(e) { list.innerHTML = '加载失败'; }
 }
+
+async function deleteExportFile(filename) {
+    if(!confirm('确定要彻底删除这个导出记录吗？')) return;
+    try {
+        const res = await fetch(`/inventory/delete_export_file/${filename}`).then(r => r.json());
+        if(res.success) {
+            loadExportHistory();
+        } else {
+            alert('删除失败: ' + res.error);
+        }
+    } catch(e) {
+        alert('网络请求失败');
+    }
+}
+
+async function clearExportHistory() {
+    if(!confirm('确定要清空所有导出历史记录吗？此操作不可撤销！')) return;
+    try {
+        const res = await fetch('/inventory/clear_export_history').then(r => r.json());
+        if(res.success) {
+            loadExportHistory();
+        } else {
+            alert('清空失败: ' + res.error);
+        }
+    } catch(e) {
+        alert('网络请求失败');
+    }
+}
+
 async function submitExport() {
     showLoading('正在准备导出文件', '正在抓取数据并打包云端资源 (ZIP 模式耗时较长)...');
     const fd = new FormData();
@@ -530,7 +579,10 @@ async function submitRestore(input) {
     const fd = new FormData(); fd.append('backup_zip', input.files[0]);
     try {
         const res = await fetch('/inventory/restore', { method: 'POST', body: fd }).then(r => r.json());
-        if(res.success) { alert(`✅ 还原成功！已恢复 ${res.count} 条元器件记录。`); window.location.reload(); }
+        if(res.success) { 
+            alert(`✅ 还原成功！\n\n📄 数据库记录: ${res.count} 条\n☁️ 云端资源包: ${res.asset_count} 个`); 
+            window.location.reload(); 
+        }
         else { alert('还原失败: ' + res.error); }
     } catch(e) { alert('请求失败'); }
     finally { hideLoading(); input.value = ''; closeModal('restoreModal'); }

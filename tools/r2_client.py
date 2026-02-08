@@ -35,10 +35,11 @@ def get_content_type(ext):
     }
     return types.get(ext, 'application/octet-stream')
 
-def upload_to_r2(file_obj, folder, prefix="comp", fixed_name=None):
+def upload_to_r2(file_obj, folder, prefix="file", fixed_name=None, app_name="unsorted"):
     """
     通用上传函数
-    fixed_name: 如果提供，则不添加时间戳，直接使用此文件名（用于覆盖）
+    app_name: 应用命名空间 (如 'inventory', 'project_hub')
+    folder: 子文件夹 (如 'images', 'docs', 'qrcodes')
     """
     if not file_obj: return ""
     
@@ -49,36 +50,23 @@ def upload_to_r2(file_obj, folder, prefix="comp", fixed_name=None):
     elif hasattr(file_obj, 'getvalue'):
         # 检查是否是 SVG (qrcode 生成的)
         content_start = file_obj.getvalue()[:100].decode('utf-8', errors='ignore')
-        if '<svg' in content_start:
-            ext = "svg"
+        if '<svg' in content_start: ext = "svg"
     
-    # 2. 生成文件名
+    # 2. 生成文件名 (路径结构: app_name/folder/filename)
     if fixed_name:
-        filename = f"{folder}/{fixed_name}.{ext}"
+        filename = f"{app_name}/{folder}/{fixed_name}.{ext}"
     else:
         timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        filename = f"{folder}/{prefix}_{timestamp}.{ext}"
+        filename = f"{app_name}/{folder}/{prefix}_{timestamp}.{ext}"
     
     try:
-        # 3. 上传到 R2 (S3 协议上传同名文件会自动覆盖)
+        # 3. 上传到 R2
         content_type = get_content_type(ext)
         if hasattr(file_obj, 'read'):
-            s3_client.upload_fileobj(
-                file_obj, 
-                R2_CONFIG["bucket_name"], 
-                filename,
-                ExtraArgs={'ContentType': content_type}
-            )
+            s3_client.upload_fileobj(file_obj, R2_CONFIG["bucket_name"], filename, ExtraArgs={'ContentType': content_type})
         else:
-            # 如果是 bytes
-            s3_client.put_object(
-                Body=file_obj,
-                Bucket=R2_CONFIG["bucket_name"],
-                Key=filename,
-                ContentType=content_type
-            )
+            s3_client.put_object(Body=file_obj, Bucket=R2_CONFIG["bucket_name"], Key=filename, ContentType=content_type)
             
-        # 4. 返回云端完整 URL
         return f"{R2_CONFIG['public_url']}/{filename}"
     except Exception as e:
         print(f"上传 {folder} 失败: {e}")
