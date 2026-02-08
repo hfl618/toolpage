@@ -89,6 +89,46 @@ def create_app():
             output.append(line)
         return "<pre>" + "\n".join(sorted(output)) + "</pre>"
 
+    @app.route('/admin/cleanup_r2')
+    def admin_cleanup_r2():
+        try:
+            import boto3
+            from botocore.config import Config as BotoConfig
+            from tools.config import Config
+            
+            s3 = boto3.client(
+                service_name='s3',
+                endpoint_url=Config.R2_ENDPOINT,
+                aws_access_key_id=Config.R2_ACCESS_KEY,
+                aws_secret_access_key=Config.R2_SECRET_KEY,
+                region_name='auto',
+                config=BotoConfig(signature_version='s3v4'),
+                verify=False
+            )
+            
+            prefixes = ['inventory/images/', 'inventory/qrcodes/', 'inventory/user_2/']
+            results = []
+            
+            for prefix in prefixes:
+                paginator = s3.get_paginator('list_objects_v2')
+                pages = paginator.paginate(Bucket=Config.R2_BUCKET, Prefix=prefix)
+                delete_keys = []
+                for page in pages:
+                    if 'Contents' in page:
+                        for obj in page['Contents']:
+                            delete_keys.append({'Key': obj['Key']})
+                
+                if delete_keys:
+                    for i in range(0, len(delete_keys), 1000):
+                        s3.delete_objects(Bucket=Config.R2_BUCKET, Delete={'Objects': delete_keys[i:i+1000]})
+                    results.append(f"Deleted {len(delete_keys)} files from {prefix}")
+                else:
+                    results.append(f"Prefix {prefix} already empty")
+            
+            return {"success": True, "details": results}
+        except Exception as e:
+            return {"success": False, "error": str(e)}, 500
+
     return app
 
 app = create_app()
