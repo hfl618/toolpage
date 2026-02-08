@@ -1,9 +1,0 @@
-Flask
-Flask-CORS
-PyJWT
-requests
-pandas
-openpyxl
-qrcode[pil]
-boto3
-urllib3

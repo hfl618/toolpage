@@ -5,6 +5,6 @@ pandas
 openpyxl
 python-dotenv
 boto3
-qrcode[pil]
+qrcode
 urllib3
 gunicorn
