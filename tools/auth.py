@@ -1,13 +1,61 @@
 import datetime
 import jwt
-from flask import Blueprint, request, jsonify, make_response
-from .database import d1
-from .config import Config
+from flask import Blueprint, request, jsonify, make_response, render_template_string
 
 auth_bp = Blueprint('auth', __name__)
 
-@auth_bp.route('/auth/login', methods=['POST'])
+LOGIN_HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - Toolpage</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0f2f5; }
+        .login-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 300px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Sign In</button>
+        </form>
+        <p id="msg" style="color:red; font-size:12px;"></p>
+    </div>
+    <script>
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await fetch('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                window.location.href = new URLSearchParams(window.location.search).get('next') || '/';
+            } else {
+                document.getElementById('msg').innerText = data.error || 'Login failed';
+            }
+        };
+    </script>
+</body>
+</html>
+"""
+
+@auth_bp.route('/auth/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'GET':
+        return render_template_string(LOGIN_HTML)
+        
     data = request.json
     username = data.get('username')
     password = data.get('password')
@@ -47,14 +95,34 @@ def login():
     else:
         return jsonify({"error": "Invalid username or password"}), 401
 
-@auth_bp.route('/auth/register', methods=['POST'])
+@auth_bp.route('/auth/register', methods=['GET', 'POST'])
 def register():
-    data = request.json
+    if request.method == 'GET':
+        return render_template_string("""
+        <!DOCTYPE html>
+        <html><body>
+            <h2>Register New User</h2>
+            <form method="POST">
+                <input name="username" placeholder="Username" required><br>
+                <input name="password" type="password" placeholder="Password" required><br>
+                <button type="submit">Register</button>
+            </form>
+        </body></html>
+        """)
+    
+    # 支持 JSON 和 表单 两种提交方式
+    if request.is_json:
+        data = request.json
+    else:
+        data = request.form
+        
     username = data.get('username')
     password = data.get('password')
     try:
         sql = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)"
         d1.execute(sql, [username, password, 'free'])
+        if not request.is_json:
+            return 'User created! <a href="/auth/login">Go to Login</a>'
         return jsonify({"success": True, "msg": "User created"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
