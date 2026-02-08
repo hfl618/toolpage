@@ -17,18 +17,18 @@
         .search-box { background: #f1f5f9; border-radius: 12px; padding: 0.5rem 1rem; display: flex; align-items: center; }
         .search-box input { background: transparent; border: none; outline: none; width: 100%; font-size: 1rem; font-weight: 600; margin-left: 0.5rem; }
         
-        .row-filters { background: white; border-bottom: 1px solid #f1f5f9; padding: 0.75rem 2rem; display: flex; justify-content: center; gap: 1.2rem; flex-wrap: wrap; }
+        .row-filters { margin: 1rem 2rem; background: white; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 0.75rem 1.5rem; display: flex; justify-content: center; gap: 1.2rem; flex-wrap: wrap; shadow: 0 1px 3px rgba(0,0,0,0.05); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
         .d-none-custom { display: none !important; }
         .f-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #64748b; font-weight: 700; }
-        .f-item input, .f-item select { border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.8rem; background: #f8fafc; outline: none; }
+        .f-item input, .f-item select { border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.3rem 0.6rem; font-size: 0.8rem; background: #f8fafc; outline: none; transition: 0.2s; }
+        .f-item input:focus, .f-item select:focus { border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
         
-        .row-actions { background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 0.6rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-        .batch-btn { font-size: 0.85rem; font-weight: 800; color: #94a3b8; padding: 0.3rem 0.8rem; border-radius: 6px; border: 1px solid transparent; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
-        .batch-btn.active-del { color: #ef4444; background: #fee2e2; border-color: #fca5a5; }
-        .batch-btn.active-edit { color: #3b82f6; background: #eff6ff; border-color: #93c5fd; }
-        .selection-counter { font-size: 12px; font-weight: 900; color: white; background: #3b82f6; padding: 2px 10px; border-radius: 20px; margin-left: 8px; display: none; }
+        .row-actions { margin: 1rem 2rem 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 0.6rem 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+        .batch-btn { font-size: 0.85rem; font-weight: 800; color: #94a3b8; padding: 0.4rem 1rem; border-radius: 10px; border: 1px solid transparent; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        
+        .selection-counter { font-size: 11px; font-weight: 900; color: white; background: #3b82f6; padding: 3px 12px; border-radius: 999px; margin-left: 8px; display: none; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); }
 
-        .table-container { margin: 1.5rem 2rem; background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: visible !important; }
+        .table-container { margin: 1rem 2rem 2rem; background: white; border: 1px solid #e2e8f0; border-radius: 1rem; overflow: visible !important; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05); }
         .table { border-collapse: separate; border-spacing: 0; width: 100%; }
         .table thead th { background: #f8fafc; font-size: 0.75rem; font-weight: 900; color: #94a3b8; padding: 1rem; text-align: center !important; vertical-align: middle; border-bottom: 1px solid #e2e8f0; }
         tr:hover { position: relative; z-index: 30; }
@@ -112,12 +112,11 @@
         <div class="h-4 w-px bg-slate-200 mx-2"></div>
         <button class="batch-btn" id="btnBatchEdit" disabled onclick="openBatchEdit()"><i class="bi bi-pencil-square"></i> 批量修改</button>
         <button class="batch-btn" id="btnBatchDel" disabled onclick="batchDelete(CONFIG.apiBatchDel)"><i class="bi bi-trash"></i> 批量删除</button>
-        <div class="h-4 w-px bg-slate-200 mx-2"></div>
-        <button class="batch-btn text-slate-500 hover:text-green-600 hover:bg-green-50" onclick="openExportModal()"><i class="bi bi-file-earmark-arrow-down"></i> 导出数据</button>
     </div>
     <div class="flex border-2 rounded-xl overflow-hidden h-9 shadow-sm">
         <button class="bg-slate-900 text-white px-5 text-xs font-black border-r border-slate-700" onclick="openModal('addModal')">+ 入库</button>
-        <button class="bg-slate-900 text-white px-5 text-xs font-black" onclick="openImportModal()">BOM</button>
+        <button class="bg-slate-900 text-white px-5 text-xs font-black border-r border-slate-700" onclick="openImportModal()">BOM 导入</button>
+        <button class="bg-slate-900 text-white px-5 text-xs font-black" onclick="openExportModal()">BOM 导出</button>
     </div>
 </div>
 
@@ -161,7 +160,6 @@
                             <i class="bi bi-qr-code text-lg opacity-10 cursor-not-allowed" title="未生成二维码"></i>
                             {% endif %}
                         </div>
-                        <button class="hover:text-green-500 transition text-lg" onclick="exportSingle('{{ item.id }}')" title="导出"><i class="bi bi-file-earmark-arrow-down"></i></button>
                         <button class="hover:text-blue-500 transition text-lg" onclick="openEditModal('{{ item.id }}')" title="编辑"><i class="bi bi-pencil-square"></i></button>
                         <button class="hover:text-red-500 transition text-lg" onclick="deleteItem('{{ item.id }}')" title="删除"><i class="bi bi-trash"></i></button>
                     </div>

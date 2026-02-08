@@ -118,9 +118,7 @@ async function submitBatchEdit() {
     const updates = {};
     ['category','name','package','location','supplier','channel','unit','price','buy_time','remark'].forEach(f => {
         const input = document.getElementById(`batch_${f}`);
-        if (input && input.value.trim() !== '') {
-            updates[f] = input.value.trim();
-        }
+        if(input) input.value = '';
     });
     if (Object.keys(updates).length === 0) return alert('未输入任何修改内容');
     
@@ -323,50 +321,29 @@ function renderConflictStep() {
     const list = document.getElementById('conflictList');
     if(!list) return;
     list.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-2";
-    const fieldMap = {
-        'category': '品类', 'name': '品名', 'model': '型号', 'package': '封装',
-        'quantity': '数量', 'unit': '单位', 'price': '单价', 'location': '位置',
-        'supplier': '供应商', 'channel': '渠道'
-    };
-    list.innerHTML = importData.conflicts.map((c, i) => {
-        const alwaysShow = ['name', 'model'];
-        const otherDiffs = Object.keys(c.diff).filter(k => c.diff[k] && !alwaysShow.includes(k) && k !== 'quantity');
-        const renderRow = (k, isDiff) => `
-            <div class="flex justify-between items-center py-1 border-b border-slate-50 last:border-0 text-[10px]">
-                <span class="text-slate-400 font-bold w-12 shrink-0">${fieldMap[k] || k}</span>
-                <div class="flex-1 flex gap-2 overflow-hidden">
-                    <span class="${isDiff ? 'text-slate-400 line-through' : 'text-slate-500'} truncate flex-1 text-right" title="${c.old[k]}">${c.old[k] || '-'}</span>
-                    <span class="text-slate-300">→</span>
-                    <span class="${isDiff ? 'text-orange-600 font-black' : 'text-slate-700 font-bold'} truncate flex-1" title="${c.new[k]}">${c.new[k] || '-'}</span>
-                </div>
-            </div>`;
-        const alwaysRows = alwaysShow.map(k => renderRow(k, c.diff[k])).join('');
-        const otherRows = otherDiffs.map(k => renderRow(k, true)).join('');
-        return `
-        <div class="p-4 border border-slate-100 bg-white rounded-[2rem] shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-            <div>
-                <div class="flex justify-between items-start mb-3">
-                    <div class="truncate pr-2">
-                        <h4 class="text-[13px] font-black text-slate-800 m-0 truncate">${c.new.name || '未命名'}</h4>
-                        <div class="text-[9px] font-bold text-slate-400 truncate tracking-tight">${c.new.model}</div>
+        list.innerHTML = importData.conflicts.map((c, i) => `
+            <div id="conflict-card-${i}" class="p-4 border border-slate-100 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                <div class="transition-opacity duration-300 content-area">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="truncate pr-2">
+                            <h4 class="text-[14px] font-black text-slate-800 m-0 truncate">${c.new.name || '未命名'}</h4>
+                            <div class="text-[10px] font-bold text-slate-400 truncate tracking-tight">${c.new.model}</div>
+                        </div>
                     </div>
+                    
+                    <div class="flex bg-slate-100 p-1 rounded-xl mb-3">
+                        <button onclick="setStrat(${i}, 'merge')" id="btn-${i}-merge" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all active-merge">累加</button>
+                        <button onclick="setStrat(${i}, 'cover')" id="btn-${i}-cover" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">覆盖</button>
+                        <button onclick="setStrat(${i}, 'new')" id="btn-${i}-new" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">新增</button>
+                        <button onclick="setStrat(${i}, 'skip')" id="btn-${i}-skip" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">跳过</button>
+                        <input type="hidden" id="strat-${i}" value="merge">
+                    </div>
+    
+                    <div id="details-${i}" class="bg-slate-50/50 rounded-xl p-3 mb-3 min-h-[90px] transition-all"></div>
                 </div>
-                <div class="flex bg-slate-100 p-1 rounded-xl mb-3">
-                    <button onclick="setStrat(${i}, 'merge')" id="btn-${i}-merge" class="strat-btn flex-1 text-[9px] font-black py-1.5 rounded-lg transition-all active-merge">累加</button>
-                    <button onclick="setStrat(${i}, 'cover')" id="btn-${i}-cover" class="strat-btn flex-1 text-[9px] font-black py-1.5 rounded-lg transition-all text-slate-400">覆盖</button>
-                    <button onclick="setStrat(${i}, 'new')" id="btn-${i}-new" class="strat-btn flex-1 text-[9px] font-black py-1.5 rounded-lg transition-all text-slate-400">新增</button>
-                    <button onclick="setStrat(${i}, 'skip')" id="btn-${i}-skip" class="strat-btn flex-1 text-[9px] font-black py-1.5 rounded-lg transition-all text-slate-400">跳过</button>
-                    <input type="hidden" id="strat-${i}" value="merge">
-                </div>
-                <div class="bg-slate-50/50 rounded-xl p-3 mb-3 min-h-[60px]">
-                    ${alwaysRows}
-                    ${otherRows}
-                    ${otherDiffs.length === 0 ? '<div class="text-center py-2 text-slate-300 text-[9px] italic border-t border-slate-100 mt-1">无其他属性变更</div>' : ''}
-                </div>
-            </div>
-            <div id="qty-preview-${i}" class="bg-blue-50/50 rounded-xl px-3 py-2 border border-blue-100 flex items-center justify-between transition-all"></div>
-        </div>`;
-    }).join('');
+                
+                <div id="qty-preview-${i}" class="bg-blue-50/50 rounded-xl px-3 py-2 border border-blue-100 flex items-center justify-between transition-all"></div>
+            </div>`).join('');
     importData.conflicts.forEach((_, i) => updateConflictUI(i));
 }
 
@@ -375,76 +352,77 @@ function setStrat(index, val) {
     const btns = ['merge', 'cover', 'new', 'skip'];
     btns.forEach(b => {
         const el = document.getElementById(`btn-${index}-${b}`);
-        el.className = `strat-btn flex-1 text-[9px] font-black py-1.5 rounded-lg transition-all ${b === val ? 'active-' + b : 'text-slate-400'}`;
+        el.className = `strat-btn flex-1 text-[8px] font-black py-1 rounded-md transition-all ${b === val ? 'active-' + b : 'text-slate-400'}`;
     });
     updateConflictUI(index);
 }
 
 function updateConflictUI(index) {
     const strat = document.getElementById(`strat-${index}`).value;
+    const detailsEl = document.getElementById(`details-${index}`);
     const previewEl = document.getElementById(`qty-preview-${index}`);
+    const cardEl = document.getElementById(`conflict-card-${index}`);
     const c = importData.conflicts[index];
+    const fieldMap = { 'category':'品类', 'name':'品名', 'model':'型号', 'package':'封装', 'supplier':'供应商', 'channel':'渠道', 'location':'位置', 'price':'单价' };
+    const fields = ['name', 'model', 'category', 'package', 'supplier', 'channel', 'location', 'price'];
+    
+    if(strat === 'skip') cardEl.classList.add('opacity-40', 'grayscale');
+    else cardEl.classList.remove('opacity-40', 'grayscale');
+    
+    let detailsHtml = '';
+    fields.forEach(k => {
+        const oldRaw = c.old[k];
+        const newRaw = c.new[k];
+        const oldVal = (oldRaw !== null && oldRaw !== undefined && oldRaw !== '') ? oldRaw : '-';
+        const newVal = (newRaw !== null && newRaw !== undefined && newRaw !== '') ? newRaw : '-';
+        const isDiff = c.diff[k];
+
+        if(oldVal === '-' && newVal === '-') return;
+
+        detailsHtml += `<div class="flex justify-between items-center py-1 last:border-0 text-[11px] leading-snug"><span class="text-slate-400 font-bold w-12 shrink-0">${fieldMap[k]}</span><div class="flex-1 flex gap-1.5 overflow-hidden justify-end">`;
+        
+        if(strat === 'merge') {
+            detailsHtml += `<span class="text-slate-600 font-bold truncate">${oldVal}</span>`;
+        } else if(strat === 'cover') {
+            if(isDiff) {
+                detailsHtml += `<span class="text-slate-400 line-through truncate opacity-50">${oldVal}</span><span class="text-slate-300 text-[10px]">→</span><span class="text-orange-600 font-black truncate">${newVal}</span>`;
+            } else { 
+                detailsHtml += `<span class="text-slate-500 font-bold truncate">${oldVal}</span>`; 
+            }
+        } else if(strat === 'new') {
+            detailsHtml += `<span class="text-green-600 font-black truncate">${newVal}</span>`;
+        } else { 
+            detailsHtml += `<span class="text-slate-300 truncate italic">已忽略</span>`; 
+        }
+        detailsHtml += `</div></div>`;
+    });
+    detailsEl.innerHTML = detailsHtml || '<div class="text-center py-4 text-slate-300 text-[11px] italic">无有效属性信息</div>';
+    
     const qOld = parseInt(c.old.quantity || 0);
     const qNew = parseInt(c.new.quantity || 0);
-    let html = '';
+    let previewHtml = '';
     if(strat === 'merge') {
-        html = `
-            <div class="text-[10px] font-black text-blue-400 uppercase">库存累加</div>
-            <div class="text-xs font-bold text-slate-700">
-                <span class="opacity-50">${qOld}</span>
-                <span class="mx-1 text-blue-400">+</span>
-                <span class="text-blue-600">${qNew}</span>
-                <span class="mx-1 text-slate-300">=</span>
-                <span class="text-lg font-black text-slate-900">${qOld + qNew}</span>
-            </div>`;
+        previewHtml = `<div class="text-[10px] font-black text-blue-400 uppercase">库存累加</div><div class="text-sm font-bold text-slate-700"><span class="opacity-40">${qOld}</span><span class="mx-1 text-blue-400">+</span><span class="text-blue-600">${qNew}</span><span class="mx-1 text-slate-300">=</span><span class="text-base font-black text-slate-900">${qOld + qNew}</span></div>`;
     } else if(strat === 'cover') {
-        html = `
-            <div class="text-[10px] font-black text-orange-400 uppercase">完全覆盖</div>
-            <div class="text-xs font-bold text-slate-700">
-                <span class="opacity-50 line-through">${qOld}</span>
-                <span class="mx-2 text-orange-500">→</span>
-                <span class="text-lg font-black text-slate-900">${qNew}</span>
-            </div>`;
+        previewHtml = `<div class="text-[10px] font-black text-orange-400 uppercase">完全覆盖</div><div class="text-sm font-bold text-slate-700"><span class="opacity-40 line-through">${qOld}</span><span class="mx-2 text-orange-500">→</span><span class="text-base font-black text-slate-900">${qNew}</span></div>`;
     } else if(strat === 'new') {
-        html = `
-            <div class="text-[10px] font-black text-green-500 uppercase">新建记录</div>
-            <div class="text-xs font-bold text-slate-700 italic">
-                现有 ${qOld} 不变，另增一条 ${qNew} 的独立记录
-            </div>`;
-    } else {
-        html = `<div class="text-[10px] font-black text-slate-300 uppercase w-full text-center">已忽略，不执行任何操作</div>`;
+        previewHtml = `<div class="text-[10px] font-black text-green-500 uppercase">新建记录</div><div class="text-[10px] font-bold text-slate-500 italic text-right">现有 ${qOld} 不变<br>另增 ${qNew} 的记录</div>`;
+    } else { 
+        previewHtml = `<div class="text-[10px] font-black text-slate-300 uppercase w-full text-center tracking-widest">NO ACTION</div>`; 
     }
-    previewEl.innerHTML = html;
+    previewEl.innerHTML = previewHtml;
 }
 
 async function executeImport(url) {
-    const loading = document.getElementById('globalLoading');
     const nextBtn = document.getElementById('nextBtn');
     showLoading('正在执行 BOM 入库', '正在为您逐一生成二维码并同步云端...');
     if(nextBtn) { nextBtn.disabled = true; nextBtn.innerText = '请稍候...'; }
     try {
-        const resolved = importData.conflicts.map((c, i) => ({ 
-            strategy: document.getElementById(`strat-${i}`).value, 
-            new: c.new, 
-            old_id: c.old.id 
-        }));
-        const res = await fetch(url, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ uniques: importData.uniques, resolved: resolved })
-        }).then(r => r.json());
-        if(res.success) { 
-            alert(`✅ 入库成功！\n新增: ${res.added}\n更新: ${res.updated}\n跳过: ${res.skipped}`); 
-            window.location.reload(); 
-        } else {
-            alert('入库失败: ' + (res.error || '未知错误'));
-            hideLoading();
-            if(nextBtn) { nextBtn.disabled = false; nextBtn.innerText = '确认并执行入库'; }
-        }
-    } catch(e) {
-        alert('网络请求失败');
-        hideLoading();
-        if(nextBtn) { nextBtn.disabled = false; nextBtn.innerText = '确认并执行入库'; }
-    }
+        const resolved = importData.conflicts.map((c, i) => ({ strategy: document.getElementById(`strat-${i}`).value, new: c.new, old_id: c.old.id }));
+        const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ uniques: importData.uniques, resolved: resolved }) }).then(r => r.json());
+        if(res.success) { alert(`✅ 入库成功！\n新增: ${res.added}\n更新: ${res.updated}\n跳过: ${res.skipped}`); window.location.reload(); }
+        else { alert('入库失败: ' + (res.error || '未知错误')); hideLoading(); if(nextBtn) { nextBtn.disabled = false; nextBtn.innerText = '确认并执行入库'; } }
+    } catch(e) { alert('网络请求失败'); hideLoading(); if(nextBtn) { nextBtn.disabled = false; nextBtn.innerText = '确认并执行入库'; } }
 }
 
 function switchStep(n) {
@@ -465,27 +443,11 @@ function switchStep(n) {
 function initDragAndDrop() {
     const dz = document.getElementById('dropZone');
     if(!dz) return;
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => {
-        dz.addEventListener(eName, e => { e.preventDefault(); e.stopPropagation(); }, false);
-    });
-    ['dragenter', 'dragover'].forEach(eName => {
-        dz.addEventListener(eName, () => dz.classList.add('drag-active'), false);
-    });
-    ['dragleave', 'drop'].forEach(eName => {
-        dz.addEventListener(eName, () => dz.classList.remove('drag-active'), false);
-    });
-    dz.addEventListener('drop', e => {
-        const fs = e.dataTransfer.files;
-        if(fs.length > 0) {
-            document.getElementById('fileInput').files = fs;
-            uploadSource('file');
-        }
-    }, false);
-    document.querySelectorAll('input[name="export_fmt"]').forEach(radio => {
-        radio.addEventListener('change', e => {
-            document.getElementById('zipOptions').classList.toggle('hidden', e.target.value !== 'zip');
-        });
-    });
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => { dz.addEventListener(eName, e => { e.preventDefault(); e.stopPropagation(); }, false); });
+    ['dragenter', 'dragover'].forEach(eName => { dz.addEventListener(eName, () => dz.classList.add('drag-active'), false); });
+    ['dragleave', 'drop'].forEach(eName => { dz.addEventListener(eName, () => dz.classList.remove('drag-active'), false); });
+    dz.addEventListener('drop', e => { const fs = e.dataTransfer.files; if(fs.length > 0) { document.getElementById('fileInput').files = fs; uploadSource('file'); } }, false);
+    document.querySelectorAll('input[name="export_fmt"]').forEach(radio => { radio.addEventListener('change', e => { document.getElementById('zipOptions').classList.toggle('hidden', e.target.value !== 'zip'); }); });
 }
 
 function openExportModal() {
@@ -510,25 +472,42 @@ async function loadExportHistory() {
     try {
         const res = await fetch('/inventory/get_export_files').then(r => r.json());
         if(res.files && res.files.length > 0) {
-            list.innerHTML = res.files.map(f => `
-                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center group">
-                    <div class="truncate">
-                        <div class="text-xs font-bold text-slate-700 truncate" title="${f.name}">${f.name}</div>
-                        <div class="text-[9px] text-slate-400 mt-0.5">${f.time} · ${f.size}</div>
-                    </div>
-                    <a href="/inventory/static/exports/${f.name}" download class="text-slate-300 hover:text-blue-600 transition p-2"><i class="bi bi-download"></i></a>
-                </div>
-            `).join('');
-        } else {
-            list.innerHTML = '<div class="text-center text-slate-300 text-xs py-10 italic">暂无导出记录</div>';
-        }
+            list.innerHTML = res.files.map(f => `<div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center group"><div class="truncate"><div class="text-xs font-bold text-slate-700 truncate" title="${f.name}">${f.name}</div><div class="text-[9px] text-slate-400 mt-0.5">${f.time} · ${f.size}</div></div><a href="/inventory/static/exports/${f.name}" download class="text-slate-300 hover:text-blue-600 transition p-2"><i class="bi bi-download"></i></a></div>`).join('');
+        } else { list.innerHTML = '<div class="text-center text-slate-300 text-xs py-10 italic">暂无导出记录</div>'; }
     } catch(e) { list.innerHTML = '加载失败'; }
 }
 async function submitExport() {
-    // ... (existing export logic)
+    showLoading('正在准备导出文件', '正在抓取数据并打包云端资源 (ZIP 模式耗时较长)...');
+    const fd = new FormData();
+    const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+    if(ids.length > 0) fd.append('ids', ids.join(','));
+    document.querySelectorAll('input[name="export_fields"]:checked').forEach(cb => fd.append('fields', cb.value));
+    const fmt = document.querySelector('input[name="export_fmt"]:checked').value;
+    fd.append('format', fmt);
+    if(fmt === 'zip' && document.getElementById('exportAssets').checked) fd.append('with_assets', '1');
+    const mode = document.getElementById('filenameMode').value;
+    fd.append('filename_mode', mode);
+    if(mode === 'custom') fd.append('custom_filename', document.getElementById('customFilename').value);
+    try {
+        const res = await fetch('/inventory/export', { method: 'POST', body: fd });
+        if(res.ok) {
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url;
+            const disposition = res.headers.get('Content-Disposition');
+            let filename = `export.${fmt}`;
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                const matches = filenameRegex.exec(disposition);
+                if (matches != null && matches[1]) { filename = matches[1].replace(/['"]/g, ''); }
+            }
+            a.download = decodeURIComponent(filename); document.body.appendChild(a); a.click(); a.remove();
+            closeExportModal(); alert('导出成功！文件已开始下载。');
+        } else { const err = await res.json(); alert('导出失败: ' + (err.error || '服务器错误')); }
+    } catch(e) { alert('网络请求失败: ' + e.message); }
+    finally { hideLoading(); }
 }
 
-// ---------------- 备份与还原 ----------------
 async function runBackup() {
     showLoading('正在生成备份', '正在打包云端数据记录 (Local Backup)...');
     try {
@@ -536,43 +515,24 @@ async function runBackup() {
         if(res.ok) {
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
+            const a = document.createElement('a'); a.href = url;
             a.download = `Inventory_Full_Backup_${new Date().getTime()}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
+            document.body.appendChild(a); a.click(); a.remove();
             alert('✅ 备份成功！请妥善保存下载的 ZIP 文件。');
-        } else {
-            alert('备份失败');
-        }
+        } else { alert('备份失败'); }
     } catch(e) { alert('网络错误'); }
     finally { hideLoading(); }
 }
 
 async function submitRestore(input) {
     if(!input.files[0]) return;
-    if(!confirm('确定要从该备份文件还原吗？这将覆盖匹配 ID 的现有数据！')) {
-        input.value = '';
-        return;
-    }
-
+    if(!confirm('确定要从该备份文件还原吗？这将覆盖匹配 ID 的现有数据！')) { input.value = ''; return; }
     showLoading('正在还原数据', '正在解析备份包并同步至云端数据库...');
-    const fd = new FormData();
-    fd.append('backup_zip', input.files[0]);
-
+    const fd = new FormData(); fd.append('backup_zip', input.files[0]);
     try {
         const res = await fetch('/inventory/restore', { method: 'POST', body: fd }).then(r => r.json());
-        if(res.success) {
-            alert(`✅ 还原成功！已恢复 ${res.count} 条元器件记录。`);
-            window.location.reload();
-        } else {
-            alert('还原失败: ' + res.error);
-        }
+        if(res.success) { alert(`✅ 还原成功！已恢复 ${res.count} 条元器件记录。`); window.location.reload(); }
+        else { alert('还原失败: ' + res.error); }
     } catch(e) { alert('请求失败'); }
-    finally {
-        hideLoading();
-        input.value = '';
-        closeModal('restoreModal');
-    }
+    finally { hideLoading(); input.value = ''; closeModal('restoreModal'); }
 }
