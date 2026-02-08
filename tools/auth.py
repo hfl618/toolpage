@@ -1,7 +1,7 @@
 import datetime
 import jwt
 from flask import Blueprint, request, jsonify, make_response, render_template_string
-from .database import d1
+from .database import d1 # Import database singleton
 from .config import Config
 
 auth_bp = Blueprint('auth', __name__)
