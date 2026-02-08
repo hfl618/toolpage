@@ -26,10 +26,16 @@ def create_app():
     # --- 3. 核心中间件：身份模拟与网关安全校验 ---
     @app.before_request
     def handle_auth_and_security():
+        # 放行健康检查和静态资源
+        if request.path == '/health' or request.path.startswith('/static'):
+            return
+
         # 【生产环境】安全校验：必须携带网关密钥
         if Config.ENV == 'prod':
             client_secret = request.headers.get('X-Gateway-Secret')
             if client_secret != Config.GATEWAY_SECRET:
+                # 记录一下被拦截的请求，方便调试
+                app.logger.warning(f"Access denied for {request.path} from {request.remote_addr}")
                 return "Forbidden: Direct access not allowed. Please use the official gateway.", 403
 
         # 【本地环境】身份模拟
@@ -43,6 +49,10 @@ def create_app():
                         request.environ['HTTP_X_USER_ROLE'] = str(payload.get('role'))
                     except:
                         pass
+
+    @app.route('/health')
+    def health():
+        return {"status": "healthy"}, 200
 
     @app.route('/')
     def index():

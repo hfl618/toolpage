@@ -17,5 +17,5 @@ COPY --chown=user . .
 
 EXPOSE 7860
 
-# 启动命令
-CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app"]
+# 启动命令：增加日志输出到终端
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
