@@ -24,8 +24,20 @@
         .f-item input:focus, .f-item select:focus { border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
         
         .row-actions { margin: 1rem 2rem 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 0.6rem 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
-        .batch-btn { font-size: 0.85rem; font-weight: 800; color: #94a3b8; padding: 0.4rem 1rem; border-radius: 10px; border: 1px solid transparent; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .batch-btn { font-size: 0.85rem; font-weight: 800; color: #94a3b8; padding: 0.4rem 1rem; border-radius: 10px; border: 1px solid transparent; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; background: transparent; }
+        .batch-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+        .batch-btn.active-edit { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); }
+        .batch-btn.active-del { color: #ef4444; background: #fef2f2; border-color: #fecaca; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1); }
         
+        /* BOM 动作组高级样式 */
+        .bom-group { background: #0f172a; border-radius: 14px; padding: 3px; display: flex; align-items: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); }
+        .bom-btn { color: #f8fafc; border: none; background: transparent; padding: 7px 18px; font-size: 11px; font-weight: 900; letter-spacing: 0.05em; transition: 0.2s; border-radius: 10px; display: flex; align-items: center; gap: 6px; }
+        .bom-btn i { font-size: 14px; opacity: 0.7; }
+        .bom-btn:hover { background: rgba(255,255,255,0.08); color: #60a5fa; }
+        .bom-btn:hover i { opacity: 1; }
+        .bom-btn:active { transform: scale(0.96); }
+        .bom-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.1); margin: 0 2px; }
+
         .selection-counter { font-size: 11px; font-weight: 900; color: white; background: #3b82f6; padding: 3px 12px; border-radius: 999px; margin-left: 8px; display: none; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); }
 
         .table-container { margin: 1rem 2rem 2rem; background: white; border: 1px solid #e2e8f0; border-radius: 1rem; overflow: visible !important; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05); }
@@ -52,11 +64,30 @@
         .batch-field-card { border: 2px solid #f1f5f9; border-radius: 1.5rem; padding: 1.5rem; transition: 0.2s; background: white; }
         .drag-active { border-color: #3b82f6 !important; background-color: #eff6ff !important; transform: scale(1.01); }
         #rawPreviewTab th, #rawPreviewTab td { border: 1px solid #e2e8f0; padding: 8px; font-size: 11px; }
-        /* 导入冲突按钮样式 */
-        .strat-btn.active-merge { background: white; color: #3b82f6; shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .strat-btn.active-cover { background: white; color: #f59e0b; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .strat-btn.active-new { background: white; color: #10b981; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .strat-btn.active-skip { background: white; color: #64748b; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        /* 高级交互引擎 */
+        .batch-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .batch-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+        
+        tr.hover-row { transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        tr.hover-row:hover { background: #f1f5f9 !important; }
+        tr.hover-row:hover td:first-child { box-shadow: inset 4px 0 0 #3b82f6; }
+
+        .btn-action-icon { transition: 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .btn-action-icon:hover { transform: scale(1.25) rotate(8deg); }
+        .btn-action-del:hover { color: #ef4444 !important; }
+        .btn-action-edit:hover { color: #3b82f6 !important; }
+
+        /* 差异项高亮动画 */
+        .diff-row { transition: 0.2s; border-radius: 6px; padding: 0 4px; }
+        .diff-row:hover { background: #fff7ed; transform: scale(1.02); }
+        .diff-row:hover .text-orange-600 { text-shadow: 0 0 8px rgba(234, 88, 12, 0.3); font-size: 11.5px; }
+
+        .strat-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid transparent; }
+        .strat-btn:hover:not(.active-merge):not(.active-cover):not(.active-new):not(.active-skip) { background: white; border-color: #e2e8f0; color: #1e293b; }
+        .strat-btn.active-merge { background: white; color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); border-color: #bfdbfe; }
+        .strat-btn.active-cover { background: white; color: #f59e0b; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); border-color: #fde68a; }
+        .strat-btn.active-new { background: white; color: #10b981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); border-color: #bbf7d0; }
+        .strat-btn.active-skip { background: white; color: #64748b; box-shadow: 0 4px 12px rgba(100, 116, 139, 0.1); border-color: #e2e8f0; }
     </style>
 </head>
 <body>
@@ -105,18 +136,27 @@
 
 <div class="row-actions">
     <div class="flex items-center gap-2">
-        <div class="flex items-center gap-1 hover:bg-slate-50 p-1 px-2 rounded-lg transition cursor-pointer" onclick="document.getElementById('selectAll').click()">
-            <input class="form-check-input" type="checkbox" id="selectAll" onclick="event.stopPropagation(); toggleSelectAll()" style="width:18px;height:18px;margin:0;"><label class="text-sm font-black text-slate-500 cursor-pointer select-none">全选</label>
+        <div class="flex items-center gap-1 hover:bg-slate-50 p-1 px-3 rounded-xl transition cursor-pointer border border-transparent hover:border-slate-100" onclick="document.getElementById('selectAll').click()">
+            <input class="form-check-input" type="checkbox" id="selectAll" onclick="event.stopPropagation(); toggleSelectAll()" style="width:18px;height:18px;margin:0;"><label class="text-sm font-black text-slate-500 cursor-pointer select-none ml-1">全选</label>
         </div>
         <span id="selectedCount" class="selection-counter">已选中 0 项</span>
         <div class="h-4 w-px bg-slate-200 mx-2"></div>
         <button class="batch-btn" id="btnBatchEdit" disabled onclick="openBatchEdit()"><i class="bi bi-pencil-square"></i> 批量修改</button>
         <button class="batch-btn" id="btnBatchDel" disabled onclick="batchDelete(CONFIG.apiBatchDel)"><i class="bi bi-trash"></i> 批量删除</button>
     </div>
-    <div class="flex border-2 rounded-xl overflow-hidden h-9 shadow-sm">
-        <button class="bg-slate-900 text-white px-5 text-xs font-black border-r border-slate-700" onclick="openModal('addModal')">+ 入库</button>
-        <button class="bg-slate-900 text-white px-5 text-xs font-black border-r border-slate-700" onclick="openImportModal()">BOM 导入</button>
-        <button class="bg-slate-900 text-white px-5 text-xs font-black" onclick="openExportModal()">BOM 导出</button>
+    
+    <div class="bom-group">
+        <button class="bom-btn" onclick="openModal('addModal')">
+            <i class="bi bi-plus-circle-fill"></i>入库
+        </button>
+        <div class="bom-sep"></div>
+        <button class="bom-btn" onclick="openImportModal()">
+            <i class="bi bi-file-earmark-arrow-up-fill"></i>BOM 导入
+        </button>
+        <div class="bom-sep"></div>
+        <button class="bom-btn" onclick="openExportModal()">
+            <i class="bi bi-file-earmark-arrow-down-fill"></i>BOM 导出
+        </button>
     </div>
 </div>
 
@@ -127,7 +167,7 @@
         </thead>
         <tbody>
             {% for item in items %}
-            <tr class="hover:bg-slate-50 transition">
+            <tr class="hover-row transition">
                 <td class="ps-4 text-center"><input class="form-check-input row-checkbox" type="checkbox" value="{{ item.id }}" onclick="updateBatchBtn()" style="width:16px;height:16px;"></td>
                 <td class="relative group">
                     <img src="{{ item.img_path }}?v={{ range(1, 9999) | random }}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YxZjVmOSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0iSW50ZXIiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5OQS9JTUc8L3RleHQ+PC9zdmc+'" class="part-img shadow-sm cursor-pointer mx-auto" onclick="window.open(this.src)">
@@ -139,7 +179,7 @@
                     {% endif %}
                 </td>
                 <td class="text-center"><span class="badge-category">{{ item.category }}</span></td>
-                <td class="text-center"><div class="col-name justify-center"><span>{{ item.name or '-' }}</span>{% if item.doc_path %}<a href="{{ item.doc_path }}" target="_blank" class="bi bi-file-earmark-text btn-doc" title="手册"></a>{% else %}<i class="bi bi-file-earmark-text btn-doc opacity-20" title="无手册"></i>{% endif %}</div></td>
+                <td class="text-center"><div class="col-name justify-center"><span>{{ item.name or '-' }}</span>{% if item.doc_path %}<a href="{{ item.doc_path }}" target="_blank" class="bi bi-file-earmark-text btn-doc btn-action-icon" title="手册"></a>{% else %}<i class="bi bi-file-earmark-text btn-doc opacity-20" title="无手册"></i>{% endif %}</div></td>
                 <td class="text-center"><div class="font-mono font-bold text-slate-600 text-sm">{{ item.model }}</div><div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{{ item.package }}</div></td>
                 <td class="text-center">
                     <span class="qty-text {{'qty-low' if item.quantity<10 else 'qty-normal'}}">{{ item.quantity }}</span>
@@ -152,7 +192,7 @@
                     <div class="flex justify-end gap-3 text-slate-300 items-center">
                         <div class="relative group">
                             {% if item.qrcode_path %}
-                            <i class="bi bi-qr-code text-lg hover:text-slate-600 cursor-pointer transition" onclick="window.open('{{ item.qrcode_path }}')"></i>
+                            <i class="bi bi-qr-code text-lg hover:text-slate-600 cursor-pointer transition btn-action-icon" onclick="window.open('{{ item.qrcode_path }}')"></i>
                             <div class="absolute {{ 'top-full mt-2' if loop.first else 'bottom-full mb-2' }} right-0 hidden group-hover:block z-[100] bg-white p-1 rounded-xl shadow-2xl border border-slate-100 pointer-events-none">
                                 <img src="{{ item.qrcode_path }}?v={{ range(1, 9999) | random }}" class="w-32 h-32 max-w-none rounded-lg bg-white">
                             </div>
@@ -160,8 +200,8 @@
                             <i class="bi bi-qr-code text-lg opacity-10 cursor-not-allowed" title="未生成二维码"></i>
                             {% endif %}
                         </div>
-                        <button class="hover:text-blue-500 transition text-lg" onclick="openEditModal('{{ item.id }}')" title="编辑"><i class="bi bi-pencil-square"></i></button>
-                        <button class="hover:text-red-500 transition text-lg" onclick="deleteItem('{{ item.id }}')" title="删除"><i class="bi bi-trash"></i></button>
+                        <button class="hover:text-blue-500 transition text-lg btn-action-icon btn-action-edit" onclick="openEditModal('{{ item.id }}')" title="编辑"><i class="bi bi-pencil-square"></i></button>
+                        <button class="hover:text-red-500 transition text-lg btn-action-icon btn-action-del" onclick="deleteItem('{{ item.id }}')" title="删除"><i class="bi bi-trash"></i></button>
                     </div>
                 </td>
             </tr>

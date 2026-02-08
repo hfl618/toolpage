@@ -379,7 +379,7 @@ function updateConflictUI(index) {
 
         if(oldVal === '-' && newVal === '-') return;
 
-        detailsHtml += `<div class="flex justify-between items-center py-1 last:border-0 text-[11px] leading-snug"><span class="text-slate-400 font-bold w-12 shrink-0">${fieldMap[k]}</span><div class="flex-1 flex gap-1.5 overflow-hidden justify-end">`;
+        detailsHtml += `<div class="diff-row flex justify-between items-center py-1 last:border-0 text-[11px] leading-snug"><span class="text-slate-400 font-bold w-12 shrink-0">${fieldMap[k]}</span><div class="flex-1 flex gap-1.5 overflow-hidden justify-end">`;
         
         if(strat === 'merge') {
             detailsHtml += `<span class="text-slate-600 font-bold truncate">${oldVal}</span>`;
