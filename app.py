@@ -79,6 +79,16 @@ def create_app():
         except Exception as e:
             return f"无法加载 AI 工具：{e}", 500
 
+    @app.route('/debug/routes')
+    def list_routes():
+        import urllib
+        output = []
+        for rule in app.url_map.iter_rules():
+            methods = ','.join(rule.methods)
+            line = urllib.parse.unquote(f"{rule.endpoint:50s} {methods:20s} {rule}")
+            output.append(line)
+        return "<pre>" + "\n".join(sorted(output)) + "</pre>"
+
     return app
 
 app = create_app()
