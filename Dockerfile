@@ -1,23 +1,17 @@
-FROM python:3.9
+FROM python:3.9-slim
 
-WORKDIR /code
+WORKDIR /app
 
-# 复制依赖文件
-COPY requirements.txt .
+# 只有这一行安装
+RUN pip install --no-cache-dir flask
 
-# 增加构建时的日志输出
-RUN echo "Step: Installing dependencies..."
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
-RUN echo "Step: Dependencies installed successfully."
+# 拷贝 app.py
+COPY app.py .
 
-# 复制所有文件
-COPY . .
-RUN echo "Step: Files copied to container."
-
-# 环境变量：确保日志不被缓存，直接输出
-ENV PYTHONUNBUFFERED=1
-
+# 暴露端口
 EXPOSE 7860
 
-# 启动
+# 强制 Python 不缓存日志
+ENV PYTHONUNBUFFERED=1
+
 CMD ["python", "app.py"]
