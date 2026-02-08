@@ -5,48 +5,44 @@ import io
 from tools.config import Config
 
 # R2 配置信息 (从 Config 动态加载)
-R2_CONFIG = {
-    "access_key": Config.R2_ACCESS_KEY,
-    "secret_key": Config.R2_SECRET_KEY,
-    "endpoint": Config.R2_ENDPOINT,
-    "bucket_name": Config.R2_BUCKET,
-    "public_url": Config.R2_PUBLIC_URL
-}
+def get_s3_client():
+    access_key = Config.R2_ACCESS_KEY
+    secret_key = Config.R2_SECRET_KEY
+    endpoint = Config.R2_ENDPOINT
+    
+    if not all([access_key, secret_key, endpoint]):
+        print(f"⚠️ [R2] Missing credentials: KEY={bool(access_key)}, SECRET={bool(secret_key)}, ENDPOINT={bool(endpoint)}")
+        return None
 
-# 初始化客户端
-s3_client = boto3.client(
-    service_name='s3',
-    endpoint_url=R2_CONFIG["endpoint"],
-    aws_access_key_id=R2_CONFIG["access_key"],
-    aws_secret_access_key=R2_CONFIG["secret_key"],
-    region_name='auto',
-    config=BotoConfig(
-        signature_version='s3v4',
-        proxies={} # 强制忽略系统代理，防止连不上本地 7897 端口
-    ),
-    verify=False # 强制禁用 SSL 验证
-)
+    return boto3.client(
+        service_name='s3',
+        endpoint_url=endpoint,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        region_name='auto',
+        config=BotoConfig(
+            signature_version='s3v4',
+            proxies={}
+        ),
+        verify=False
+    )
 
-def get_content_type(ext):
-    types = {
-        'pdf': 'application/pdf',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'svg': 'image/svg+xml',
-        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'csv': 'text/csv'
-    }
-    return types.get(ext, 'application/octet-stream')
+# 全局单例，但在使用时检查
+_s3_client = None
 
 def upload_to_r2(file_obj, folder, prefix="file", fixed_name=None, app_name="unsorted"):
-    """
-    通用上传函数
-    app_name: 应用命名空间 (如 'inventory', 'project_hub')
-    folder: 子文件夹 (如 'images', 'docs', 'qrcodes')
-    """
+    global _s3_client
+    if _s3_client is None:
+        _s3_client = get_s3_client()
+    
+    if not _s3_client:
+        print("❌ [R2] Cannot upload: S3 client not initialized")
+        return ""
+    
     if not file_obj: return ""
+    
+    # ... 后续逻辑保持不变 ...
+
     
     # 1. 自动处理后缀
     ext = "png"
@@ -67,22 +63,25 @@ def upload_to_r2(file_obj, folder, prefix="file", fixed_name=None, app_name="uns
     try:
         # 3. 上传到 R2
         content_type = get_content_type(ext)
+        bucket = Config.R2_BUCKET
         if hasattr(file_obj, 'read'):
-            s3_client.upload_fileobj(file_obj, R2_CONFIG["bucket_name"], filename, ExtraArgs={'ContentType': content_type})
+            _s3_client.upload_fileobj(file_obj, bucket, filename, ExtraArgs={'ContentType': content_type})
         else:
-            s3_client.put_object(Body=file_obj, Bucket=R2_CONFIG["bucket_name"], Key=filename, ContentType=content_type)
+            _s3_client.put_object(Body=file_obj, Bucket=bucket, Key=filename, ContentType=content_type)
             
-        return f"{R2_CONFIG['public_url']}/{filename}"
+        return f"{Config.R2_PUBLIC_URL}/{filename}"
     except Exception as e:
         print(f"上传 {folder} 失败: {e}")
         return ""
 
 def delete_from_r2(url):
     """根据 URL 删除 R2 上的文件"""
-    if not url or R2_CONFIG['public_url'] not in url:
+    global _s3_client
+    if _s3_client is None: _s3_client = get_s3_client()
+    if not _s3_client or not url or Config.R2_PUBLIC_URL not in url:
         return
     try:
-        key = url.replace(f"{R2_CONFIG['public_url']}/", "")
-        s3_client.delete_object(Bucket=R2_CONFIG["bucket_name"], Key=key)
+        key = url.replace(f"{Config.R2_PUBLIC_URL}/", "")
+        _s3_client.delete_object(Bucket=Config.R2_BUCKET, Key=key)
     except Exception as e:
         print(f"删除 R2 文件失败: {e}")

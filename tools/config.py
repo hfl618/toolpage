@@ -30,8 +30,8 @@ class Config:
     GATEWAY_SECRET = os.getenv('GATEWAY_SECRET', 'local-dev-gateway-secret-123')
 
     # --- Cloudflare R2 配置 (Prod) ---
-    R2_ACCESS_KEY = os.getenv('R2_ACCESS_KEY')
-    R2_SECRET_KEY = os.getenv('R2_SECRET_KEY')
-    R2_ENDPOINT = os.getenv('R2_ENDPOINT')
+    R2_ACCESS_KEY = os.getenv('R2_ACCESS_KEY') or os.getenv('Access_Key_ID')
+    R2_SECRET_KEY = os.getenv('R2_SECRET_KEY') or os.getenv('Secret_Access_Key')
+    R2_ENDPOINT = os.getenv('R2_ENDPOINT') or os.getenv('Endpoint')
     R2_BUCKET = os.getenv('R2_BUCKET', 'inventory-assets')
     R2_PUBLIC_URL = os.getenv('R2_PUBLIC_URL', 'https://pub-1f8bb9b02a224c45920856332170406e.r2.dev')
