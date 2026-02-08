@@ -3,13 +3,13 @@ from botocore.config import Config as BotoConfig
 from datetime import datetime
 import io
 
-# R2 配置信息
+# R2 配置信息 (从 Config 动态加载)
 R2_CONFIG = {
-    "access_key": "a26ae6eb8acf2e04778b34eb8d529af9",
-    "secret_key": "091fc08f8d4e4288a4703f719d2ca39141cabb3456fbd689d36169c13797a2f3",
-    "endpoint": "https://1473d81a1c18df1443cbaa3adf41da73.r2.cloudflarestorage.com",
-    "bucket_name": "inventory-assets",
-    "public_url": "https://pub-1f8bb9b02a224c45920856332170406e.r2.dev"
+    "access_key": Config.R2_ACCESS_KEY,
+    "secret_key": Config.R2_SECRET_KEY,
+    "endpoint": Config.R2_ENDPOINT,
+    "bucket_name": Config.R2_BUCKET,
+    "public_url": Config.R2_PUBLIC_URL
 }
 
 # 初始化客户端
@@ -19,7 +19,11 @@ s3_client = boto3.client(
     aws_access_key_id=R2_CONFIG["access_key"],
     aws_secret_access_key=R2_CONFIG["secret_key"],
     region_name='auto',
-    config=BotoConfig(signature_version='s3v4')
+    config=BotoConfig(
+        signature_version='s3v4',
+        proxies={} # 强制忽略系统代理，防止连不上本地 7897 端口
+    ),
+    verify=False # 强制禁用 SSL 验证
 )
 
 def get_content_type(ext):

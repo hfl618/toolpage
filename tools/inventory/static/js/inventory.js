@@ -424,14 +424,31 @@ function updateConflictUI(index) {
 
 async function executeImport(url) {
     const nextBtn = document.getElementById('nextBtn');
-    showLoading('正在执行 BOM 入库', '正在为您逐一生成二维码并同步云端...');
-    if(nextBtn) { nextBtn.disabled = true; nextBtn.innerText = '请稍候...'; }
+    if(nextBtn) { nextBtn.disabled = true; nextBtn.innerText = '正在处理...'; }
+    
+    // 立即关闭导入向导窗口，防止二次点击或干扰
+    closeImportModal();
+    showLoading('正在执行 BOM 入库', '正在为您逐一生成二维码并同步云端，请勿关闭页面...');
+    
     try {
         const resolved = importData.conflicts.map((c, i) => ({ strategy: document.getElementById(`strat-${i}`).value, new: c.new, old_id: c.old.id }));
         const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ uniques: importData.uniques, resolved: resolved }) }).then(r => r.json());
-        if(res.success) { alert(`✅ 入库成功！\n新增: ${res.added}\n更新: ${res.updated}\n跳过: ${res.skipped}`); window.location.reload(); }
-        else { alert('入库失败: ' + (res.error || '未知错误')); hideLoading(); if(nextBtn) { nextBtn.disabled = false; nextBtn.innerText = '确认并执行入库'; } }
-    } catch(e) { alert('网络请求失败'); hideLoading(); if(nextBtn) { nextBtn.disabled = false; nextBtn.innerText = '确认并执行入库'; } }
+        if(res.success) { 
+            alert(`✅ 入库成功！\n新增: ${res.added}\n更新: ${res.updated}\n跳过: ${res.skipped}`); 
+            window.location.reload(); 
+        }
+        else { 
+            alert('入库失败: ' + (res.error || '未知错误')); 
+            hideLoading(); 
+            openImportModal(); // 失败后重新打开窗口
+            if(nextBtn) { nextBtn.disabled = false; nextBtn.innerText = '确认并执行入库'; } 
+        }
+    } catch(e) { 
+        alert('网络请求失败'); 
+        hideLoading(); 
+        openImportModal();
+        if(nextBtn) { nextBtn.disabled = false; nextBtn.innerText = '确认并执行入库'; } 
+    }
 }
 
 function switchStep(n) {

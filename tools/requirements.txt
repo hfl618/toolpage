@@ -1,9 +1,9 @@
-﻿flask
+Flask
+Flask-CORS
 PyJWT
 requests
 pandas
 openpyxl
-python-dotenv
-boto3
 qrcode[pil]
+boto3
 urllib3
