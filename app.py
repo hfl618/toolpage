@@ -18,7 +18,7 @@ def create_app():
 
     # --- 1. 注册认证蓝图 ---
     from tools.auth import auth_bp
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(auth_bp, url_prefix='/auth')
 
     # --- 2. 模块化业务注册 ---
     from tools.inventory.routes import inventory_bp

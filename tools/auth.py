@@ -51,7 +51,7 @@ LOGIN_HTML = """
 </html>
 """
 
-@auth_bp.route('/auth/login', methods=['GET', 'POST'])
+@auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
         return render_template_string(LOGIN_HTML)
@@ -95,7 +95,7 @@ def login():
     else:
         return jsonify({"error": "Invalid username or password"}), 401
 
-@auth_bp.route('/auth/register', methods=['GET', 'POST'])
+@auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'GET':
         return render_template_string("""
