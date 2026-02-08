@@ -118,7 +118,9 @@ async function submitBatchEdit() {
     const updates = {};
     ['category','name','package','location','supplier','channel','unit','price','buy_time','remark'].forEach(f => {
         const input = document.getElementById(`batch_${f}`);
-        if(input) input.value = '';
+        if (input && input.value.trim() !== '') {
+            updates[f] = input.value.trim();
+        }
     });
     if (Object.keys(updates).length === 0) return alert('未输入任何修改内容');
     
@@ -321,29 +323,26 @@ function renderConflictStep() {
     const list = document.getElementById('conflictList');
     if(!list) return;
     list.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-2";
-        list.innerHTML = importData.conflicts.map((c, i) => `
-            <div id="conflict-card-${i}" class="p-4 border border-slate-100 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-                <div class="transition-opacity duration-300 content-area">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="truncate pr-2">
-                            <h4 class="text-[14px] font-black text-slate-800 m-0 truncate">${c.new.name || '未命名'}</h4>
-                            <div class="text-[10px] font-bold text-slate-400 truncate tracking-tight">${c.new.model}</div>
-                        </div>
+    list.innerHTML = importData.conflicts.map((c, i) => `
+        <div id="conflict-card-${i}" class="p-4 border border-slate-100 bg-white rounded-[2rem] shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+            <div class="transition-opacity duration-300 content-area">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="truncate pr-2">
+                        <h4 class="text-[14px] font-black text-slate-800 m-0 truncate">${c.new.name || '未命名'}</h4>
+                        <div class="text-[10px] font-bold text-slate-400 truncate tracking-tight">${c.new.model}</div>
                     </div>
-                    
-                    <div class="flex bg-slate-100 p-1 rounded-xl mb-3">
-                        <button onclick="setStrat(${i}, 'merge')" id="btn-${i}-merge" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all active-merge">累加</button>
-                        <button onclick="setStrat(${i}, 'cover')" id="btn-${i}-cover" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">覆盖</button>
-                        <button onclick="setStrat(${i}, 'new')" id="btn-${i}-new" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">新增</button>
-                        <button onclick="setStrat(${i}, 'skip')" id="btn-${i}-skip" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">跳过</button>
-                        <input type="hidden" id="strat-${i}" value="merge">
-                    </div>
-    
-                    <div id="details-${i}" class="bg-slate-50/50 rounded-xl p-3 mb-3 min-h-[90px] transition-all"></div>
                 </div>
-                
-                <div id="qty-preview-${i}" class="bg-blue-50/50 rounded-xl px-3 py-2 border border-blue-100 flex items-center justify-between transition-all"></div>
-            </div>`).join('');
+                <div class="flex bg-slate-100 p-1 rounded-xl mb-3">
+                    <button onclick="setStrat(${i}, 'merge')" id="btn-${i}-merge" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all active-merge">累加</button>
+                    <button onclick="setStrat(${i}, 'cover')" id="btn-${i}-cover" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">覆盖</button>
+                    <button onclick="setStrat(${i}, 'new')" id="btn-${i}-new" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">新增</button>
+                    <button onclick="setStrat(${i}, 'skip')" id="btn-${i}-skip" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">跳过</button>
+                    <input type="hidden" id="strat-${i}" value="merge">
+                </div>
+                <div id="details-${i}" class="bg-slate-50/50 rounded-xl p-3 mb-3 min-h-[100px] transition-all"></div>
+            </div>
+            <div id="qty-preview-${i}" class="bg-blue-50/50 rounded-xl px-3 py-2 border border-blue-100 flex items-center justify-between transition-all"></div>
+        </div>`).join('');
     importData.conflicts.forEach((_, i) => updateConflictUI(i));
 }
 
@@ -352,7 +351,7 @@ function setStrat(index, val) {
     const btns = ['merge', 'cover', 'new', 'skip'];
     btns.forEach(b => {
         const el = document.getElementById(`btn-${index}-${b}`);
-        el.className = `strat-btn flex-1 text-[8px] font-black py-1 rounded-md transition-all ${b === val ? 'active-' + b : 'text-slate-400'}`;
+        el.className = `strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all ${b === val ? 'active-' + b : 'text-slate-400'}`;
     });
     updateConflictUI(index);
 }
