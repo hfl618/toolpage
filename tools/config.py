@@ -19,7 +19,8 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-me')
     
     # Cookie 设置
-    COOKIE_DOMAIN = os.getenv('COOKIE_DOMAIN', ".618002.xyz" if ENV == 'prod' else None)
+    # 如果不设置，默认 None 会让 Cookie 绑定在当前访问的域名上
+    COOKIE_DOMAIN = os.getenv('COOKIE_DOMAIN') 
     COOKIE_SECURE = True if ENV == 'prod' else False
     
     # JWT 过期时间 (秒)
