@@ -5,7 +5,7 @@ class Config:
     # 'local': 使用本地 SQLite 文件 (debugging)
     # 'prod': 使用 Cloudflare D1 HTTP API
     #ENV = os.getenv('FLASK_ENV', 'local') 
-    ENV = 'prod'
+    ENV = 'local'
     # --- Cloudflare D1 配置 (Prod) ---
     CF_ACCOUNT_ID = "086001d6706e622db6e36d54236a02be"
     CF_DATABASE_ID = "32ee2a66-2503-4c4c-9772-2773d6776b33"

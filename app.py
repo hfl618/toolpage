@@ -1,4 +1,8 @@
 import os
+import sys
+# 强制日志立即输出，不缓存
+sys.stdout.reconfigure(line_buffering=True)
+
 import requests
 import jwt
 from flask import Flask, render_template, request, jsonify, render_template_string, redirect, url_for, g
@@ -72,10 +76,11 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    # 强制禁用 reloader 以绕过 watchdog 错误
+    print("--- Starting Flask App directly ---")
+    # 监听 0.0.0.0 以便在 Docker 中被外部访问
     app.run(
-        host='127.0.0.1', 
+        host='0.0.0.0', 
         port=7860, 
-        debug=(Config.ENV == 'local'),
+        debug=False,
         use_reloader=False
     )
