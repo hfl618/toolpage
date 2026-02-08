@@ -2,6 +2,7 @@ import boto3
 from botocore.config import Config as BotoConfig
 from datetime import datetime
 import io
+from tools.config import Config
 
 # R2 配置信息 (从 Config 动态加载)
 R2_CONFIG = {
