@@ -27,6 +27,19 @@ def get_s3_client():
         verify=False
     )
 
+def get_content_type(ext):
+    types = {
+        'pdf': 'application/pdf',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'svg': 'image/svg+xml',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'csv': 'text/csv'
+    }
+    return types.get(ext, 'application/octet-stream')
+
 # 全局单例，但在使用时检查
 _s3_client = None
 
