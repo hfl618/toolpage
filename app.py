@@ -53,14 +53,26 @@ def create_app():
         if not uid:
             if request.path.startswith('/api/'):
                 return jsonify(success=False, error="Unauthorized: Missing identity"), 401
-            return redirect(url_for('auth.login', next=request.path))
+            # 统一跳转到 Worker 的登录页
+            return redirect(f'/login?next={request.path}')
 
         # 3. 【生产环境】安全校验：如果是来自网关的请求，校验密钥
         if Config.ENV == 'prod':
             client_secret = request.headers.get('X-Gateway-Secret')
-            # 只有当请求头包含 X-Gateway-Secret 时才校验（允许直接访问或网关访问）
             if client_secret and client_secret != Config.GATEWAY_SECRET:
                 return "Forbidden: Invalid gateway secret.", 403
+
+    @app.route('/proxy_img')
+    def proxy_img():
+        """代理 R2 图片，解决手机端 r2.dev 域名访问不稳定的问题"""
+        url = request.args.get('url')
+        if not url or not url.startswith('http'):
+            abort(404)
+        try:
+            resp = requests.get(url, timeout=10, verify=False)
+            return (resp.content, resp.status_code, resp.headers.items())
+        except Exception as e:
+            return f"Proxy error: {e}", 500
 
     @app.route('/health')
     def health():

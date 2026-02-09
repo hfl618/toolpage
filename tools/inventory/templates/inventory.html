@@ -164,12 +164,14 @@
             <tr class="hover-row transition">
                 <td class="ps-4 text-center"><input class="form-check-input row-checkbox" type="checkbox" value="{{ item.id }}" onclick="updateBatchBtn()" style="width:16px;height:16px;"></td>
                 <td class="relative group">
-                    <img src="{{ item.img_path }}?v={{ range(1, 9999) | random }}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YxZjVmOSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0iSW50ZXIiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5OQS9JTUc8L3RleHQ+PC9zdmc+'" class="part-img shadow-sm cursor-pointer mx-auto" onclick="window.open(this.src)">
                     {% if item.img_path %}
+                    <img src="/proxy_img?url={{ item.img_path | urlencode }}&v={{ range(1, 9999) | random }}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YxZjVmOSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0iSW50ZXIiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5OQS9JTUc8L3RleHQ+PC9zdmc+'" class="part-img shadow-sm cursor-pointer mx-auto" onclick="window.open(this.src)">
                     <!-- 第一行向下弹出，其余向上弹出 -->
                     <div class="absolute {{ 'top-full mt-2' if loop.first else 'bottom-full mb-2' }} left-1/2 -translate-x-1/2 hidden group-hover:block z-[100] bg-white p-1 rounded-xl shadow-2xl border border-slate-100 pointer-events-none">
-                        <img src="{{ item.img_path }}?v={{ range(1, 9999) | random }}" class="max-w-[200px] max-h-[200px] object-scale-down rounded-lg bg-white">
+                        <img src="/proxy_img?url={{ item.img_path | urlencode }}&v={{ range(1, 9999) | random }}" class="max-w-[200px] max-h-[200px] object-scale-down rounded-lg bg-white">
                     </div>
+                    {% else %}
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YxZjVmOSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0iSW50ZXIiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5OQS9JTUc8L3RleHQ+PC9zdmc+'" class="part-img shadow-sm mx-auto">
                     {% endif %}
                 </td>
                 <td class="text-center"><span class="badge-category">{{ item.category }}</span></td>
