@@ -74,6 +74,26 @@ def create_app():
         except Exception as e:
             return f"Proxy error: {e}", 500
 
+    # --- 4. 自动记录操作日志 ---
+    @app.after_request
+    def log_request(response):
+        # 仅记录写入类操作或核心访问
+        if request.method in ['POST', 'PUT', 'DELETE'] or request.path == '/inventory/':
+            uid = request.headers.get('X-User-Id')
+            if uid:
+                from tools.database import d1
+                try:
+                    d1.execute("INSERT INTO usage_logs (user_id, path, status) VALUES (?, ?, ?)", 
+                               [uid, request.path, response.status_code])
+                except: pass
+        return response
+
+    @app.route('/api/user/profile')
+    def api_profile_proxy():
+        # 内部重定向到 auth 模块的接口
+        from tools.auth import profile_api
+        return profile_api()
+
     @app.route('/health')
     def health():
         return {"status": "healthy"}, 200

@@ -75,9 +75,10 @@ def login():
 
     # 2. 验证密码 
     if user and user['password_hash'] == password:
-        # 3. 生成真正的 JWT
+        # 3. 生成真正的 JWT (增加 username 供 Worker 直接提取)
         payload = {
             "uid": user['id'],
+            "username": username,
             "role": user['role'],
             "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=Config.JWT_EXP_DELTA)
         }
@@ -96,6 +97,62 @@ def login():
         return resp
     else:
         return jsonify({"error": "Invalid username or password"}), 401
+
+@auth_bp.route('/profile_api')
+def profile_api():
+    """为前端提供真实的个人中心数据"""
+    from flask import g
+    uid = request.headers.get('X-User-Id')
+    if not uid: return jsonify(success=False), 401
+    
+    try:
+        # 1. 获取基础统计
+        # 存入天数
+        user_res = d1.execute("SELECT created_at FROM users WHERE id = ?", [uid])
+        join_date = user_res['results'][0]['created_at'] if user_res['results'] else None
+        days = 1
+        if join_date:
+            from datetime import datetime
+            delta = datetime.utcnow() - datetime.strptime(join_date, '%Y-%m-%d %H:%M:%S')
+            days = max(1, delta.days)
+
+        # 库存用量
+        count_res = d1.execute("SELECT COUNT(*) as count FROM components WHERE user_id = ?", [uid])
+        storage_used = count_res['results'][0]['count'] if count_res['results'] else 0
+
+        # 今日 API 调用
+        api_res = d1.execute("SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND request_date = DATE('now')", [uid])
+        api_today = api_res['results'][0]['count'] if api_res['results'] else 0
+
+        # 2. 获取最近活动 (从日志表取最近5条)
+        log_res = d1.execute("SELECT path, created_at FROM usage_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 5", [uid])
+        activities = []
+        path_map = {'/inventory/add': '添加了元器件', '/inventory/update': '更新了元器件', '/auth/login': '登录了系统', '/inventory/import/execute': '执行了批量导入'}
+        
+        if log_res and log_res.get('results'):
+            for log in log_res['results']:
+                action = '使用了系统功能'
+                for k, v in path_map.items():
+                    if k in log['path']: action = v; break
+                activities.append({
+                    "text": action,
+                    "time": log['created_at'],
+                    "icon": "ri-pulse-line",
+                    "color": "bg-blue-100 text-blue-600"
+                })
+
+        return jsonify({
+            "success": True,
+            "stats": {
+                "days": days,
+                "api_calls": 0, # 这里可以根据需要统计总数
+                "storage_used": storage_used,
+                "api_today": api_today
+            },
+            "activities": activities
+        })
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
