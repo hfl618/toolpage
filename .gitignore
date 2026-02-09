@@ -1,0 +1,15 @@
+# 环境与数据
+.env
+*.sqlite
+local_debug.sqlite
+
+# 调试脚本
+tools/init_local_user.py
+tools/db_probe.py
+tools/check_ownership.py
+
+# Python 缓存
+__pycache__/
+*.pyc
+venv/
+.venv/

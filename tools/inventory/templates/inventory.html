@@ -6,198 +6,148 @@
     <title>元器件智能管理系统</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
-        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; font-size: 15px; }
-        
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { background-color: #fbfbfd; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; color: #1d1d1f; }
         .row-header { background: white; height: 64px; display: flex; align-items: center; padding: 0 2rem; border-bottom: 1px solid #f1f5f9; position: relative; }
-        .abs-center { position: absolute; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px; }
+        .abs-center { position: absolute; left: 50%; transform: translateX(-50%); width: 100%; max-width: 600px; }
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: saturate(180%) blur(20px); }
         .search-box { background: #f1f5f9; border-radius: 12px; padding: 0.5rem 1rem; display: flex; align-items: center; }
         .search-box input { background: transparent; border: none; outline: none; width: 100%; font-size: 1rem; font-weight: 600; margin-left: 0.5rem; }
-        
-        .row-filters { margin: 1rem 2rem; background: white; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 0.75rem 1.5rem; display: flex; justify-content: center; gap: 1.2rem; flex-wrap: wrap; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+        .row-filters { margin: 1rem 2rem; background: white; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1rem 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: flex-start; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
         .d-none-custom { display: none !important; }
-        .f-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #64748b; font-weight: 700; }
-        .f-item input, .f-item select { border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.3rem 0.6rem; font-size: 0.8rem; background: #f8fafc; outline: none; transition: 0.2s; }
-        .f-item input:focus, .f-item select:focus { border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-        
+        .f-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #64748b; font-weight: 700; background: #f8fafc; padding: 4px 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .f-item input, .f-item select { border: none; background: transparent; outline: none; font-size: 0.85rem; width: 100px; color: #334155; font-weight: 600; }
         .row-actions { margin: 1rem 2rem 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 0.6rem 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
-        .batch-btn { font-size: 0.85rem; font-weight: 800; color: #94a3b8; padding: 0.4rem 1rem; border-radius: 10px; border: 1px solid transparent; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; background: transparent; }
-        .batch-btn:disabled { cursor: not-allowed; opacity: 0.5; }
-        .batch-btn.active-edit { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); }
-        .batch-btn.active-del { color: #ef4444; background: #fef2f2; border-color: #fecaca; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1); }
-        
-        .bom-group { background: #0f172a; border-radius: 14px; padding: 3px; display: flex; align-items: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); }
-        .bom-btn { color: #f8fafc; border: none; background: transparent; padding: 8px 20px; font-size: 11px; font-weight: 900; letter-spacing: 0.05em; transition: 0.2s; border-radius: 10px; display: flex; align-items: center; gap: 6px; }
-        .bom-btn i { font-size: 14px; opacity: 0.7; }
+        .batch-btn { font-size: 0.85rem; font-weight: 800; color: #94a3b8; padding: 0.4rem 1rem; border-radius: 10px; transition: 0.2s; background: transparent; border: 1px solid transparent; }
+        .batch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .batch-btn:not(:disabled) { color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; }
+        .bom-group { background: #0f172a; border-radius: 14px; padding: 3px; display: flex; align-items: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .bom-btn { color: #f8fafc; border: none; background: transparent; padding: 8px 20px; font-size: 11px; font-weight: 900; transition: 0.2s; border-radius: 10px; display: flex; align-items: center; gap: 6px; }
         .bom-btn:hover { background: rgba(255,255,255,0.08); color: #60a5fa; }
-        .bom-btn:hover i { opacity: 1; }
-        .bom-btn:active { transform: scale(0.96); }
         .bom-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.1); margin: 0 2px; }
-
-        .selection-counter { font-size: 11px; font-weight: 900; color: white; background: #3b82f6; padding: 3px 12px; border-radius: 999px; margin-left: 8px; display: none; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); }
-
+        .selection-counter { font-size: 11px; font-weight: 900; color: white; background: #3b82f6; padding: 3px 12px; border-radius: 999px; margin-left: 8px; display: none; }
         .table-container { margin: 1rem 2rem 2rem; background: white; border: 1px solid #e2e8f0; border-radius: 1rem; overflow: visible !important; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05); }
-        .table { border-collapse: separate; border-spacing: 0; width: 100%; }
-        .table thead th { background: #f8fafc; font-size: 0.75rem; font-weight: 900; color: #94a3b8; padding: 1rem; text-align: center !important; vertical-align: middle; border-bottom: 1px solid #e2e8f0; }
-        tr:hover { position: relative; z-index: 30; }
-        .table tbody td { text-align: center !important; vertical-align: middle; padding: 1rem !important; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; position: relative; }
+        .table { border-collapse: separate; border-spacing: 0; width: 100%; text-align: center; }
+        .table th { background: #f8fafc; font-size: 0.75rem; font-weight: 900; color: #94a3b8; padding: 1rem; border-bottom: 1px solid #e2e8f0; text-align: center !important; }
+        .table td { padding: 1rem !important; border-bottom: 1px solid #f1f5f9; vertical-align: middle; text-align: center !important; }
         .part-img { width: 52px; height: 52px; object-fit: contain; border-radius: 8px; border: 1px solid #f1f5f9; margin: 0 auto; }
-        .badge-category { display: inline-block; padding: 0.25rem 0.8rem; border-radius: 999px; background: #eff6ff; color: #2563eb; border: 1.5px solid #bfdbfe; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; }
-        .col-name { color: #0f172a; font-weight: 900; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .btn-doc { color: #cbd5e1; cursor: pointer; transition: 0.2s; font-size: 1rem; }
-        .btn-doc:hover { color: #3b82f6; transform: scale(1.1); }
-        
-        .qty-text { font-weight: 900; font-size: 1rem; }
-        .qty-low { color: #ef4444; }
-        .qty-normal { color: #10b981; }
-        .unit-text { font-size: 11px; font-weight: 700; color: #94a3b8; margin-left: 2px; }
-        .loc-text { font-weight: 700; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 4px; }
-        .vendor-channel-stack { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .vendor-main { font-weight: 700; color: #334155; font-size: 12px; }
-        .channel-sub { font-size: 10px; color: #94a3b8; font-style: italic; }
-        
-        /* 批量修改 / 导入 */
-        .batch-field-card { border: 2px solid #f1f5f9; border-radius: 1.5rem; padding: 1.5rem; transition: 0.2s; background: white; }
-        .drag-active { border-color: #3b82f6 !important; background-color: #eff6ff !important; transform: scale(1.01); }
-        #rawPreviewTab th, #rawPreviewTab td { border: 1px solid #e2e8f0; padding: 8px; font-size: 11px; }
-        /* 高级交互引擎 */
-        .batch-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .batch-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
-        
+        .badge-category { display: inline-block; padding: 0.25rem 0.8rem; border-radius: 999px; background: #eff6ff; color: #2563eb; font-size: 10px; font-weight: 900; text-transform: uppercase; }
         tr.hover-row { transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         tr.hover-row:hover { background: #f1f5f9 !important; }
-        tr.hover-row:hover td:first-child { box-shadow: inset 4px 0 0 #3b82f6; }
-
-        .btn-action-icon { transition: 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .btn-action-icon:hover { transform: scale(1.25) rotate(8deg); }
-        .btn-action-del:hover { color: #ef4444 !important; }
-        .btn-action-edit:hover { color: #3b82f6 !important; }
-
-        /* 差异项高亮动画 */
-        .diff-row { transition: 0.2s; border-radius: 6px; padding: 0 4px; }
-        .diff-row:hover { background: #fff7ed; transform: scale(1.02); }
-        .diff-row:hover .text-orange-600 { text-shadow: 0 0 8px rgba(234, 88, 12, 0.3); font-size: 11.5px; }
-
-        .strat-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid transparent; }
-        .strat-btn:hover:not(.active-merge):not(.active-cover):not(.active-new):not(.active-skip) { background: white; border-color: #e2e8f0; color: #1e293b; }
-        .strat-btn.active-merge { background: white; color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); border-color: #bfdbfe; }
-        .strat-btn.active-cover { background: white; color: #f59e0b; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); border-color: #fde68a; }
-        .strat-btn.active-new { background: white; color: #10b981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); border-color: #bbf7d0; }
-        .strat-btn.active-skip { background: white; color: #64748b; box-shadow: 0 4px 12px rgba(100, 116, 139, 0.1); border-color: #e2e8f0; }
+        .btn-action-icon { transition: 0.2s; cursor: pointer; }
+        .btn-action-icon:hover { transform: scale(1.2); }
+        .doc-tooltip { position: absolute; left: 100%; top: 0; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); min-width: 180px; z-index: 100; display: none; margin-left: 10px; text-align: left; }
+        .group:hover .doc-tooltip { display: block; }
+        .doc-item-link { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #475569; padding: 6px 10px; border-radius: 6px; text-decoration: none; }
+        .doc-item-link:hover { background: #eff6ff; color: #2563eb; }
     </style>
 </head>
 <body>
 
-<nav class="row-header">
-    <div class="flex items-center gap-2"><div class="bg-blue-600 text-white p-1 rounded shadow-sm"><i class="bi bi-cpu-fill"></i></div><h1 class="text-sm font-black m-0 tracking-widest text-slate-900">DATABASE</h1></div>
+<nav class="row-header glass fixed top-0 w-full z-50">
+    <div class="flex items-center gap-3 cursor-pointer" onclick="location.href='/'">
+        <div class="w-10 h-10 bg-black rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg">6</div>
+        <span class="text-sm font-black m-0 tracking-widest text-slate-900 uppercase">Database</span>
+    </div>
     <div class="abs-center">
         <form action="{{ url_for('inventory.index') }}" method="GET">
-            <div class="search-box"><i class="bi bi-search text-slate-400"></i><input type="text" name="q" id="main-search" placeholder="全局搜索..." value="{{ q }}" autocomplete="off"><button type="button" onclick="openScanModal()" class="text-slate-300 hover:text-blue-500 ms-2" title="扫码查找"><i class="bi bi-qr-code-scan"></i></button><button type="button" onclick="toggleFilterBar()" class="text-slate-300 hover:text-blue-500 ms-2"><i class="bi bi-sliders2"></i></button></div>
+            <div class="search-box"><i class="ri-search-line text-slate-400"></i><input type="text" name="q" id="main-search" placeholder="全局搜索..." value="{{ q }}" autocomplete="off"><button type="button" onclick="openScanModal()" class="text-slate-300 hover:text-blue-500 ms-2" title="扫码"><i class="ri-qr-code-line"></i></button><button type="button" onclick="toggleFilterBar()" class="text-slate-300 hover:text-blue-500 ms-2"><i class="ri-equalizer-line"></i></button></div>
         </form>
     </div>
     <div class="ms-auto flex items-center gap-2">
         <div class="dropdown">
-            <div class="p-2 rounded hover:bg-slate-50 cursor-pointer" data-bs-toggle="dropdown"><i class="bi bi-tools text-lg text-slate-400"></i></div>
+            <div class="p-2 rounded hover:bg-slate-50 cursor-pointer" data-bs-toggle="dropdown"><i class="ri-more-2-fill text-lg text-slate-400"></i></div>
             <ul class="dropdown-menu dropdown-menu-end shadow-xl border-0 font-bold p-2 rounded-2xl" style="min-width: 180px;">
-                <li><a class="dropdown-item py-2 rounded-xl" href="/ai_tools" target="_blank"><i class="bi bi-stars me-2 text-purple-500"></i>AI 识别</a></li>
+                <li><a class="dropdown-item py-2 rounded-xl" href="/ai_tools" target="_blank"><i class="ri-magic-line me-2 text-purple-500"></i>AI 识别</a></li>
                 <li><hr class="dropdown-divider opacity-50"></li>
-                <li><a class="dropdown-item py-2 rounded-xl" href="javascript:void(0)" onclick="runBackup()"><i class="bi bi-cloud-arrow-up me-2 text-blue-500"></i>备份数据 (Local)</a></li>
-                <li><a class="dropdown-item py-2 rounded-xl" href="javascript:void(0)" onclick="openModal('restoreModal')"><i class="bi bi-cloud-arrow-down me-2 text-orange-500"></i>还原数据 (Local)</a></li>
+                <li><a class="dropdown-item py-2 rounded-xl" href="javascript:void(0)" id="menuBtnBackup"><i class="ri-cloud-line me-2 text-blue-500"></i>备份数据</a></li>
+                <li><a class="dropdown-item py-2 rounded-xl" href="javascript:void(0)" id="menuBtnRestore"><i class="ri-refresh-line me-2 text-orange-500"></i>还原数据</a></li>
             </ul>
         </div>
         <div class="h-5 w-px bg-slate-200 mx-2"></div>
-        <div class="flex items-center gap-3 px-2 cursor-pointer hover:bg-slate-50 rounded-lg">
-            <div class="text-right hidden sm:block"><div class="text-[10px] font-black leading-none text-slate-900">Admin</div><div class="text-[8px] font-bold text-slate-400 uppercase">Pro</div></div>
-            <img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" class="w-9 h-9 rounded-full border shadow-sm">
+        <div id="userArea" class="relative group flex items-center gap-3 px-2 cursor-pointer hover:bg-slate-50 rounded-lg transition-all" onclick="if(!event.target.closest('.dropdown-content')) location.href='/profile.html'">
+            <div class="animate-pulse flex items-center gap-2"><div class="w-8 h-8 bg-slate-100 rounded-full"></div><div class="h-2 w-12 bg-slate-100 rounded"></div></div>
         </div>
     </div>
 </nav>
 
-<div class="row-filters {{ '' if filters.values()|select('ne', '')|list|length > 0 else 'd-none-custom' }}" id="filterBar">
-    <form action="{{ url_for('inventory.index') }}" method="GET" class="flex items-center gap-4">
+<div class="pt-[64px]"></div>
+
+<div class="row-filters {{ '' if filters.values()|select('ne', '')|list|length > 0 else 'd-none-custom' }} !mt-2" id="filterBar">
+    <form action="{{ url_for('inventory.index') }}" method="GET" class="flex flex-wrap gap-3 items-center w-full">
         <input type="hidden" name="q" value="{{ q }}">
-        <div class="f-item"><i class="bi bi-tag-fill text-blue-400"></i><input type="text" name="category" placeholder="品类" value="{{ filters.category }}" onchange="this.form.submit()"></div>
-        <div class="f-item"><i class="bi bi-info-circle-fill text-indigo-400"></i><input type="text" name="name" placeholder="品名" value="{{ filters.name }}" onchange="this.form.submit()"></div>
-        <div class="f-item"><i class="bi bi-cpu text-slate-400"></i><input type="text" name="model" placeholder="型号" value="{{ filters.model }}" onchange="this.form.submit()"></div>
-        <div class="f-item"><i class="bi bi-geo-alt-fill text-orange-400"></i><select name="location" onchange="this.form.submit()"><option value="">全部位置</option>{% for l in locations %}<option value="{{ l }}" {{'selected' if filters.location==l}}>{{l}}</option>{% endfor %}</select></div>
-        <div class="f-item"><i class="bi bi-calendar-event text-purple-400"></i><input type="date" name="buy_time" value="{{ filters.buy_time }}" onchange="this.form.submit()"></div>
-        <a href="{{ url_for('inventory.index') }}" class="text-xs text-slate-300 font-bold no-underline hover:text-red-500">RESET</a>
+        <div class="f-item"><i class="ri-price-tag-3-fill text-blue-400"></i><input type="text" name="category" placeholder="品类" value="{{ filters.category }}" onchange="this.form.submit()"></div>
+        <div class="f-item"><i class="ri-information-fill text-indigo-400"></i><input type="text" name="name" placeholder="品名" value="{{ filters.name }}" onchange="this.form.submit()"></div>
+        <div class="f-item"><i class="ri-cpu-line text-slate-400"></i><input type="text" name="model" placeholder="型号" value="{{ filters.model }}" onchange="this.form.submit()"></div>
+        <div class="f-item"><i class="ri-box-3-fill text-teal-400"></i><input type="text" name="package" placeholder="封装" value="{{ filters.package }}" onchange="this.form.submit()"></div>
+        <div class="f-item"><i class="ri-map-pin-2-fill text-orange-400"></i><select name="location" onchange="this.form.submit()"><option value="">全部位置</option>{% for l in locations %}<option value="{{ l }}" {{'selected' if filters.location==l}}>{{l}}</option>{% endfor %}</select></div>
+        <div class="f-item"><i class="ri-store-2-fill text-pink-400"></i><input type="text" name="supplier" placeholder="供应商" value="{{ filters.supplier }}" onchange="this.form.submit()"></div>
+        <div class="f-item"><i class="ri-shopping-bag-3-fill text-yellow- Yellow-400"></i><input type="text" name="channel" placeholder="渠道" value="{{ filters.channel }}" onchange="this.form.submit()"></div>
+        <div class="f-item"><i class="ri-calendar-event-fill text-purple-400"></i><input type="date" name="buy_time" value="{{ filters.buy_time }}" onchange="this.form.submit()"></div>
+        <a href="{{ url_for('inventory.index') }}" class="text-xs text-slate-300 font-bold no-underline hover:text-red-500 ml-auto">RESET</a>
     </form>
 </div>
 
 <div class="row-actions">
     <div class="flex items-center gap-2">
-        <div class="flex items-center gap-1 hover:bg-slate-50 p-1 px-3 rounded-xl transition cursor-pointer border border-transparent hover:border-slate-100" onclick="document.getElementById('selectAll').click()">
-            <input class="form-check-input" type="checkbox" id="selectAll" onclick="event.stopPropagation(); toggleSelectAll()" style="width:18px;height:18px;margin:0;"><label class="text-sm font-black text-slate-500 cursor-pointer select-none ml-1">全选</label>
+        <div class="flex items-center gap-1 px-3 py-1 hover:bg-slate-50 rounded-xl transition cursor-pointer border border-transparent hover:border-slate-100" onclick="document.getElementById('selectAll').click()">
+            <input class="form-check-input" type="checkbox" id="selectAll" onclick="event.stopPropagation(); toggleSelectAll()"><label class="text-sm font-black text-slate-500 cursor-pointer ml-1">全选</label>
         </div>
-        <span id="selectedCount" class="selection-counter">已选中 0 项</span>
+        <span id="selectedCount" class="selection-counter">0</span>
         <div class="h-4 w-px bg-slate-200 mx-2"></div>
-        <button class="batch-btn" id="btnBatchEdit" disabled onclick="openBatchEdit()"><i class="bi bi-pencil-square"></i> 批量修改</button>
-        <button class="batch-btn" id="btnBatchDel" disabled onclick="batchDelete(CONFIG.apiBatchDel)"><i class="bi bi-trash"></i> 批量删除</button>
+        <button class="batch-btn" id="btnBatchEdit" disabled onclick="openBatchEdit()"><i class="ri-edit-box-line"></i> 批量修改</button>
+        <button class="batch-btn" id="btnBatchDel" disabled onclick="batchDelete(CONFIG.apiBatchDel)"><i class="ri-delete-bin-line text-red-400"></i> 批量删除</button>
     </div>
-    
     <div class="bom-group">
-        <button class="bom-btn" onclick="openModal('addModal')">
-            <i class="bi bi-plus-circle-fill"></i>入库
-        </button>
+        <button class="bom-btn" onclick="openModal('addModal')"><i class="ri-add-circle-fill"></i>入库</button>
         <div class="bom-sep"></div>
-        <button class="bom-btn" onclick="openImportModal()">
-            <i class="bi bi-file-earmark-arrow-up-fill"></i>BOM 导入
-        </button>
+        <button class="bom-btn" onclick="openImportModal()"><i class="ri-file-upload-fill"></i>BOM 导入</button>
         <div class="bom-sep"></div>
-        <button class="bom-btn" onclick="openExportModal()">
-            <i class="bi bi-file-earmark-arrow-down-fill"></i>BOM 导出
-        </button>
+        <button class="bom-btn" onclick="openExportModal()"><i class="ri-file-download-fill"></i>导出中心</button>
     </div>
 </div>
 
 <div class="table-container shadow-md">
-    <table class="table mb-0 w-full align-middle">
-        <thead>
-            <tr><th class="ps-4" style="width:50px;"></th><th style="width:80px;">预览</th><th>品类</th><th>品名</th><th>型号 / 封装</th><th>库存数量</th><th>位置</th><th>单价</th><th>供应商 / 渠道</th><th class="text-center pe-8">操作</th></tr>
-        </thead>
+    <table class="table mb-0 w-full align-middle text-center">
+        <thead><tr><th class="ps-4" style="width:50px;"></th><th style="width:80px;">预览</th><th>品类</th><th>品名</th><th>型号 / 封装</th><th>库存数量</th><th>位置</th><th>单价</th><th>供应商 / 渠道</th><th class="text-end pe-8">操作</th></tr></thead>
         <tbody>
             {% for item in items %}
-            <tr class="hover-row transition">
-                <td class="ps-4 text-center"><input class="form-check-input row-checkbox" type="checkbox" value="{{ item.id }}" onclick="updateBatchBtn()" style="width:16px;height:16px;"></td>
+            <tr class="hover-row transition text-center">
+                <td class="ps-4"><input class="form-check-input row-checkbox" type="checkbox" value="{{ item.id }}" onclick="updateBatchBtn()"></td>
                 <td class="relative group">
                     {% if item.img_path %}
-                    <img src="/proxy_img?url={{ item.img_path | urlencode }}&v={{ range(1, 9999) | random }}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YxZjVmOSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0iSW50ZXIiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5OQS9JTUc8L3RleHQ+PC9zdmc+'" class="part-img shadow-sm cursor-pointer mx-auto" onclick="window.open(this.src)">
-                    <!-- 第一行向下弹出，其余向上弹出 -->
-                    <div class="absolute {{ 'top-full mt-2' if loop.first else 'bottom-full mb-2' }} left-1/2 -translate-x-1/2 hidden group-hover:block z-[100] bg-white p-1 rounded-xl shadow-2xl border border-slate-100 pointer-events-none">
-                        <img src="/proxy_img?url={{ item.img_path | urlencode }}&v={{ range(1, 9999) | random }}" class="max-w-[200px] max-h-[200px] object-scale-down rounded-lg bg-white">
+                    <img src="/proxy_img?url={{ item.img_path | urlencode }}&v={{ range(1, 9999) | random }}" class="part-img shadow-sm mx-auto">
+                    <div class="absolute {{ 'top-full mt-2' if loop.first else 'bottom-full mb-2' }} left-1/2 -translate-x-1/2 hidden group-hover:block z-[100] bg-white p-1 rounded-xl shadow-2xl border border-slate-100"><img src="/proxy_img?url={{ item.img_path | urlencode }}" class="max-w-[200px] max-h-[200px] object-contain"></div>
+                    {% else %}<span class="text-slate-300 font-bold">-</span>{% endif %}
+                </td>
+                <td><span class="badge-category">{{ item.category }}</span></td>
+                <td>
+                    <div class="relative group inline-block">
+                        <span class="font-black text-slate-800 text-sm cursor-help" title="Creator: {{ item.creator or 'System' }}">{{ item.name or '-' }}</span>
+                        {% if item.doc_path %}
+                        <a href="{{ url_for('inventory.view_doc', id=item.id) }}" target="_blank" class="ri-file-text-fill btn-doc btn-action-icon no-underline ms-1 text-blue-500" title="查看技术手册"></a>
+                        <div class="doc-tooltip">{% for d in item.docs %}<a href="{{ d.file_url }}" target="_blank" class="doc-item-link"><i class="ri-file-pdf-line text-red-400"></i>{{ d.file_name }}</a>{% endfor %}</div>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YxZjVmOSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0iSW50ZXIiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5OQS9JTUc8L3RleHQ+PC9zdmc+'" class="part-img shadow-sm mx-auto">
-                    {% endif %}
                 </td>
-                <td class="text-center"><span class="badge-category">{{ item.category }}</span></td>
-                <td class="text-center"><div class="col-name justify-center"><span>{{ item.name or '-' }}</span>{% if item.doc_path %}<a href="{{ url_for('inventory.view_doc', id=item.id) }}" target="_blank" class="bi bi-file-earmark-text btn-doc btn-action-icon" title="手册"></a>{% else %}<i class="bi bi-file-earmark-text btn-doc opacity-20" title="无手册"></i>{% endif %}</div></td>
-                <td class="text-center"><div class="font-mono font-bold text-slate-600 text-sm">{{ item.model }}</div><div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{{ item.package }}</div></td>
-                <td class="text-center">
-                    <span class="qty-text {{'qty-low' if item.quantity<10 else 'qty-normal'}}">{{ item.quantity }}</span>
-                    <span class="unit-text">{{ item.unit or '个' }}</span>
-                </td>
-                <td class="text-center"><div class="loc-text text-xs"><i class="bi bi-geo-alt-fill text-orange-300"></i>{{ item.location }}</div></td>
-                <td class="text-center font-black text-slate-800 text-xs">¥{{ "%.2f"|format(item.price|float) }}</td>
-                <td class="text-center"><div class="vendor-channel-stack"><span class="vendor-main">{{ item.supplier or '-' }}</span><span class="channel-sub">{{ item.channel or '-' }}</span></div></td>
+                <td><div class="font-mono font-bold text-slate-700 text-sm">{{ item.model }}</div><div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{{ item.package }}</div></td>
+                <td><span class="font-black {{'text-red-500' if item.quantity<10 else 'text-slate-700'}}">{{ item.quantity }}</span><span class="text-[10px] text-slate-400 ml-1 font-bold">{{ item.unit or '个' }}</span></td>
+                <td><div class="text-xs font-bold text-slate-500">{{ item.location }}</div></td>
+                <td class="font-black text-slate-800 text-xs">¥{{ "%.2f"|format(item.price|float) }}</td>
+                <td><div class="text-[11px] font-bold text-slate-600">{{ item.supplier or '-' }}</div><div class="text-[9px] text-slate-400 italic">{{ item.channel or '-' }}</div></td>
                 <td class="text-end pe-8">
                     <div class="flex justify-end gap-3 text-slate-300 items-center">
                         <div class="relative group">
-                            {% if item.qrcode_path %}
-                            <i class="bi bi-qr-code text-lg hover:text-slate-600 cursor-pointer transition btn-action-icon" onclick="window.open('{{ item.qrcode_path }}')"></i>
-                            <div class="absolute {{ 'top-full mt-2' if loop.first else 'bottom-full mb-2' }} right-0 hidden group-hover:block z-[100] bg-white p-1 rounded-xl shadow-2xl border border-slate-100 pointer-events-none">
-                                <img src="{{ item.qrcode_path }}?v={{ range(1, 9999) | random }}" class="w-32 h-32 max-w-none rounded-lg bg-white">
-                            </div>
-                            {% else %}
-                            <i class="bi bi-qr-code text-lg opacity-10 cursor-not-allowed" title="未生成二维码"></i>
-                            {% endif %}
+                            {% if item.qrcode_path %}<i class="ri-qr-code-line text-lg text-slate-400 hover:text-blue-600 cursor-pointer transition btn-action-icon" onclick="window.open('{{ item.qrcode_path }}')"></i>
+                            <div class="absolute bottom-full right-0 mb-2 hidden group-hover:block z-[100] bg-white p-2 rounded-xl shadow-2xl border border-slate-100 pointer-events-none fade-in"><img src="{{ item.qrcode_path }}?v={{ range(1, 9999) | random }}" class="w-32 h-32 max-w-none rounded-lg bg-white"></div>
+                            {% else %}<i class="ri-qr-code-line text-lg opacity-10 cursor-not-allowed" title="No QR"></i>{% endif %}
                         </div>
-                        <button class="hover:text-blue-500 transition text-lg btn-action-icon btn-action-edit" onclick="openEditModal('{{ item.id }}')" title="编辑"><i class="bi bi-pencil-square"></i></button>
-                        <button class="hover:text-red-500 transition text-lg btn-action-icon btn-action-del" onclick="deleteItem('{{ item.id }}')" title="删除"><i class="bi bi-trash"></i></button>
+                        <button class="hover:text-blue-500 transition text-lg btn-action-icon" onclick="openEditModal('{{ item.id }}')" title="Edit"><i class="ri-edit-line"></i></button>
+                        <button class="hover:text-red-500 transition text-lg btn-action-icon" onclick="deleteItem('{{ item.id }}')" title="Delete"><i class="ri-delete-bin-line"></i></button>
                     </div>
                 </td>
             </tr>
@@ -206,204 +156,44 @@
     </table>
 </div>
 
+<!-- 全量模态框容器 -->
+<!-- 1. 数据导出中心 (xl 布局 + 历史列表) -->
+<div id="exportModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content border-0 shadow-2xl rounded-[2rem] overflow-hidden"><div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white"><div><h5 class="m-0 font-black text-xl text-slate-800 tracking-tight">数据导出中心</h5><p class="text-xs text-slate-400 mt-1 font-bold">选中 <span id="exportCount" class="text-blue-600">0</span> 条数据 | 支持打包附件</p></div><button type="button" class="btn-close" onclick="closeModal('exportModal')"></button></div><div class="modal-body p-8 bg-slate-50/30 grid grid-cols-3 gap-8"><div class="col-span-2 space-y-8"><div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100"><h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">导出字段</h6><div class="grid grid-cols-4 gap-3">{% for f_code, f_name in system_fields if f_code %}<label class="flex items-center gap-2 cursor-pointer bg-slate-50 p-2 rounded-xl hover:bg-blue-50 transition border border-transparent hover:border-blue-100"><input type="checkbox" name="export_fields" value="{{ f_code }}" checked class="form-check-input mt-0"><span class="text-xs font-bold text-slate-700">{{ f_name }}</span></label>{% endfor %}</div></div><div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100"><h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">导出格式</h6><div class="grid grid-cols-3 gap-4"><label class="cursor-pointer"><input type="radio" name="export_fmt" value="xlsx" checked class="peer hidden"><div class="peer-checked:bg-green-50 peer-checked:border-green-200 peer-checked:text-green-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition"><i class="bi bi-file-earmark-excel text-2xl mb-2 block"></i><span class="text-xs font-black">Excel 表格</span></div></label><label class="cursor-pointer"><input type="radio" name="export_fmt" value="csv" class="peer hidden"><div class="peer-checked:bg-blue-50 peer-checked:border-blue-200 peer-checked:text-blue-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition"><i class="bi bi-file-text text-2xl mb-2 block"></i><span class="text-xs font-black">CSV 文本</span></div></label><label class="cursor-pointer"><input type="radio" name="export_fmt" value="zip" class="peer hidden"><div class="peer-checked:bg-purple-50 peer-checked:border-purple-200 peer-checked:text-purple-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition"><i class="bi bi-file-zip text-2xl mb-2 block"></i><span class="text-xs font-black">ZIP 数据包</span></div></label></div><div id="zipOptions" class="hidden mt-4 pt-4 border-t border-slate-100"><label class="flex items-center gap-2"><input type="checkbox" id="exportAssets" class="form-check-input"><span class="text-xs font-bold text-slate-600">包含主图和二维码 (R2资源抓取中...)</span></label></div></div><div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100"><h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">文件名设置</h6><div class="flex gap-4"><select id="filenameMode" class="form-select text-xs font-bold w-1/3 rounded-xl border-slate-200" onchange="toggleFilenameInput()"><option value="default">默认时间戳</option><option value="custom">自定义名称</option></select><input type="text" id="customFilename" placeholder="输入文件名..." class="form-control text-xs font-bold flex-1 rounded-xl border-slate-200 hidden"></div></div></div><div class="bg-slate-100 rounded-[2rem] p-6 flex flex-col h-full"><div class="flex justify-between items-center mb-4"><h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest m-0">最近导出记录</h6><button onclick="clearExportHistory()" class="text-slate-400 hover:text-red-500 transition-all text-sm border-0 bg-transparent"><i class="bi bi-trash3-fill"></i></button></div><div id="exportHistoryList" class="flex-1 overflow-y-auto space-y-2 pr-2"></div></div></div><div class="p-8 border-t border-slate-100 flex justify-end bg-white"><button onclick="submitExport()" class="px-12 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm shadow-xl hover:scale-105 transition active:scale-95 flex items-center gap-2"><i class="bi bi-cloud-download"></i> 立即导出</button></div></div></div></div>
+
+<!-- 2. BOM 导入向导 (xl 布局 + 双预览表格) -->
+<div id="importModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content border-0 shadow-2xl rounded-[2rem] overflow-hidden h-[80vh]"><div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white"><div class="flex items-center gap-6"><div><h5 class="m-0 font-black text-xl text-slate-800 tracking-tight">智能导入向导</h5><p class="text-xs text-slate-400 mt-1 font-bold" id="parseStats">1.选择 -> 2.映射 -> 3.校验</p></div><div id="importStatsHeader" class="hidden flex gap-4 items-center bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100"></div></div><div class="flex gap-4 items-center"><div id="stepDot1" class="w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center font-bold">1</div><div id="stepDot2" class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-bold">2</div><div id="stepDot3" class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-bold">3</div></div><button type="button" class="btn-close" onclick="closeModal('importModal')"></button></div><div class="modal-body p-8 overflow-y-auto"><div id="stepContent1" class="h-full flex gap-8"><div id="dropZone" onclick="document.getElementById('fileInput').click()" class="flex-1 border-4 border-dashed border-slate-100 rounded-[3rem] flex flex-col items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group"><i class="ri-file-excel-2-fill text-8xl text-slate-100 group-hover:text-blue-500 mb-4 transition-all"></i><h3 class="text-xl font-black">上传 Excel 文件</h3><input type="file" id="fileInput" class="hidden" accept=".xlsx,.csv" onchange="uploadSource('file')"></div><div class="w-1/3 flex flex-col"><textarea id="pasteInput" class="flex-1 p-6 rounded-[2rem] bg-slate-50 border-0 focus:ring-4 focus:ring-blue-100 outline-none font-mono text-sm mb-4" placeholder="或直接在此粘贴内容..."></textarea><button onclick="uploadSource('paste')" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-black transition shadow-lg">解析粘贴内容</button></div></div><div id="stepContent2" class="hidden"><div class="mb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">1. 原始表格数据 (Excel解析)</div><div class="border border-slate-200 rounded-xl overflow-hidden overflow-x-auto mb-6 shadow-sm"><table class="table mb-0 text-xs w-full whitespace-nowrap" id="rawPreviewTab"></table></div><div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">2. 字段映射配置</div><div id="mappingGrid" class="grid grid-cols-5 gap-3 mb-6"></div><div id="mappedPreviewContainer" class="hidden"><div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">3. 系统导入预览 (映射后)</div><div class="border border-green-200 rounded-xl overflow-hidden shadow-sm bg-green-50/20"><table class="table mb-0 text-xs w-full" id="mappedPreviewTab"></table></div></div></div><div id="stepContent3" class="hidden"><div id="conflictList" class="grid grid-cols-3 gap-4 max-h-[55vh] overflow-y-auto pr-2"></div></div></div><div class="p-8 border-t border-slate-100 flex justify-end bg-white"><button id="nextBtn" class="hidden px-12 py-4 bg-black text-white rounded-2xl font-black shadow-xl hover:scale-105 transition">下一步</button></div></div></div></div>
+
+<!-- 3. 全字段批量修改 (lg 布局 + 所有字段) -->
+<div class="modal fade" id="batchEditModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-2xl rounded-[2rem] overflow-hidden"><div class="bg-blue-600 px-8 py-6 text-white flex justify-between items-center"><div><h5 class="m-0 font-black text-lg">全字段批量修改</h5><p class="text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest">选中 <span id="batchCount">0</span> 项 | 留空不改</p></div><button type="button" class="btn-close btn-close-white" onclick="closeModal('batchEditModal')"></button></div><div class="modal-body p-8 bg-white"><div class="grid grid-cols-2 gap-x-8 gap-y-4"><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">品类</label><input type="text" id="batch_category" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">品名</label><input type="text" id="batch_name" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">封装规格</label><input type="text" id="batch_package" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">位置</label><input type="text" id="batch_location" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">供应商</label><input type="text" id="batch_supplier" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">采购渠道</label><input type="text" id="batch_channel" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">单位</label><input type="text" id="batch_unit" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">单价</label><input type="number" step="0.01" id="batch_price" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">购买时间</label><input type="date" id="batch_buy_time" class="form-control font-bold"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">备注</label><input type="text" id="batch_remark" class="form-control font-bold" placeholder="不修改请留空"></div></div></div><div class="px-8 py-4 bg-slate-50 text-end"><button type="button" class="btn btn-primary rounded-xl px-10 font-black" onclick="submitBatchEdit()">确认批量修改</button></div></div></div></div>
+
+<!-- 4. 详情编辑 & 入库 (保持稳定) -->
+<div class="modal fade" id="addModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-2xl rounded-2xl overflow-hidden"><form action="{{ url_for('inventory.add') }}" method="POST" enctype="multipart/form-data"><div class="bg-slate-900 px-6 py-4 text-white flex justify-between items-center"><h5 class="m-0 font-black text-sm uppercase">元器件入库</h5><button type="button" class="btn-close btn-close-white" onclick="closeModal('addModal')"></button></div><div class="modal-body p-8 grid grid-cols-2 gap-4 bg-white"><input type="text" name="category" class="form-control" required placeholder="品类*"><input type="text" name="name" class="form-control" required placeholder="品名*"><input type="text" name="model" class="form-control font-bold" required placeholder="型号*"><input type="text" name="package" class="form-control" required placeholder="封装规格*"><input type="number" name="quantity" class="form-control" value="0"><input type="text" name="unit" class="form-control" value="个"><input type="text" name="location" class="form-control" placeholder="位置"><input type="number" step="0.01" name="price" class="form-control" value="0.00" placeholder="单价"><input type="text" name="supplier" class="form-control" placeholder="供应商"><input type="text" name="channel" class="form-control" placeholder="渠道"><div class="col-span-2 grid grid-cols-2 gap-4"><div><label class="text-[10px] font-black text-slate-400 uppercase">图片</label><input type="file" name="img_file" class="form-control"></div><div><label class="text-[10px] font-black text-slate-400 uppercase">手册</label><input type="file" name="doc_file" class="form-control"></div></div><textarea name="remark" class="form-control col-span-2" placeholder="备注..." rows="2"></textarea></div><div class="px-8 py-4 bg-slate-50 text-end"><button type="submit" class="btn btn-dark rounded-xl px-10 font-black">确认入库</button></div></form></div></div></div>
+
+<div class="modal fade" id="editModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-2xl rounded-2xl overflow-hidden"><form id="editForm" method="POST" enctype="multipart/form-data"><div class="bg-blue-600 px-6 py-4 text-white flex justify-between items-center"><h5 class="m-0 font-black text-sm uppercase">详情编辑</h5><button type="button" class="btn-close btn-close-white" onclick="closeModal('editModal')"></button></div><div class="modal-body p-8 grid grid-cols-2 gap-4 bg-white"><input type="text" name="category" id="edit_category" class="form-control" placeholder="品类"><input type="text" name="name" id="edit_name" class="form-control" placeholder="品名"><input type="text" name="model" id="edit_model" class="form-control font-bold" placeholder="型号"><input type="text" name="package" id="edit_package" class="form-control" placeholder="封装"><input type="number" name="quantity" id="edit_quantity" class="form-control"><input type="text" name="unit" id="edit_unit" class="form-control"><input type="number" step="0.01" name="price" id="edit_price" class="form-control"><input type="text" name="location" id="edit_location" class="form-control"><input type="text" name="supplier" id="edit_supplier" class="form-control"><input type="text" name="channel" id="edit_channel" class="form-control"><input type="date" name="buy_time" id="edit_buy_time" class="form-control"><div class="col-span-2 bg-slate-50 p-4 rounded-xl grid grid-cols-2 gap-4"><div class="flex items-center gap-4"><img src="" class="part-img-preview w-16 h-16 rounded border bg-white object-contain"><div class="flex-1"><label class="text-[10px] font-bold text-slate-400 block mb-1">图片更新</label><input type="file" name="img_file" class="form-control text-xs flex-1"></div></div><div><label class="text-[10px] font-bold text-slate-400 block mb-1">二维码管理</label><div class="flex gap-2"><img src="" class="qr-preview w-12 h-12 border bg-white rounded"><button type="button" class="btn btn-outline-secondary btn-sm text-[10px] font-black" onclick="regenerateQR()">重新生成</button></div></div></div><div class="col-span-2"><label class="text-[10px] font-bold text-slate-400 block mb-1">手册更新 (PDF)</label><div class="flex items-center gap-3"><input type="file" name="doc_file" class="form-control text-xs flex-1"><a href="#" target="_blank" class="doc-link hidden text-blue-500 text-xs font-bold no-underline flex items-center gap-1 shrink-0"><i class="ri-file-pdf-line"></i> 查看现有手册</a><button type="button" onclick="deleteFile('doc_path')" class="doc-link hidden text-red-400 hover:text-red-600 transition text-xs font-bold flex items-center gap-1 shrink-0 border-0 bg-transparent"><i class="ri-delete-bin-line"></i> 清空</button></div></div><textarea name="remark" id="edit_remark" class="form-control col-span-2" placeholder="备注..."></textarea></div><div class="px-8 py-4 bg-slate-50 flex justify-between items-center"><button type="button" class="btn btn-link text-red-500 text-xs font-bold no-underline" onclick="deleteComponent()">永久删除记录</button><button type="submit" class="btn btn-primary rounded-xl px-10 font-black">保存修改</button></div></form></div></div></div>
+
+<!-- 5. 扫码 & 还原 (保持闭环) -->
+<div id="scanModal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="bg-slate-900 p-3 text-white flex justify-between items-center"><h6 class="m-0 font-bold text-xs uppercase">扫码查找</h6><button type="button" class="btn-close btn-close-white" onclick="closeModal('scanModal')"></button></div><div class="modal-body p-4"><div id="cameraArea" class="hidden h-48 bg-black rounded-xl mb-3 overflow-hidden"><video id="videoElement" class="w-full h-full object-cover"></video></div><div class="grid grid-cols-1 gap-2"><button onclick="startScanner()" class="btn btn-dark btn-sm font-bold">摄像头</button><button onclick="document.getElementById('qrFileInput').click()" class="btn btn-outline-dark btn-sm font-bold">图片识别</button><input type="file" id="qrFileInput" class="hidden" accept="image/*" onchange="scanFromFile(this)"></div></div></div></div></div>
+
+<div class="modal fade" id="restoreModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-compact" style="max-width:520px;"><div class="modal-content"><div class="bg-orange-500 p-4 text-white flex justify-between rounded-t-2xl"><h6 class="m-0 font-bold uppercase text-xs">数据还原</h6><button type="button" class="btn-close btn-close-white" onclick="closeModal('restoreModal')"></button></div><div class="modal-body p-10 text-center"><div class="border-4 border-dashed rounded-3xl p-10 cursor-pointer hover:bg-slate-50 transition border-orange-200" onclick="document.getElementById('restoreFile').click()"><i class="bi bi-file-zip text-5xl text-slate-200 mb-4 block"></i><span class="text-xs font-bold text-slate-400 group-hover:text-orange-500">点击上传备份包 (.zip)</span><input type="file" id="restoreFile" class="hidden" accept=".zip" onchange="submitRestore(this)"></div><p class="text-[9px] text-red-400 mt-4 font-bold">* 警告：还原操作将覆盖当前所有数据</p></div></div></div></div>
+
+<!-- 6. 全局加载框 (动态描述语支持) -->
+<div id="globalLoading" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[2000] hidden items-center justify-center flex-col gap-4">
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-4 text-center border border-white/20">
+        <div class="spinner-border text-blue-600 w-10 h-10"></div>
+        <div class="space-y-1">
+            <h5 class="m-0 font-black text-slate-800 text-sm tracking-tight">系统处理中</h5>
+            <p class="m-0 text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">正在同步您的数据请求</p>
+        </div>
+    </div>
+</div>
+
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // 定义常量配置 (无模板注入)
-    const CONFIG = {
-        apiBatchDel: "{{ url_for('inventory.batch_delete') }}",
-        apiBatchUpd: "{{ url_for('inventory.batch_update') }}",
-        apiUpdate: "/inventory/update/",
-        apiImportVerify: "{{ url_for('inventory.import_verify') }}",
-        apiImportExecute: "{{ url_for('inventory.import_execute') }}",
-        apiImportParse: "{{ url_for('inventory.import_parse') }}",
-        systemFields: {{ system_fields | tojson }}
-    };
-    function viewDocs(name) { alert(`正在检索 [${name}] 的技术文档...`); }
-    let currentId = null;
-    async function openEditModal(id) {
-        currentId = id;
-        const res = await fetch(`/inventory/get/${id}`).then(r => r.json());
-        if(res.success) {
-            const d = res.data;
-            document.getElementById('editForm').action = `/inventory/update/${id}`;
-            ['category','name','model','package','unit','location','supplier','channel','remark'].forEach(k => { const el=document.getElementById(`edit_${k}`); if(el) el.value = d[k]||''; });
-            document.getElementById('edit_quantity').value = d.quantity || 0;
-            document.getElementById('edit_price').value = d.price || 0.0;
-            document.getElementById('edit_buy_time').value = d.buy_time || '';
-            
-            // 显示当前文件状态
-            const imgPreview = document.querySelector('#editModal .part-img-preview');
-            if(imgPreview) imgPreview.src = d.img_path || '';
-            
-            const qrPreview = document.querySelector('#editModal .qr-preview');
-            if(qrPreview) qrPreview.src = d.qrcode_path || '';
-            
-            const docLinks = document.querySelectorAll('#editModal .doc-link');
-            docLinks.forEach(link => {
-                if(d.doc_path) { 
-                    if(link.tagName === 'A') link.href = `/inventory/view_doc/${id}`;
-                    link.classList.remove('hidden'); 
-                }
-                else { link.classList.add('hidden'); }
-            });
-            
-            openModal('editModal');
-        }
-    }
-    async function regenerateQR() {
-        if(!currentId) return;
-        showLoading('正在重新生成', '正在同步新二维码至云端 R2...');
-        const res = await fetch(`/inventory/regenerate_qr/${currentId}`).then(r => r.json());
-        hideLoading();
-        if(res.success) {
-            document.querySelector('#editModal .qr-preview').src = res.qrcode_path;
-            alert('二维码已重新生成并同步至云端');
-        } else {
-            alert('生成失败: ' + res.error);
-        }
-    }
-    async function deleteFile(field) {
-        if(!currentId || !confirm('确定要删除这个文件吗？')) return;
-        showLoading('正在移除附件', '正在从云端彻底销毁该资源...');
-        const res = await fetch(`/inventory/delete_file/${currentId}/${field}`).then(r => r.json());
-        hideLoading();
-        if(res.success) {
-            // 刷新当前编辑框状态
-            if(field === 'img_path') document.querySelector('#editModal .part-img-preview').src = '';
-            else if(field === 'doc_path') document.querySelectorAll('#editModal .doc-link').forEach(el => el.classList.add('hidden'));
-            alert('文件已删除');
-        }
-    }
-    function deleteComponent() {
-        if(!currentId || !confirm('确定要永久删除这项数据及云端文件吗？')) return;
-        showLoading('正在彻底删除', '正在清理数据库记录及所有关联云端文件...');
-        window.location.href = `/inventory/delete/${currentId}`;
-    }
+    const CONFIG = { apiBatchDel: "{{ url_for('inventory.batch_delete') }}", apiBatchUpd: "{{ url_for('inventory.batch_update') }}", apiUpdate: "/inventory/update/", apiImportVerify: "{{ url_for('inventory.import_verify') }}", apiImportExecute: "{{ url_for('inventory.import_execute') }}", apiImportParse: "{{ url_for('inventory.import_parse') }}", systemFields: {{ system_fields | tojson }} };
+    window.addEventListener('DOMContentLoaded', () => { initUser(); initDragAndDrop(); updateBatchBtn(); });
 </script>
-<script src="{{ url_for('inventory.static', filename='js/inventory.js') }}?v=5"></script>
-
-<!-- ================= 模态框区域 (移至底部以防嵌套) ================= -->
-
-<!-- 批量修改模态框 -->
-<div class="modal fade" id="batchEditModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-2xl rounded-[2rem] overflow-hidden">
-            <div class="bg-blue-600 px-8 py-6 text-white flex justify-between items-center"><div><h5 class="m-0 font-black text-lg">全字段批量修改</h5><p class="text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest">选中 <span id="batchCount">0</span> 项 | 留空不改</p></div><button type="button" class="btn-close btn-close-white" onclick="closeModal('batchEditModal')"></button></div>
-            <div class="modal-body p-8 bg-white"><div class="grid grid-cols-2 gap-x-8 gap-y-4"><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">品类</label><input type="text" id="batch_category" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">品名</label><input type="text" id="batch_name" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">封装规格</label><input type="text" id="batch_package" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">位置</label><input type="text" id="batch_location" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">供应商</label><input type="text" id="batch_supplier" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">采购渠道</label><input type="text" id="batch_channel" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">单位</label><input type="text" id="batch_unit" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">单价</label><input type="number" step="0.01" id="batch_price" class="form-control font-bold" placeholder="不修改请留空"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">采购时间</label><input type="date" id="batch_buy_time" class="form-control font-bold"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">备注</label><input type="text" id="batch_remark" class="form-control font-bold" placeholder="不修改请留空"></div></div></div>
-            <div class="px-8 py-4 bg-slate-50 text-end"><button type="button" class="btn btn-primary rounded-xl px-10 font-black" onclick="submitBatchEdit()">确认修改</button></div>
-        </div>
-    </div>
-</div>
-
-<!-- 编辑详情模态框 -->
-<div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-2xl rounded-2xl overflow-hidden">
-            <form id="editForm" method="POST" enctype="multipart/form-data">
-                <div class="bg-blue-600 px-6 py-4 text-white flex justify-between items-center"><h5 class="m-0 font-black text-sm uppercase">编辑详情</h5><button type="button" class="btn-close btn-close-white" onclick="closeModal('editModal')"></button></div>
-                <div class="modal-body p-8 grid grid-cols-2 gap-4 bg-white"><input type="text" name="category" id="edit_category" class="form-control" required placeholder="品类"><input type="text" name="name" id="edit_name" class="form-control" required placeholder="品名"><input type="text" name="model" id="edit_model" class="form-control font-bold" required placeholder="型号"><input type="text" name="package" id="edit_package" class="form-control" placeholder="封装"><input type="number" name="quantity" id="edit_quantity" class="form-control" value="0"><input type="text" name="unit" id="edit_unit" class="form-control" placeholder="单位"><input type="number" step="0.01" name="price" id="edit_price" class="form-control" value="0.00"><input type="text" name="location" id="edit_location" class="form-control" placeholder="位置"><input type="text" name="supplier" id="edit_supplier" class="form-control" placeholder="供应商"><input type="text" name="channel" id="edit_channel" class="form-control" placeholder="渠道"><input type="date" name="buy_time" id="edit_buy_time" class="form-control"><div class="flex items-center gap-2"><a href="#" target="_blank" class="doc-link hidden text-blue-500 text-xs font-bold"><i class="bi bi-file-pdf"></i> 查看当前手册</a><button type="button" onclick="deleteFile('doc_path')" class="doc-link hidden text-red-400 hover:text-red-600 transition ms-1"><i class="bi bi-trash"></i></button></div><div class="col-span-2 grid grid-cols-2 gap-6 bg-slate-50 p-4 rounded-2xl border border-slate-100"><div><label class="text-[10px] font-black text-slate-400 uppercase">主图管理</label><div class="flex items-center gap-4 mt-2"><div class="relative group/img"><img src="" class="part-img-preview w-16 h-16 rounded-lg border bg-white object-contain"><button type="button" onclick="deleteFile('img_path')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-lg opacity-0 group-hover/img:opacity-100 transition"><i class="bi bi-x"></i></button></div><input type="file" name="img_file" class="form-control form-control-sm"></div></div><div><label class="text-[10px] font-black text-slate-400 uppercase">二维码预览</label><div class="flex items-center gap-4 mt-2"><img src="" class="qr-preview w-16 h-16 rounded-lg border bg-white object-contain cursor-pointer" onclick="window.open(this.src)"><div class="flex flex-col gap-1"><div class="text-[9px] text-slate-400 font-bold uppercase leading-tight">扫描快速查询</div><button type="button" onclick="regenerateQR()" class="text-[10px] font-black text-blue-500 hover:text-blue-700 bg-transparent border-0 p-0 text-left">重新生成</button></div></div></div><div class="col-span-2 mt-2"><label class="text-[10px] font-black text-slate-400 uppercase">技术手册 (PDF)</label><input type="file" name="doc_file" class="form-control form-control-sm mt-1"></div></div><input type="text" name="remark" id="edit_remark" class="form-control col-span-2" placeholder="备注"></div><div class="px-8 py-4 bg-slate-50 flex justify-between items-center"><button type="button" onclick="deleteComponent()" class="text-red-500 text-xs font-black uppercase tracking-widest hover:text-red-700 transition"><i class="bi bi-trash me-1"></i>删除此元器件</button><button type="submit" class="btn btn-primary rounded-xl px-10 font-black">更新</button></div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- 单个入库模态框 -->
-<div class="modal fade" id="addModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-2xl rounded-2xl overflow-hidden">
-            <form action="{{ url_for('inventory.add') }}" method="POST" enctype="multipart/form-data">
-                <div class="bg-slate-900 px-6 py-4 text-white flex justify-between items-center"><h5 class="m-0 font-black text-sm uppercase">单个元器件入库</h5><button type="button" class="btn-close btn-close-white" onclick="closeModal('addModal')"></button></div>
-                <div class="modal-body p-8 grid grid-cols-2 gap-4 bg-white"><input type="text" name="category" class="form-control" required placeholder="品类*"><input type="text" name="name" class="form-control" required placeholder="品名*"><input type="text" name="model" class="form-control font-bold" required placeholder="型号*"><input type="text" name="package" class="form-control" placeholder="封装规格"><input type="number" name="quantity" class="form-control" value="0"><input type="text" name="unit" class="form-control" value="个"><input type="text" name="location" class="form-control" placeholder="存放位置"><input type="number" step="0.01" name="price" class="form-control" value="0.00" placeholder="单价"><input type="text" name="supplier" class="form-control" placeholder="供应商"><input type="text" name="channel" class="form-control" placeholder="采购渠道"><div class="col-span-2 grid grid-cols-2 gap-4"><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase">图片上传</label><input type="file" name="img_file" class="form-control"></div><div class="space-y-1"><label class="text-[10px] font-black text-slate-400 uppercase">手册上传 (PDF)</label><input type="file" name="doc_file" class="form-control"></div></div></div><div class="px-8 py-4 bg-slate-50 text-end"><button type="submit" class="btn btn-dark rounded-xl px-10 font-black">保存</button></div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- BOM 导入向导 -->
-<div id="importModal" class="fixed inset-0 bg-black/60 backdrop-blur hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-6xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[85vh] glass-panel">
-        <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white/80"><div class="flex items-center gap-6"><div><h5 class="m-0 font-black text-xl text-slate-800 tracking-tight">智能导入向导</h5><p class="text-xs text-slate-400 mt-1 font-bold">1.选择 -> 2.映射 -> 3.校验</p></div><div id="importStatsHeader" class="hidden flex gap-4 items-center bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100"></div></div><div class="flex gap-4 items-center"><div id="stepDot1" class="w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center font-bold text-sm shadow-lg">1</div><div class="h-[2px] w-10 bg-slate-200"></div><div id="stepDot2" class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-sm">2</div><div class="h-[2px] w-10 bg-slate-100"></div><div id="stepDot3" class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-sm">3</div></div><button onclick="closeImportModal()" class="text-slate-400 hover:text-black transition text-3xl font-light">×</button></div>
-        <div class="p-10 overflow-y-auto flex-1 bg-slate-50/30"><div id="stepContent1" class="space-y-10"><div class="grid grid-cols-2 gap-10 h-64"><div id="dropZone" onclick="document.getElementById('fileInput').click()" class="border-4 border-dashed border-slate-200 rounded-[2.5rem] p-12 text-center hover:border-blue-500 transition-all cursor-pointer group flex flex-col justify-center items-center h-64 bg-white"><i class="bi bi-file-earmark-excel-fill text-6xl text-slate-200 group-hover:text-blue-500 mb-6"></i><h3 class="text-lg font-black text-slate-800">上传 Excel</h3><p class="text-xs text-slate-400 mt-2 font-bold">支持拖拽</p><input type="file" id="fileInput" class="hidden" accept=".xlsx,.csv" onchange="uploadSource('file')"></div><div class="border-4 border-dashed border-slate-200 rounded-[2.5rem] p-10 flex flex-col bg-white h-64"><textarea id="pasteInput" class="flex-1 bg-slate-50 rounded-2xl p-6 text-sm font-mono outline-none focus:ring-4 focus:ring-blue-100 resize-none mb-4" placeholder="粘贴 Excel 内容..."></textarea><button onclick="uploadSource('paste')" class="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-sm hover:bg-black transition">解析数据</button></div></div></div><div id="stepContent2" class="hidden"><div class="flex justify-between items-end mb-6"><div id="parseStats" class="font-bold text-slate-500"></div><span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">智能匹配结果</span></div><div class="rounded-2xl border-2 border-slate-100 overflow-hidden shadow-sm mb-8"><div class="bg-slate-50 px-4 py-2 border-b text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">数据预览 (Top 3)</div><div class="overflow-x-auto"><table class="w-full text-left text-xs bg-white" id="rawPreviewTab"></table></div></div><div id="mappingGrid" class="grid grid-cols-4 gap-4 mb-8"></div><div id="mappedPreviewContainer" class="hidden rounded-2xl border-2 border-blue-500/20 overflow-hidden shadow-lg"><div class="bg-blue-600 px-4 py-2 text-white flex justify-between items-center"><span class="text-[10px] font-black uppercase tracking-widest">系统识别效果预览 (实时)</span><span class="text-[9px] opacity-80 font-bold">基于当前映射逻辑</span></div><div class="overflow-x-auto"><table class="w-full text-left text-xs bg-white" id="mappedPreviewTab"></table></div></div></div><div id="stepContent3" class="hidden h-full flex flex-col"><div id="conflictList" class="flex-1 overflow-y-auto space-y-3 p-2"></div></div></div>
-        <div class="p-8 border-t border-slate-100 flex justify-end gap-6 bg-white/80 backdrop-blur-sm"><button id="nextBtn" class="hidden px-12 py-4 bg-black text-white rounded-2xl font-black text-sm shadow-xl hover:scale-105 transition active:scale-95">下一步</button></div>
-    </div>
-</div>
-
-<!-- 导出模态框 -->
-<div id="exportModal" class="fixed inset-0 bg-black/60 backdrop-blur hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[85vh] glass-panel">
-        <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white/80">
-            <div><h5 class="m-0 font-black text-xl text-slate-800 tracking-tight">数据导出中心</h5><p class="text-xs text-slate-400 mt-1 font-bold">选中 <span id="exportCount" class="text-blue-600">0</span> 条数据 | 支持图片/二维码打包</p></div><button onclick="closeExportModal()" class="text-slate-400 hover:text-black transition text-3xl font-light">×</button>
-        </div>
-        <div class="p-10 overflow-y-auto flex-1 bg-slate-50/30 grid grid-cols-3 gap-8">
-            <div class="col-span-2 space-y-8">
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">导出字段</h6>
-                    <div class="grid grid-cols-4 gap-3">
-                        {% for f_code, f_name in system_fields if f_code %}
-                        <label class="flex items-center gap-2 cursor-pointer bg-slate-50 p-2 rounded-xl hover:bg-blue-50 transition border border-transparent hover:border-blue-100"><input type="checkbox" name="export_fields" value="{{ f_code }}" checked class="form-check-input mt-0"><span class="text-xs font-bold text-slate-700">{{ f_name }}</span></label>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">导出格式</h6>
-                    <div class="grid grid-cols-3 gap-4">
-                        <label class="cursor-pointer"><input type="radio" name="export_fmt" value="xlsx" checked class="peer hidden"><div class="peer-checked:bg-green-50 peer-checked:border-green-200 peer-checked:text-green-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition"><i class="bi bi-file-earmark-excel text-2xl mb-2 block"></i><span class="text-xs font-black">Excel 表格</span></div></label>
-                        <label class="cursor-pointer"><input type="radio" name="export_fmt" value="csv" class="peer hidden"><div class="peer-checked:bg-blue-50 peer-checked:border-blue-200 peer-checked:text-blue-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition"><i class="bi bi-file-text text-2xl mb-2 block"></i><span class="text-xs font-black">CSV 文本</span></div></label>
-                        <label class="cursor-pointer"><input type="radio" name="export_fmt" value="zip" class="peer hidden"><div class="peer-checked:bg-purple-50 peer-checked:border-purple-200 peer-checked:text-purple-700 bg-slate-50 border border-transparent p-4 rounded-xl text-center transition"><i class="bi bi-file-zip text-2xl mb-2 block"></i><span class="text-xs font-black">ZIP 数据包</span><div class="text-[9px] mt-1 opacity-60">+图片/二维码</div></div></label>
-                    </div>
-                    <div id="zipOptions" class="hidden mt-4 pt-4 border-t border-slate-100"><label class="flex items-center gap-2"><input type="checkbox" id="exportAssets" class="form-check-input"><span class="text-xs font-bold text-slate-600">包含主图和二维码 (R2资源下载耗时较长)</span></label></div>
-                </div>
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">文件名设置</h6>
-                    <div class="flex gap-4"><select id="filenameMode" class="form-select text-xs font-bold w-1/3 rounded-xl border-slate-200" onchange="toggleFilenameInput()"><option value="default">默认</option><option value="custom">自定义名称</option></select><input type="text" id="customFilename" placeholder="输入文件名..." class="form-control text-xs font-bold flex-1 rounded-xl border-slate-200 hidden"></div>
-                </div>
-            </div>
-            <div class="bg-slate-100 rounded-[2rem] p-6 flex flex-col h-full">
-                <div class="flex justify-between items-center mb-4">
-                    <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest m-0">最近导出记录</h6>
-                    <button onclick="clearExportHistory()" class="text-slate-400 hover:text-red-500 transition-all text-sm" title="清空全部记录"><i class="bi bi-trash3-fill"></i></button>
-                </div>
-                <div id="exportHistoryList" class="flex-1 overflow-y-auto space-y-2 pr-2"></div>
-            </div>
-        </div>
-        <div class="p-8 border-t border-slate-100 flex justify-end bg-white/80 backdrop-blur-sm"><button onclick="submitExport()" class="px-12 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm shadow-xl hover:scale-105 transition active:scale-95 flex items-center gap-2"><i class="bi bi-cloud-download"></i> 立即导出</button></div>
-    </div>
-</div>
-
-<!-- 数据还原模态框 -->
-<div class="modal fade" id="restoreModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-2xl rounded-[2rem] overflow-hidden">
-            <div class="bg-orange-500 px-8 py-6 text-white flex justify-between items-center"><div><h5 class="m-0 font-black text-lg uppercase tracking-tight">数据还原中心</h5><p class="text-[10px] font-bold opacity-80 mt-1">请上传之前备份的 .zip 文件进行恢复</p></div><button type="button" class="btn-close btn-close-white" onclick="closeModal('restoreModal')"></button></div>
-            <div class="modal-body p-10 bg-white">
-                <div class="border-4 border-dashed border-slate-100 rounded-[2rem] p-10 text-center hover:border-orange-200 transition-all cursor-pointer group flex flex-col items-center" onclick="document.getElementById('restoreFile').click()">
-                    <i class="bi bi-file-earmark-zip-fill text-6xl text-slate-100 group-hover:text-orange-500 mb-6 transition"></i><h3 class="text-sm font-black text-slate-800">选择备份包</h3><p class="text-[10px] text-slate-400 mt-2 font-bold uppercase">支持 .zip 格式备份文件</p><input type="file" id="restoreFile" accept=".zip" class="hidden" onchange="submitRestore(this)">
-                </div>
-                <div class="mt-8 p-4 bg-orange-50 rounded-2xl border border-orange-100"><div class="flex gap-3 text-orange-700"><i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i><div class="text-[10px] font-bold leading-relaxed"><strong>风险提示：</strong> 还原操作将根据备份文件中的数据覆盖当前数据库。请确保您上传的是合法备份文件。</div></div></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 扫码查找模态框 -->
-<div class="modal fade" id="scanModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-2xl rounded-2xl overflow-hidden">
-            <div class="bg-slate-900 px-6 py-4 text-white flex justify-between items-center"><h5 class="m-0 font-black text-sm uppercase">扫码查找</h5><button type="button" class="btn-close btn-close-white" onclick="closeScanModal()"></button></div>
-            <div class="modal-body p-6 bg-white">
-                <div id="cameraArea" class="relative rounded-xl overflow-hidden bg-black h-64 mb-4 hidden"><video id="videoElement" class="w-full h-full object-cover"></video><div class="absolute inset-0 border-4 border-white/20 m-8 rounded-lg pointer-events-none"></div><div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="w-48 h-1 bg-red-500/50 shadow-[0_0_10px_rgba(255,0,0,0.8)] animate-pulse"></div></div></div>
-                <div id="scanResult" class="text-center py-4 hidden"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-xs font-bold text-slate-400">正在查询...</p></div>
-                <div class="grid grid-cols-2 gap-4"><button onclick="startScanner()" class="btn btn-outline-dark rounded-xl font-bold py-3"><i class="bi bi-camera-video me-2"></i>摄像头扫描</button><button onclick="document.getElementById('qrFileInput').click()" class="btn btn-outline-dark rounded-xl font-bold py-3"><i class="bi bi-upload me-2"></i>上传图片</button><input type="file" id="qrFileInput" accept="image/*" class="hidden" onchange="scanFromFile(this)"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 全局加载遮罩 -->
-<div id="globalLoading" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[2000] hidden flex flex-col items-center justify-center">
-    <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-4"><div class="spinner-border text-blue-600 w-12 h-12" role="status"></div><div class="text-center"><h5 class="font-black text-slate-800 m-0">正在处理</h5><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">系统正在努力工作中...</p></div></div>
-</div>
+<script src="{{ url_for('inventory.static', filename='js/inventory.js') }}?v={{ range(1,9999)|random }}"></script>
 
 </body>
 </html>

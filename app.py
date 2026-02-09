@@ -1,11 +1,16 @@
 import os
 import sys
+import jwt
+from dotenv import load_dotenv
+from flask import Flask, send_from_directory, redirect, jsonify, request, g, url_for
+
+# 加载本地 .env 文件 (仅在本地开发时生效，不影响云端)
+load_dotenv()
+
 # 强制日志立即输出，不缓存
 sys.stdout.reconfigure(line_buffering=True)
 
 import requests
-import jwt
-from flask import Flask, render_template, request, jsonify, render_template_string, redirect, url_for, g
 from tools.config import Config
 
 def create_app():
@@ -30,18 +35,13 @@ def create_app():
     # --- 3. 核心中间件：身份模拟与网关安全校验 ---
     @app.before_request
     def handle_auth_and_security():
-        # 放开认证、健康检查和静态资源
-        if request.path.startswith('/auth') or request.path == '/health' or request.path.startswith('/static'):
-            return
-
-        # 1. 尝试获取 UID (从 Header 或 Cookie)
+        # 1. 尝试获取并注入用户身份 (这一步对所有请求执行，包括公开页面)
         uid = request.headers.get('X-User-Id')
-        
-        # 如果 Header 没有，尝试从 Cookie 解析 JWT (方便直接浏览器访问)
         if not uid:
             token = request.cookies.get('auth_token')
             if token:
                 try:
+                    # 解析 JWT 并注入环境信息
                     payload = jwt.decode(token, Config.SECRET_KEY, algorithms=["HS256"])
                     uid = str(payload.get('uid'))
                     request.environ['HTTP_X_USER_ID'] = uid
@@ -49,14 +49,20 @@ def create_app():
                 except:
                     pass
 
-        # 2. 如果依然没有 UID，且不是在 API 路径下，重定向到登录
+        # 2. 放开认证、健康检查、静态资源、图片代理以及前端页面
+        if request.path == '/' or request.path.startswith('/auth') or \
+           request.path == '/health' or request.path == '/proxy_img' or \
+           request.path.startswith('/static') or request.path.endswith('.html'):
+            return
+
+        # 3. 拦截未登录的私有路径
         if not uid:
             if request.path.startswith('/api/'):
                 return jsonify(success=False, error="Unauthorized: Missing identity"), 401
-            # 统一跳转到 Worker 的登录页
-            return redirect(f'/login?next={request.path}')
+            # 统一跳转到前端登录页，并带上 next 参数
+            return redirect(f'/login.html?next={request.path}')
 
-        # 3. 【生产环境】安全校验：如果是来自网关的请求，校验密钥
+        # 4. 【生产环境】安全校验：如果是来自网关的请求，校验密钥
         if Config.ENV == 'prod':
             client_secret = request.headers.get('X-Gateway-Secret')
             if client_secret and client_secret != Config.GATEWAY_SECRET:
@@ -69,7 +75,8 @@ def create_app():
         if not url or not url.startswith('http'):
             abort(404)
         try:
-            resp = requests.get(url, timeout=10, verify=False)
+            # 强制不使用系统代理，防止本地 VPN 导致连接失败
+            resp = requests.get(url, timeout=10, verify=False, proxies={"http": None, "https": None})
             return (resp.content, resp.status_code, resp.headers.items())
         except Exception as e:
             return f"Proxy error: {e}", 500
@@ -88,19 +95,38 @@ def create_app():
                 except: pass
         return response
 
+    @app.route('/api/user/change_password', methods=['POST'])
+    def api_change_pw_proxy():
+        from tools.user.routes import user_bp
+        return app.view_functions['user.change_password']()
+
+    @app.route('/api/user/avatar_upload', methods=['POST'])
+    def api_avatar_upload_proxy():
+        from tools.user.routes import user_bp
+        return app.view_functions['user.upload_avatar']()
+
     @app.route('/api/user/profile')
     def api_profile_proxy():
         # 内部重定向到新的 user 模块接口
         from tools.user.routes import user_bp
         return app.view_functions['user.profile_api']()
 
+    # --- 静态前端托管 (仅限本地开发使用，线上建议用 CF Pages) ---
+    @app.route('/')
+    def serve_index():
+        return send_from_directory('frontend', 'index.html')
+
+    @app.route('/<path:filename>')
+    def serve_frontend(filename):
+        # 优先从 frontend 目录查找文件
+        if os.path.exists(os.path.join('frontend', filename)):
+            return send_from_directory('frontend', filename)
+        # 如果不是前端文件，且不是 API，可能是旧的模板路由，保持默认行为
+        return "Not Found", 404
+
     @app.route('/health')
     def health():
         return {"status": "healthy"}, 200
-
-    @app.route('/')
-    def index():
-        return redirect(url_for('inventory.index'))
 
     # ------------------ AI 工具代理路由 ------------------
     @app.route('/ai_tools')

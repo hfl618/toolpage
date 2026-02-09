@@ -1,548 +1,451 @@
 /**
- * 元器件管理核心逻辑 - 终极稳定版
+ * 元器件管理系统核心逻辑 v4.2 (去封装稳健版)
+ * 修复：移除 IIFE 闭包，确保 HTML onclick 能直接调用所有函数
  */
+
+// 全局变量
 let modals = {};
 let importData = { columns: [], raw: [], mapping: {}, conflicts: [], uniques: [] };
+let codeReader = null;
+let scanModalObj = null;
 
-// 基础模态框控制
+// --- 1. 基础 UI 控制 ---
 function openModal(id) {
     const el = document.getElementById(id);
-    if (!el) return;
+    if (!el) return console.error('Modal not found:', id);
+    if (typeof bootstrap === 'undefined') return alert('资源加载中，请稍候...','请勿刷新界面');
     if (!modals[id]) modals[id] = new bootstrap.Modal(el, { backdrop: 'static' });
     modals[id].show();
 }
-function closeModal(id) { if (modals[id]) modals[id].hide(); }
 
-function showLoading(title = '请稍候...', subMsg = '系统正在努力工作中...') {
+function closeModal(id) { 
+    if (modals[id]) modals[id].hide(); 
+}
+
+function showLoading(title = '正在处理中...', subMsg = '别着急请稍候...请勿刷新界面') {
     const el = document.getElementById('globalLoading');
     if(el) {
-        el.querySelector('h5').innerText = title;
-        const p = el.querySelector('p');
-        if(p) p.innerText = subMsg;
+        const h5 = el.querySelector('h5'); if(h5) h5.innerText = title;
+        const p = el.querySelector('p'); if(p) p.innerText = subMsg;
         el.classList.remove('hidden');
+        el.classList.add('flex');
     }
 }
+
 function hideLoading() {
     const el = document.getElementById('globalLoading');
-    if(el) el.classList.add('hidden');
+    if(el) {
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+    }
 }
-
-// 页面加载初始化
-window.onload = function() {
-    const i = document.getElementById('main-search');
-    if (i) { i.focus(); const v = i.value; i.value = ''; i.value = v; }
-    initDragAndDrop();
-    
-    // 全局表单提交拦截
-    document.querySelectorAll('form').forEach(form => {
-        if(form.id === 'editForm') {
-            form.addEventListener('submit', () => showLoading('正在保存更新', '正在同步云端 R2 资源及数据库...'));
-        } else if(form.action && form.action.includes('/add')) {
-            form.addEventListener('submit', () => showLoading('正在新增入库', '正在生成唯一二维码并同步 R2...'));
-        }
-    });
-};
 
 function toggleFilterBar() { 
-    const fb = document.getElementById('filterBar');
-    if(fb) fb.classList.toggle('d-none-custom'); 
+    const bar = document.getElementById('filterBar');
+    if(bar) bar.classList.toggle('d-none-custom'); 
 }
 
-// 批量操作逻辑
+// --- 2. 个人中心 ---
+async function initUser() {
+    try {
+        const res = await fetch('/auth/info');
+        const data = await res.json();
+        const container = document.getElementById('userArea');
+        if (!container) return;
+        
+        if (data.user) {
+            const u = data.user;
+            const avatar = u.avatar ? (u.avatar + '?v=' + Date.now()) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`;
+            container.innerHTML = `
+                <div class="text-right hidden md:block"><div class="text-[10px] font-bold text-slate-900">${u.username}</div><div class="text-[8px] font-bold text-blue-600 uppercase mt-1">${u.role}</div></div>
+                <img src="${avatar}" class="w-10 h-10 rounded-full border shadow-sm object-cover bg-gray-100">
+                <div class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 p-2 z-[1000]">
+                    <a href="/profile.html" class="flex items-center gap-3 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 rounded-lg no-underline"><i class="ri-user-settings-line"></i> 个人中心</a>
+                    <button onclick="event.stopPropagation(); logout()" class="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition text-left border-0 bg-transparent mt-1"><i class="ri-logout-box-r-line"></i> 退出登录</button>
+                </div>`;
+        } else {
+            container.innerHTML = '<a href="/login.html" class="text-xs font-bold text-blue-600">Login</a>';
+        }
+    } catch (e) { console.warn('User init error', e); }
+}
+
+async function logout() { 
+    try { await fetch('/auth/logout'); } catch(e) {} 
+    location.href = '/'; 
+}
+
+// --- 3. 批量操作 ---
 function toggleSelectAll() {
-    const all = document.getElementById('selectAll').checked;
+    const allBox = document.getElementById('selectAll');
+    if(!allBox) return;
+    const all = allBox.checked;
     document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = all);
     updateBatchBtn();
 }
 
 function updateBatchBtn() {
-    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
-    const count = checkboxes.length;
+    const count = document.querySelectorAll('.row-checkbox:checked').length;
     const counter = document.getElementById('selectedCount');
-    if (counter) {
-        counter.innerText = count > 0 ? `已选中 ${count} 项` : '';
-        counter.style.display = count > 0 ? 'inline-block' : 'none';
+    if(counter) { 
+        counter.innerText = count; 
+        counter.style.display = count > 0 ? 'inline-block' : 'none'; 
     }
     const btnDel = document.getElementById('btnBatchDel');
     const btnEdit = document.getElementById('btnBatchEdit');
-    if(btnDel && btnEdit) {
-        btnDel.disabled = btnEdit.disabled = (count === 0);
-        if(count > 0) { btnDel.classList.add('active-del'); btnEdit.classList.add('active-edit'); }
-        else { btnDel.classList.remove('active-del'); btnEdit.classList.remove('active-edit'); }
-    }
+    if(btnDel) btnDel.disabled = (count === 0);
+    if(btnEdit) btnEdit.disabled = (count === 0);
 }
 
 async function batchDelete(url) {
     const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
-    if(ids.length && confirm(`确定要永久删除这 ${ids.length} 项数据及其云端文件吗?`)) {
-        showLoading('正在执行批量删除', '正在从云端彻底移除图片、手册及二维码...');
+    if(ids.length && confirm(`确认删除 ${ids.length} 项?`)) {
+        showLoading('正在批量移除', '正在删除云端数据...请勿刷新界面');
         const body = new URLSearchParams();
         ids.forEach(id => body.append('ids[]', id));
-        try {
-            await fetch(url, { method: 'POST', body });
-            window.location.reload();
-        } catch(e) { hideLoading(); alert('删除失败'); }
+        try { await fetch(url, { method: 'POST', body }); window.location.reload(); } catch(e) { hideLoading(); }
     }
 }
 
-async function deleteItem(id) {
-    if(confirm('确定要永久删除这项数据及云端文件吗？')) {
-        showLoading('正在删除元器件', '正在清理云端存储文件...');
-        try {
-            await fetch(`/inventory/delete/${id}`);
-            window.location.reload();
-        } catch(e) { hideLoading(); alert('删除失败'); }
-    }
-}
-
-async function exportSingle(id) {
-    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = (cb.value == id));
-    updateBatchBtn();
-    openExportModal();
-}
-
-// 批量修改逻辑 (输入即修改)
 function openBatchEdit() {
     const count = document.querySelectorAll('.row-checkbox:checked').length;
-    const el = document.getElementById('batchCount');
-    if(el) el.innerText = count;
-    ['category','name','package','location','supplier','channel','unit','price','buy_time','remark'].forEach(f => {
-        const input = document.getElementById(`batch_${f}`);
-        if(input) input.value = '';
-    });
+    if(count === 0) return alert('请先勾选');
+    const badge = document.getElementById('batchCount');
+    if(badge) badge.innerText = count;
     openModal('batchEditModal');
 }
 
 async function submitBatchEdit() {
     const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
     const updates = {};
-    ['category','name','package','location','supplier','channel','unit','price','buy_time','remark'].forEach(f => {
-        const input = document.getElementById(`batch_${f}`);
-        if (input && input.value.trim() !== '') {
-            updates[f] = input.value.trim();
-        }
+    const fields = ['category', 'name', 'model', 'package', 'location', 'supplier', 'channel', 'unit', 'price', 'remark'];
+    let hasChange = false;
+    fields.forEach(f => {
+        const el = document.getElementById(`batch_${f}`);
+        if(el && el.value.trim() !== '') { updates[f] = el.value.trim(); hasChange = true; }
     });
-    if (Object.keys(updates).length === 0) return alert('未输入任何修改内容');
+    if(!hasChange) return alert('未输入内容');
     
     closeModal('batchEditModal');
-    showLoading('正在执行批量修改', '正在更新数据库记录...');
+    showLoading('批量更新', '正在同步...');
     try {
-        const res = await fetch(CONFIG.apiBatchUpd, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ids, updates })
-        }).then(r => r.json());
-        if (res.success) window.location.reload();
-        else { hideLoading(); alert('修改失败: ' + res.error); openModal('batchEditModal'); }
-    } catch(e) { hideLoading(); alert('网络错误'); openModal('batchEditModal'); }
+        const res = await fetch(CONFIG.apiBatchUpd, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ids, updates }) }).then(r=>r.json());
+        if(res.success) window.location.reload();
+        else { hideLoading(); alert(res.error); }
+    } catch(e) { hideLoading(); }
 }
 
-// ---------------- 扫码查找逻辑 ----------------
-let codeReader = null;
-let scanModalObj = null;
-
-function openScanModal() {
-    const el = document.getElementById('scanModal');
-    if(!el) return;
-    scanModalObj = new bootstrap.Modal(el);
-    scanModalObj.show();
-}
-
-function closeScanModal() {
-    if(codeReader) { codeReader.reset(); codeReader = null; }
-    document.getElementById('cameraArea').classList.add('hidden');
-    document.getElementById('scanResult').classList.add('hidden');
-    if(scanModalObj) scanModalObj.hide();
-}
-
-async function startScanner() {
-    const video = document.getElementById('videoElement');
-    const camArea = document.getElementById('cameraArea');
-    camArea.classList.remove('hidden');
-    
+// --- 4. 编辑与删除 ---
+async function openEditModal(id) {
+    showLoading('读取档案');
     try {
-        codeReader = new ZXing.BrowserMultiFormatReader();
-        const devices = await codeReader.listVideoInputDevices();
-        if (devices.length === 0) return alert('未找到摄像头');
-        const devId = devices[devices.length - 1].deviceId; // 尝试使用后置
-        
-        await codeReader.decodeFromVideoDevice(devId, video, (res, err) => {
-            if (res) handleScanResult(res.text);
-        });
-    } catch(e) { alert('启动摄像头失败: ' + e); }
+        const res = await fetch(`/inventory/get/${id}`).then(r => r.json());
+        hideLoading();
+        if(res.success) {
+            const d = res.data;
+            const form = document.getElementById('editForm');
+            if(form) form.action = `/inventory/update/${id}`;
+            
+            ['category','name','model','package','unit','location','supplier','channel','remark'].forEach(k => {
+                const el = document.getElementById(`edit_${k}`);
+                if(el) el.value = d[k] || '';
+            });
+            
+            const qEl = document.getElementById('edit_quantity'); if(qEl) qEl.value = d.quantity || 0;
+            const pEl = document.getElementById('edit_price'); if(pEl) pEl.value = d.price || 0.0;
+            const bEl = document.getElementById('edit_buy_time'); if(bEl) bEl.value = d.buy_time || '';
+            
+            const imgPre = document.querySelector('.part-img-preview');
+            if(imgPre) imgPre.src = d.img_path || '';
+            const qrPre = document.querySelector('.qr-preview');
+            if(qrPre) qrPre.src = d.qrcode_path ? (d.qrcode_path + '?v=' + Date.now()) : '';
+            
+            // 文档链接
+            const docLinks = document.querySelectorAll('.doc-link');
+            if(d.doc_path) {
+                docLinks[0].href = `/inventory/view_doc/${id}`;
+                docLinks.forEach(el => el.classList.remove('hidden'));
+            } else {
+                docLinks.forEach(el => el.classList.add('hidden'));
+            }
+            // 多文档列表
+            const docsList = document.getElementById('edit_docs_list');
+            if(docsList) {
+                if(d.docs && d.docs.length > 0) {
+                    docsList.innerHTML = d.docs.map(doc => `
+                        <div id="doc_item_${doc.id}" class="flex items-center justify-between bg-white p-2 px-3 rounded-lg border border-slate-200 mb-1 shadow-sm text-[10px]">
+                            <div class="truncate font-bold text-slate-600 flex items-center gap-2"><i class="ri-file-pdf-line text-red-400"></i> ${doc.file_name}</div>
+                            <div class="flex gap-2 shrink-0"><a href="${doc.file_url}" target="_blank" class="text-blue-500 font-black no-underline">查看</a><button type="button" onclick="deleteDoc(${doc.id})" class="text-red-400 font-black border-0 bg-transparent">清空</button></div>
+                        </div>`).join('');
+                } else { docsList.innerHTML = '<p class="text-[9px] text-slate-300 text-center py-2 italic">无技术手册</p>'; }
+            }
+            openModal('editModal');
+        }
+    } catch(e) { hideLoading(); }
 }
 
-async function scanFromFile(input) {
-    if(!input.files[0]) return;
-    try {
-        const reader = new ZXing.BrowserMultiFormatReader();
-        const res = await reader.decodeFromImageUrl(URL.createObjectURL(input.files[0]));
-        handleScanResult(res.text);
-    } catch(e) { alert('识别失败，请确保二维码清晰'); }
-    input.value = ''; // reset
+async function deleteItem(id) {
+    if(!id || !confirm('确认永久删除?')) return;
+    showLoading('删除中');
+    try { await fetch(`/inventory/delete/${id}`); window.location.reload(); } catch(e) { hideLoading(); }
 }
 
-async function handleScanResult(text) {
-    if(codeReader) { codeReader.reset(); codeReader = null; }
-    document.getElementById('cameraArea').classList.add('hidden');
-    document.getElementById('scanResult').classList.remove('hidden');
-    
-    let id = null;
+async function deleteComponent() {
+    const form = document.getElementById('editForm');
+    if(!form) return;
+    const id = form.action.split('/').pop();
+    if(id) await deleteItem(id);
+}
+
+async function regenerateQR() {
+    const form = document.getElementById('editForm');
+    if(!form) return;
+    const id = form.action.split('/').pop();
+    if(!id) return;
+    showLoading('刷新二维码','正在为您更新数据库...请勿刷新页面');
     try {
-        const data = JSON.parse(text);
-        if(data && data.id) id = data.id;
+        const res = await fetch(`/inventory/regenerate_qr/${id}`).then(r => r.json());
+        hideLoading();
+        if(res.success) { 
+            const el = document.querySelector('.qr-preview');
+            if(el) el.src = res.qrcode_path + '?v=' + Date.now();
+            alert('已刷新');
+        }
+    } catch(e) { hideLoading(); }
+}
+
+async function deleteDoc(docId) {
+    if(!confirm('清空此文档?')) return;
+    try {
+        const res = await fetch(`/inventory/docs/delete/${docId}`, { method: 'POST' }).then(r => r.json());
+        if(res.success) { const el = document.getElementById(`doc_item_${docId}`); if(el) el.remove(); }
     } catch(e) {}
-    
-    if(!id && /^\d+$/.test(text)) id = text;
-    
-    if(!id) {
-        const m = text.match(/[\?&]id=(\d+)/) || text.match(/\/get\/(\d+)/);
-        if(m) id = m[1];
-    }
-
-    if(id) {
-        closeScanModal();
-        await openEditModal(id);
-    } else {
-        alert('无效的二维码数据: ' + text);
-        closeScanModal();
-    }
 }
 
-
-function openImportModal() { 
-    const modal = document.getElementById('importModal');
-    if(modal) modal.classList.remove('hidden'); 
-    switchStep(1); 
+async function deleteFile(field) {
+    const action = document.getElementById('editForm').action;
+    const id = action.split('/').pop();
+    if(!id || !confirm('确认删除?')) return;
+    try {
+        const res = await fetch(`/inventory/delete_file/${id}/${field}`).then(r => r.json());
+        if(res.success) {
+            if(field === 'img_path') document.querySelector('.part-img-preview').src = '';
+            else if(field === 'doc_path') document.querySelectorAll('.doc-link').forEach(el => el.classList.add('hidden'));
+            alert('成功移除');
+        }
+    } catch(e) { hideLoading(); }
 }
-function closeImportModal() { 
-    const modal = document.getElementById('importModal');
-    if(modal) modal.classList.add('hidden'); 
-    const statsHeader = document.getElementById('importStatsHeader');
-    if(statsHeader) statsHeader.classList.add('hidden');
+
+// --- 5. BOM 导入 ---
+function openImportModal() { openModal('importModal'); switchStep(1); }
+
+function switchStep(n) {
+    [1,2,3].forEach(i => {
+        const el = document.getElementById(`stepContent${i}`);
+        if(el) el.classList.toggle('hidden', i!==n);
+        const dot = document.getElementById(`stepDot${i}`);
+        if(dot) dot.className = i<=n ? 'w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center font-bold' : 'w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-bold';
+    });
+    const btn = document.getElementById('nextBtn');
+    if(btn) {
+        btn.classList.toggle('hidden', n===1);
+        btn.innerText = n===3 ? '确认同步' : '下一步';
+        btn.onclick = n===2 ? () => verifyConflicts(CONFIG.apiImportVerify) : () => executeImport(CONFIG.apiImportExecute);
+    }
 }
 
 async function uploadSource(mode) {
-    let fd = new FormData();
-    fd.append('mode', mode);
-    if(mode === 'file') {
-        const fi = document.getElementById('fileInput');
-        if(!fi || !fi.files[0]) return alert('请选择文件');
-        fd.append('file', fi.files[0]);
-    } else {
-        const txt = document.getElementById('pasteInput').value;
-        if(!txt.trim()) return alert('请粘贴内容');
-        fd.append('text', txt);
-    }
-
+    let fd = new FormData(); fd.append('mode', mode);
+    const fileIn = document.getElementById('fileInput');
+    const pasteIn = document.getElementById('pasteInput');
+    if(mode === 'file' && fileIn) fd.append('file', fileIn.files[0]);
+    else if (pasteIn) fd.append('text', pasteIn.value);
+    
+    showLoading('正在解析表格','正在为您加速解析...请勿刷新页面');
     try {
         const res = await fetch(CONFIG.apiImportParse, { method:'POST', body:fd }).then(r=>r.json());
+        hideLoading();
         if(res.success) {
             importData = res;
             const stats = document.getElementById('parseStats');
-            if(stats) stats.innerText = `✅ 识别成功：共 ${res.total_rows} 条数据`;
-            renderMappingStep(CONFIG.systemFields);
-        } else alert(res.error || '解析失败');
-    } catch(e) { alert('网络请求失败'); }
+            if(stats) stats.innerText = `解析: ${res.total_rows} 条`;
+            
+            const rawTab = document.getElementById('rawPreviewTab');
+            if(rawTab) {
+                let html = `<thead class="bg-slate-100 text-slate-500"><tr>${res.columns.map(c=>`<th class="p-2 border-b text-center font-bold text-[10px]">${c}</th>`).join('')}</tr></thead><tbody>`;
+                res.preview.forEach(row => {
+                    html += `<tr>${row.map(cell=>`<td class="p-2 border-b text-center text-slate-600 text-[10px]">${cell}</td>`).join('')}</tr>`;
+                });
+                rawTab.innerHTML = html + '</tbody>';
+            }
+            renderMappingGrid();
+        } else alert(res.error);
+    } catch(e) { hideLoading(); }
 }
 
-function renderMappingStep(systemFields) {
+function renderMappingGrid() {
     const grid = document.getElementById('mappingGrid');
     if(!grid) return;
     grid.innerHTML = importData.columns.map(col => `
-        <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm text-center">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm text-center">
             <div class="text-[10px] text-slate-400 font-black uppercase mb-1 truncate">${col}</div>
-            <select onchange="importData.mapping['${col}'] = this.value; updateMappedPreview()" class="w-full bg-slate-50 border-0 text-[11px] font-bold p-1.5 rounded-lg outline-none">
-                <option value="">(不映射)</option>
-                ${systemFields.map(f=>`<option value="${f[0]}" ${importData.mapping[col]===f[0]?'selected':''}>${f[1]}</option>`).join('')}
+            <select onchange="importData.mapping['${col}'] = this.value; updateMappedPreview()" class="w-full bg-slate-50 border-0 text-[11px] font-bold p-1 rounded-lg">
+                <option value="">(忽略)</option>
+                ${CONFIG.systemFields.map(f=>`<option value="${f[0]}" ${importData.mapping[col]===f[0]?'selected':''}>${f[1]}</option>`).join('')}
             </select>
         </div>`).join('');
-    
-    const tab = document.getElementById('rawPreviewTab');
-    if(tab) {
-        tab.innerHTML = `<thead class="bg-slate-50 text-slate-500"><tr>${importData.columns.map(c=>`<th class="p-2 border font-bold text-[10px]">${c}</th>`).join('')}</tr></thead>
-            <tbody class="text-[10px]">${importData.preview.map(r=>`<tr>${r.map(cell=>`<td class="p-2 border truncate" style="max-width:150px">${cell}</td>`).join('')}</tr>`).join('')}</tbody>`;
-    }
-    
     updateMappedPreview();
     switchStep(2);
 }
 
 function updateMappedPreview() {
-    const container = document.getElementById('mappedPreviewContainer');
     const tab = document.getElementById('mappedPreviewTab');
-    if(!container || !tab) return;
-
-    const mapping = importData.mapping;
-    const selectedFields = CONFIG.systemFields.filter(f => Object.values(mapping).includes(f[0]) && f[0] !== '');
+    const container = document.getElementById('mappedPreviewContainer');
+    if(!tab || !container) return;
     
-    if(selectedFields.length === 0) {
-        container.classList.add('hidden');
-        return;
-    }
+    const selected = CONFIG.systemFields.filter(f => Object.values(importData.mapping).includes(f[0]));
+    if(!selected.length) { container.classList.add('hidden'); return; }
     container.classList.remove('hidden');
-
-    let html = `<thead class="bg-blue-50 text-blue-600"><tr>`;
-    selectedFields.forEach(f => { html += `<th class="p-2 border-b border-blue-100 font-black text-[10px] uppercase">${f[1]}</th>`; });
-    html += `</tr></thead><tbody class="text-[10px]">`;
-
-    importData.raw_data.slice(0, 3).forEach(row => {
-        html += `<tr>`;
-        selectedFields.forEach(f => {
-            const colName = Object.keys(mapping).find(key => mapping[key] === f[0]);
-            html += `<td class="p-2 border-b border-slate-50 font-bold">${row[colName] || '-'}</td>`;
-        });
-        html += `</tr>`;
+    
+    let html = `<thead class="bg-green-50 text-green-700"><tr>${selected.map(f=>`<th class="p-2 border-b font-black text-center text-[10px]">${f[1]}</th>`).join('')}</tr></thead><tbody>`;
+    importData.raw_data.slice(0,3).forEach(r => {
+        html += `<tr>${selected.map(f => { const col = Object.keys(importData.mapping).find(k => importData.mapping[k] === f[0]); return `<td class="p-2 text-center text-[10px] font-bold">${r[col]||'-'}</td>`; }).join('')}</tr>`;
     });
-    html += `</tbody>`;
-    tab.innerHTML = html;
+    tab.innerHTML = html + `</tbody>`;
 }
 
 async function verifyConflicts(url) {
-    showLoading('正在校验冲突', '正在比对本地数据与云端记录，请稍候...');
+    showLoading('正在校验数据','请稍等片刻...请勿刷新页面');
     try {
-        const res = await fetch(url, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ mapping: importData.mapping, raw_data: importData.raw_data })
-        }).then(r => r.json());
+        const body = JSON.stringify({ mapping:importData.mapping, raw_data:importData.raw_data });
+        const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body }).then(r=>r.json());
+        hideLoading();
         if(res.success) {
             importData.conflicts = res.conflicts;
             importData.uniques = res.uniques;
-            if(importData.conflicts.length === 0) executeImport(CONFIG.apiImportExecute);
-            else { renderConflictStep(); switchStep(3); }
-        } else {
-            alert('校验失败: ' + res.error);
+            renderConflictCards(); 
+            switchStep(3);
         }
-    } catch(e) {
-        alert('网络请求失败');
-    } finally {
-        hideLoading();
-    }
+    } catch(e) { hideLoading(); alert('校验请求异常'); }
 }
 
-function renderConflictStep() {
-    const statsEl = document.getElementById('importStatsHeader');
-    if(statsEl) {
-        statsEl.classList.remove('hidden');
-        statsEl.innerHTML = `
-            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">解析摘要</div>
-            <div class="flex gap-4 items-center border-l border-slate-200 pl-4">
-                <div class="text-xs font-bold">新增 <span class="text-green-600 text-sm font-black">${importData.uniques.length}</span></div>
-                <div class="text-xs font-bold">冲突 <span class="text-orange-500 text-sm font-black">${importData.conflicts.length}</span></div>
-            </div>`;
-    }
+function renderConflictCards() {
     const list = document.getElementById('conflictList');
-    if(!list) return;
-    list.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-2";
-    list.innerHTML = importData.conflicts.map((c, i) => `
-        <div id="conflict-card-${i}" class="p-4 border border-slate-100 bg-white rounded-[2rem] shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-            <div class="transition-opacity duration-300 content-area">
-                <div class="flex justify-between items-start mb-3">
-                    <div class="truncate pr-2">
-                        <h4 class="text-[14px] font-black text-slate-800 m-0 truncate">${c.new.name || '未命名'}</h4>
-                        <div class="text-[10px] font-bold text-slate-400 truncate tracking-tight">${c.new.model}</div>
-                    </div>
-                </div>
-                <div class="flex bg-slate-100 p-1 rounded-xl mb-3">
-                    <button onclick="setStrat(${i}, 'merge')" id="btn-${i}-merge" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all active-merge">累加</button>
-                    <button onclick="setStrat(${i}, 'cover')" id="btn-${i}-cover" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">覆盖</button>
-                    <button onclick="setStrat(${i}, 'new')" id="btn-${i}-new" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">新增</button>
-                    <button onclick="setStrat(${i}, 'skip')" id="btn-${i}-skip" class="strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all text-slate-400">跳过</button>
-                    <input type="hidden" id="strat-${i}" value="merge">
-                </div>
-                <div id="details-${i}" class="bg-slate-50/50 rounded-xl p-3 mb-3 min-h-[100px] transition-all"></div>
-            </div>
-            <div id="qty-preview-${i}" class="bg-blue-50/50 rounded-xl px-3 py-2 border border-blue-100 flex items-center justify-between transition-all"></div>
-        </div>`).join('');
-    importData.conflicts.forEach((_, i) => updateConflictUI(i));
-}
-
-function setStrat(index, val) {
-    document.getElementById(`strat-${index}`).value = val;
-    const btns = ['merge', 'cover', 'new', 'skip'];
-    btns.forEach(b => {
-        const el = document.getElementById(`btn-${index}-${b}`);
-        el.className = `strat-btn flex-1 text-[10px] font-black py-1.5 rounded-lg transition-all ${b === val ? 'active-' + b : 'text-slate-400'}`;
-    });
-    updateConflictUI(index);
-}
-
-function updateConflictUI(index) {
-    const strat = document.getElementById(`strat-${index}`).value;
-    const detailsEl = document.getElementById(`details-${index}`);
-    const previewEl = document.getElementById(`qty-preview-${index}`);
-    const cardEl = document.getElementById(`conflict-card-${index}`);
-    const c = importData.conflicts[index];
-    const fieldMap = { 'category':'品类', 'name':'品名', 'model':'型号', 'package':'封装', 'supplier':'供应商', 'channel':'渠道', 'location':'位置', 'price':'单价' };
-    const fields = ['name', 'model', 'category', 'package', 'supplier', 'channel', 'location', 'price'];
-    
-    if(strat === 'skip') cardEl.classList.add('opacity-40', 'grayscale');
-    else cardEl.classList.remove('opacity-40', 'grayscale');
-    
-    let detailsHtml = '';
-    fields.forEach(k => {
-        const oldRaw = c.old[k];
-        const newRaw = c.new[k];
-        const oldVal = (oldRaw !== null && oldRaw !== undefined && oldRaw !== '') ? oldRaw : '-';
-        const newVal = (newRaw !== null && newRaw !== undefined && newRaw !== '') ? newRaw : '-';
-        const isDiff = c.diff[k];
-
-        if(oldVal === '-' && newVal === '-') return;
-
-        detailsHtml += `<div class="diff-row flex justify-between items-center py-1 last:border-0 text-[11px] leading-snug"><span class="text-slate-400 font-bold w-12 shrink-0">${fieldMap[k]}</span><div class="flex-1 flex gap-1.5 overflow-hidden justify-end">`;
-        
-        if(strat === 'merge') {
-            detailsHtml += `<span class="text-slate-600 font-bold truncate">${oldVal}</span>`;
-        } else if(strat === 'cover') {
-            if(isDiff) {
-                detailsHtml += `<span class="text-slate-400 line-through truncate opacity-50">${oldVal}</span><span class="text-slate-300 text-[10px]">→</span><span class="text-orange-600 font-black truncate">${newVal}</span>`;
-            } else { 
-                detailsHtml += `<span class="text-slate-500 font-bold truncate">${oldVal}</span>`; 
-            }
-        } else if(strat === 'new') {
-            detailsHtml += `<span class="text-green-600 font-black truncate">${newVal}</span>`;
-        } else { 
-            detailsHtml += `<span class="text-slate-300 truncate italic">已忽略</span>`; 
-        }
-        detailsHtml += `</div></div>`;
-    });
-    detailsEl.innerHTML = detailsHtml || '<div class="text-center py-4 text-slate-300 text-[11px] italic">无有效属性信息</div>';
-    
-    const qOld = parseInt(c.old.quantity || 0);
-    const qNew = parseInt(c.new.quantity || 0);
-    let previewHtml = '';
-    if(strat === 'merge') {
-        previewHtml = `<div class="text-[10px] font-black text-blue-400 uppercase">库存累加</div><div class="text-sm font-bold text-slate-700"><span class="opacity-40">${qOld}</span><span class="mx-1 text-blue-400">+</span><span class="text-blue-600">${qNew}</span><span class="mx-1 text-slate-300">=</span><span class="text-base font-black text-slate-900">${qOld + qNew}</span></div>`;
-    } else if(strat === 'cover') {
-        previewHtml = `<div class="text-[10px] font-black text-orange-400 uppercase">完全覆盖</div><div class="text-sm font-bold text-slate-700"><span class="opacity-40 line-through">${qOld}</span><span class="mx-2 text-orange-500">→</span><span class="text-base font-black text-slate-900">${qNew}</span></div>`;
-    } else if(strat === 'new') {
-        previewHtml = `<div class="text-[10px] font-black text-green-500 uppercase">新建记录</div><div class="text-[10px] font-bold text-slate-500 italic text-right">现有 ${qOld} 不变<br>另增 ${qNew} 的记录</div>`;
-    } else { 
-        previewHtml = `<div class="text-[10px] font-black text-slate-300 uppercase w-full text-center tracking-widest">NO ACTION</div>`; 
+    const header = document.getElementById('importStatsHeader');
+    if(header) {
+        header.innerHTML = `<span class="text-green-600 font-bold">新增 ${importData.uniques.length}</span> | <span class="text-orange-500 font-bold">冲突 ${importData.conflicts.length}</span>`;
+        header.classList.remove('hidden');
     }
-    previewEl.innerHTML = previewHtml;
+    
+    list.innerHTML = importData.conflicts.map((c, i) => `
+        <div id="conflict-card-${i}" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm transition-all flex flex-col h-full">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xs shrink-0">!</div>
+                <div class="flex-1 min-w-0"><h4 class="font-black text-[11px] text-slate-800 truncate">${c.new.name}</h4><p class="text-[9px] text-slate-400 font-mono truncate">${c.new.model}</p></div>
+            </div>
+            <div id="diff-area-${i}" class="flex-1 bg-slate-50/50 rounded-xl p-2 mb-3 border border-slate-100 min-h-[60px] flex flex-col justify-center text-[9px]"></div>
+            <div class="flex bg-slate-100 p-1 rounded-xl">
+                ${['merge','cover','new','skip'].map(s => `<button onclick="setStrat(${i},'${s}')" id="btn-${i}-${s}" class="strat-btn flex-1 py-1.5 text-[9px] font-black uppercase rounded-lg transition-all">${s}</button>`).join('')}
+                <input type="hidden" id="strat-${i}" value="merge">
+            </div>
+        </div>`).join('');
+    importData.conflicts.forEach((_, i) => setStrat(i, 'merge'));
+}
+
+function setStrat(i, s) {
+    const c = importData.conflicts[i]; const card = document.getElementById(`conflict-card-${i}`); const diffArea = document.getElementById(`diff-area-${i}`);
+    const fieldNames = {category:'品类', name:'品名', model:'型号', package:'封装', location:'位置', price:'单价', unit:'单位', supplier:'供应商', channel:'渠道', buy_time:'时间', remark:'备注'};
+    document.getElementById(`strat-${i}`).value = s;
+    card.classList.toggle('opacity-40', s === 'skip'); card.classList.toggle('grayscale', s === 'skip');
+
+    ['merge','cover','new','skip'].forEach(b => {
+        const btn = document.getElementById(`btn-${i}-${b}`);
+        const isActive = (b === s);
+        let colorClass = 'text-slate-400';
+        if(isActive) {
+            if(s==='merge') colorClass = 'bg-blue-50 text-blue-600 shadow-sm border border-blue-100';
+            else if(s==='cover') colorClass = 'bg-red-50 text-red-500 shadow-sm border border-red-100';
+            else if(s==='new') colorClass = 'bg-green-50 text-green-600 shadow-sm border border-green-100';
+            else colorClass = 'bg-slate-100 text-slate-500 shadow-sm border border-slate-200';
+        } else colorClass = 'text-slate-400 hover:bg-slate-50';
+        btn.className = `strat-btn flex-1 py-1.5 text-[9px] font-black uppercase rounded-lg transition-all ${colorClass}`;
+    });
+
+    const oldQ = parseInt(c.old.quantity||0); const newQ = parseInt(c.new.quantity||0);
+    let html = '';
+
+    if(s === 'skip') html = `<div class="h-full flex items-center justify-center font-bold text-slate-300">跳过</div>`;
+    else if(s === 'new') html = `<div class="h-full flex items-center justify-center font-bold text-green-600">存为新记录</div>`;
+    else {
+        html += `<div class="flex justify-between items-center text-[10px] mb-2 pb-1 border-b border-slate-100 font-black"><span class="${s==='cover'?'text-red-400':'text-blue-400'}">${s==='merge'?'库存累加':'覆盖更新'}</span><span class="text-slate-700">${s==='merge' ? (oldQ + ' + ' + newQ + ' = ' + (oldQ+newQ)) : (oldQ + ' / ' + newQ)}</span></div>`;
+        let diffs = [];
+        for(let f in c.diff) {
+            if(c.diff[f] && f !== 'quantity') {
+                const oldV = c.old[f] || '-'; const newV = c.new[f] || '-';
+                let content = s === 'cover' ? `<span class="line-through text-slate-300 decoration-red-300 mr-1">${oldV}</span><span class="text-red-500">${newV}</span>` : `<span class="text-slate-400">${oldV}</span> / <span class="text-blue-500">${newV}</span>`;
+                diffs.push(`<div class="flex justify-between items-center text-[9px] py-0.5 border-b border-slate-50 last:border-0"><span class="text-slate-400 font-bold">${fieldNames[f]||f}</span><div class="text-right truncate font-bold">${content}</div></div>`);
+            }
+        }
+        html += diffs.join('') || '<div class="text-center italic text-slate-300 py-2">无其他差异</div>';
+    }
+    diffArea.innerHTML = html;
 }
 
 async function executeImport(url) {
-    const nextBtn = document.getElementById('nextBtn');
-    if(nextBtn) { nextBtn.disabled = true; nextBtn.innerText = '正在处理...'; }
-    
-    // 立即关闭导入向导窗口，防止二次点击或干扰
-    closeImportModal();
-    showLoading('正在执行 BOM 入库', '正在为您逐一生成二维码并同步云端，请勿关闭页面...');
-    
+    if(!confirm('确认执行同步?')) return;
+    showLoading('同步中', '正在写入数据库...请勿刷新界面');
+    const resolved = importData.conflicts.map((c, i) => ({ strategy: document.getElementById(`strat-${i}`).value, new: c.new, old_id: c.old.id }));
     try {
-        const resolved = importData.conflicts.map((c, i) => ({ strategy: document.getElementById(`strat-${i}`).value, new: c.new, old_id: c.old.id }));
-        const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ uniques: importData.uniques, resolved: resolved }) }).then(r => r.json());
-        if(res.success) { 
-            alert(`✅ 入库成功！\n新增: ${res.added}\n更新: ${res.updated}\n跳过: ${res.skipped}`); 
-            window.location.reload(); 
-        }
-        else { 
-            alert('入库失败: ' + (res.error || '未知错误')); 
-            hideLoading(); 
-            openImportModal(); // 失败后重新打开窗口
-            if(nextBtn) { nextBtn.disabled = false; nextBtn.innerText = '确认并执行入库'; } 
-        }
-    } catch(e) { 
-        alert('网络请求失败'); 
-        hideLoading(); 
-        openImportModal();
-        if(nextBtn) { nextBtn.disabled = false; nextBtn.innerText = '确认并执行入库'; } 
-    }
+        const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ uniques: importData.uniques, resolved }) }).then(r=>r.json());
+        if(res.success) window.location.reload();
+    } catch(e) { hideLoading(); }
 }
 
-function switchStep(n) {
-    [1,2,3].forEach(i => {
-        const content = document.getElementById(`stepContent${i}`);
-        const dot = document.getElementById(`stepDot${i}`);
-        if(content) content.classList.toggle('hidden', i !== n);
-        if(dot) dot.className = i <= n ? 'w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center font-bold text-sm shadow-lg' : 'w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-sm';
-    });
-    const nb = document.getElementById('nextBtn');
-    if(nb) {
-        nb.classList.toggle('hidden', n === 1);
-        nb.innerText = n === 3 ? '确认并执行入库' : '下一步：映射数据';
-        nb.onclick = n === 2 ? () => verifyConflicts(CONFIG.apiImportVerify) : () => executeImport(CONFIG.apiImportExecute);
-    }
-}
-
-function initDragAndDrop() {
-    const dz = document.getElementById('dropZone');
-    if(!dz) return;
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => { dz.addEventListener(eName, e => { e.preventDefault(); e.stopPropagation(); }, false); });
-    ['dragenter', 'dragover'].forEach(eName => { dz.addEventListener(eName, () => dz.classList.add('drag-active'), false); });
-    ['dragleave', 'drop'].forEach(eName => { dz.addEventListener(eName, () => dz.classList.remove('drag-active'), false); });
-    dz.addEventListener('drop', e => { const fs = e.dataTransfer.files; if(fs.length > 0) { document.getElementById('fileInput').files = fs; uploadSource('file'); } }, false);
-    document.querySelectorAll('input[name="export_fmt"]').forEach(radio => { radio.addEventListener('change', e => { document.getElementById('zipOptions').classList.toggle('hidden', e.target.value !== 'zip'); }); });
-}
-
+// --- 6. 导出中心 ---
 function openExportModal() {
-    const el = document.getElementById('exportModal');
-    if(!el) return;
-    const count = document.querySelectorAll('.row-checkbox:checked').length;
-    const total = document.querySelectorAll('.row-checkbox').length;
-    document.getElementById('exportCount').innerText = count > 0 ? count : total;
+    const count = document.querySelectorAll('.row-checkbox:checked').length || document.querySelectorAll('.row-checkbox').length;
+    const countEl = document.getElementById('exportCount');
+    if(countEl) countEl.innerText = count;
     loadExportHistory();
-    el.classList.remove('hidden');
+    openModal('exportModal');
 }
-function closeExportModal() { document.getElementById('exportModal').classList.add('hidden'); }
+function closeExportModal() { closeModal('exportModal'); }
+
 function toggleFilenameInput() {
     const mode = document.getElementById('filenameMode').value;
     const input = document.getElementById('customFilename');
-    if(mode === 'custom') input.classList.remove('hidden');
-    else input.classList.add('hidden');
+    if(input) input.classList.toggle('hidden', mode !== 'custom');
 }
+
 async function loadExportHistory() {
     const list = document.getElementById('exportHistoryList');
-    list.innerHTML = '<div class="text-center text-slate-400 text-xs py-4">加载中...</div>';
+    if(!list) return;
+    list.innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-slate-300"></div></div>';
     try {
         const res = await fetch('/inventory/get_export_files').then(r => r.json());
         if(res.files && res.files.length > 0) {
             list.innerHTML = res.files.map(f => `
-                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center group relative">
-                    <div class="truncate">
-                        <div class="text-xs font-bold text-slate-700 truncate" title="${f.name}">${f.name}</div>
-                        <div class="text-[9px] text-slate-400 mt-0.5">${f.time} · ${f.size}</div>
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <a href="/inventory/static/exports/${f.name}" download class="text-slate-400 hover:text-blue-600 transition p-2"><i class="bi bi-download"></i></a>
-                        <button onclick="deleteExportFile('${f.name}')" class="text-slate-400 hover:text-red-500 transition p-2"><i class="bi bi-trash"></i></button>
-                    </div>
+                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center mb-2 group">
+                    <div class="truncate"><div class="text-xs font-bold text-slate-700 truncate" title="${f.name}">${f.name}</div><div class="text-[9px] text-slate-400 mt-0.5">${f.time} · ${f.size}</div></div>
+                    <div class="flex items-center gap-1 shrink-0"><a href="/inventory/static/exports/${f.name}" download class="text-slate-400 hover:text-blue-600 transition p-1"><i class="bi bi-download"></i></a><button onclick="deleteExportFile('${f.name}')" class="text-slate-400 hover:text-red-500 transition p-1 border-0 bg-transparent"><i class="bi bi-trash"></i></button></div>
                 </div>`).join('');
-        } else { list.innerHTML = '<div class="text-center text-slate-300 text-xs py-10 italic">暂无导出记录</div>'; }
+        } else { list.innerHTML = '<div class="text-center text-slate-300 text-xs py-10 italic">暂无记录</div>'; }
     } catch(e) { list.innerHTML = '加载失败'; }
 }
 
 async function deleteExportFile(filename) {
-    if(!confirm('确定要彻底删除这个导出记录吗？')) return;
-    try {
-        const res = await fetch(`/inventory/delete_export_file/${filename}`).then(r => r.json());
-        if(res.success) {
-            loadExportHistory();
-        } else {
-            alert('删除失败: ' + res.error);
-        }
-    } catch(e) {
-        alert('网络请求失败');
-    }
+    if(!confirm('删除历史文件?')) return;
+    await fetch(`/inventory/delete_export_file/${filename}`).then(r => r.json());
+    loadExportHistory();
 }
 
 async function clearExportHistory() {
-    if(!confirm('确定要清空所有导出历史记录吗？此操作不可撤销！')) return;
-    try {
-        const res = await fetch('/inventory/clear_export_history').then(r => r.json());
-        if(res.success) {
-            loadExportHistory();
-        } else {
-            alert('清空失败: ' + res.error);
-        }
-    } catch(e) {
-        alert('网络请求失败');
-    }
+    if(!confirm('清空所有记录?')) return;
+    await fetch('/inventory/clear_export_history');
+    loadExportHistory();
 }
 
 async function submitExport() {
-    showLoading('正在准备导出文件', '正在抓取数据并打包云端资源 (ZIP 模式耗时较长)...');
+    showLoading('正在生成文件','同步数据库中...请问刷新界面');
     const fd = new FormData();
     const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
     if(ids.length > 0) fd.append('ids', ids.join(','));
@@ -553,54 +456,86 @@ async function submitExport() {
     const mode = document.getElementById('filenameMode').value;
     fd.append('filename_mode', mode);
     if(mode === 'custom') fd.append('custom_filename', document.getElementById('customFilename').value);
+    
     try {
         const res = await fetch('/inventory/export', { method: 'POST', body: fd });
         if(res.ok) {
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url;
-            const disposition = res.headers.get('Content-Disposition');
             let filename = `export.${fmt}`;
-            if (disposition && disposition.indexOf('attachment') !== -1) {
-                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                const matches = filenameRegex.exec(disposition);
-                if (matches != null && matches[1]) { filename = matches[1].replace(/['"]/g, ''); }
-            }
-            a.download = decodeURIComponent(filename); document.body.appendChild(a); a.click(); a.remove();
-            closeExportModal(); alert('导出成功！文件已开始下载。');
-        } else { const err = await res.json(); alert('导出失败: ' + (err.error || '服务器错误')); }
-    } catch(e) { alert('网络请求失败: ' + e.message); }
-    finally { hideLoading(); }
+            const disp = res.headers.get('Content-Disposition');
+            if (disp && disp.includes('filename=')) filename = disp.split('filename=')[1].replace(/['"]/g, '');
+            a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+            loadExportHistory();
+        }
+    } catch(e) { alert('导出失败'); } finally { hideLoading(); }
+}
+
+// --- 7. 扫码与备份 ---
+function openScanModal() { const el = document.getElementById('scanModal'); if(el) { scanModalObj = new bootstrap.Modal(el); scanModalObj.show(); } }
+function closeScanModal() { if(codeReader) { codeReader.reset(); codeReader = null; } document.getElementById('cameraArea').classList.add('hidden'); if(scanModalObj) scanModalObj.hide(); }
+async function startScanner() {
+    document.getElementById('cameraArea').classList.remove('hidden');
+    try {
+        codeReader = new ZXing.BrowserMultiFormatReader();
+        await codeReader.decodeFromVideoDevice(undefined, document.getElementById('videoElement'), (res) => {
+            if(res) { closeScanModal(); openEditModal(res.text.includes('"id"') ? JSON.parse(res.text).id : res.text); }
+        });
+    } catch(e) { alert('启动失败'); }
+}
+async function scanFromFile(input) {
+    if(!input.files[0]) return;
+    try {
+        const reader = new ZXing.BrowserMultiFormatReader();
+        const res = await reader.decodeFromImageUrl(URL.createObjectURL(input.files[0]));
+        closeScanModal(); openEditModal(res.text.includes('"id"') ? JSON.parse(res.text).id : res.text);
+    } catch(e) { alert('识别失败'); }
 }
 
 async function runBackup() {
-    showLoading('正在生成备份', '正在打包云端数据记录 (Local Backup)...');
+    showLoading('正在加急全量备份', '正在打包云端数据...请勿刷新界面');
     try {
         const res = await fetch('/inventory/backup');
         if(res.ok) {
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url;
-            a.download = `Inventory_Full_Backup_${new Date().getTime()}.zip`;
-            document.body.appendChild(a); a.click(); a.remove();
-            alert('✅ 备份成功！请妥善保存下载的 ZIP 文件。');
-        } else { alert('备份失败'); }
-    } catch(e) { alert('网络错误'); }
-    finally { hideLoading(); }
+            const a = document.createElement('a'); a.href = url; a.download = `Backup_${Date.now()}.zip`; a.click();
+        }
+    } finally { hideLoading(); }
 }
 
 async function submitRestore(input) {
-    if(!input.files[0]) return;
-    if(!confirm('确定要从该备份文件还原吗？这将覆盖匹配 ID 的现有数据！')) { input.value = ''; return; }
-    showLoading('正在还原数据', '正在解析备份包并同步至云端数据库...');
+    if(!input.files[0] || !confirm('确认还原?')) return;
+    showLoading('还原中', '正在解压同步...请勿刷新界面');
     const fd = new FormData(); fd.append('backup_zip', input.files[0]);
     try {
         const res = await fetch('/inventory/restore', { method: 'POST', body: fd }).then(r => r.json());
-        if(res.success) { 
-            alert(`✅ 还原成功！\n\n📄 数据库记录: ${res.count} 条\n☁️ 云端资源包: ${res.asset_count} 个`); 
-            window.location.reload(); 
-        }
-        else { alert('还原失败: ' + res.error); }
-    } catch(e) { alert('请求失败'); }
-    finally { hideLoading(); input.value = ''; closeModal('restoreModal'); }
+        if(res.success) window.location.reload();
+        else { hideLoading(); alert('失败: ' + res.error); }
+    } catch(e) { hideLoading(); }
 }
+
+// --- 8. 初始化 ---
+function initDragAndDrop() {
+    const dz = document.getElementById('dropZone'); if(!dz) return;
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('border-blue-500'); });
+    dz.addEventListener('dragleave', e => { dz.classList.remove('border-blue-500'); });
+    dz.addEventListener('drop', e => { 
+        e.preventDefault(); dz.classList.remove('border-blue-500');
+        if(e.dataTransfer.files.length) { document.getElementById('fileInput').files = e.dataTransfer.files; uploadSource('file'); }
+    });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    initUser();
+    initDragAndDrop();
+    updateBatchBtn();
+    
+    // 显式绑定菜单事件 (双重保险)
+    const btnBackup = document.getElementById('menuBtnBackup');
+    if(btnBackup) btnBackup.addEventListener('click', runBackup);
+    
+    const btnRestore = document.getElementById('menuBtnRestore');
+    if(btnRestore) btnRestore.addEventListener('click', () => openModal('restoreModal'));
+});

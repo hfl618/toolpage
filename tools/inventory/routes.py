@@ -6,11 +6,14 @@ import json
 import pandas as pd
 import requests
 import zipfile
+import re
 from datetime import datetime
 from io import BytesIO
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, send_file, abort
+from werkzeug.utils import secure_filename
 from tools.database import d1
 from tools.r2_client import upload_to_r2, delete_from_r2
+from tools.config import Config
 
 curr_dir = os.path.dirname(os.path.abspath(__file__))
 export_dir = os.path.join(curr_dir, 'static', 'exports')
@@ -23,180 +26,121 @@ SYSTEM_FIELDS = [
     ('location', '位置'), ('buy_time', '时间'), ('remark', '备注')
 ]
 
-COLUMN_KEYWORDS = {
-    'category': ['品类', '分类', 'class', 'category','分类','类别'],
-    'name': ['品名', '名称', 'name', 'item'],
-    'model': ['型号', '规格', 'model', 'part'],
-    'package': ['封装', 'package', 'pkg'],
-    'quantity': ['数量', 'qty', 'count', 'pcs'],
-    'unit': ['单位', 'unit'],
-    'location': ['位置', '库位', 'location', 'bin'],
-    'supplier': ['供应商', '厂家', 'supplier', 'vendor'],
-    'channel': ['渠道', '来源', 'channel'],
-    'price': ['单价', '价格', 'price', 'cost'],
-    'buy_time': ['时间', '日期', 'date'],
-    'remark': ['备注', '说明', 'remark']
-}
-
 def get_current_uid():
-    """从 Header 获取用户 ID，如果缺失则报错"""
     uid = request.headers.get('X-User-Id')
-    if not uid:
-        abort(401, description="Unauthorized: Missing X-User-Id")
+    if not uid: abort(401)
     return uid
 
 def smart_match(cols):
     mapping = {}
+    field_keywords = {
+        'model': ['mpn', 'p/n', 'part number', 'part_no', 'pn', 'model', 'type', 'spec', 'specification', 'value', 'val', '型号', '规格', '参数', '料号'],
+        'name': ['description', 'desc', 'detail', 'product name', 'item name', 'component', 'part name', 'name', 'item', '品名', '名称', '物料名称'],
+        'package': ['footprint', 'package', 'pkg', 'encapsulation', 'case', 'size', 'dimension', '封装', '外形', '尺寸'],
+        'quantity': ['quantity', 'qty', 'count', 'amount', 'number', 'stock', 'inventory', 'balance', 'pcs', '数量', '库存', '实存'],
+        'supplier': ['manufacturer', 'mfr', 'brand', 'vendor', 'supplier', 'maker', '品牌', '厂商', '厂家', '供应商'],
+        'location': ['location', 'loc', 'bin', 'rack', 'shelf', 'warehouse', 'wh', 'place', 'position', '库位', '货位', '位置'],
+        'category': ['category', 'cat', 'class', 'group', 'family', 'sort', 'kind', '分类', '品类', '类型'],
+        'unit': ['unit', 'uom', 'meas', '单位'],
+        'price': ['price', 'cost', 'unit price', '单价', '价格'],
+        'channel': ['channel', 'source', '渠道', '来源'],
+        'buy_time': ['date', 'time', 'buy time', '时间', '日期'],
+        'remark': ['remark', 'note', 'comment', 'memo', 'ref', '备注', '说明']
+    }
     for col in cols:
-        col_lower = str(col).lower().strip()
+        col_clean = str(col).lower().strip().replace('_', ' ').replace('-', ' ')
         mapping[col] = ''
-        for field, keywords in COLUMN_KEYWORDS.items():
-            if any(kw.lower() in col_lower for kw in keywords):
+        for field, keywords in field_keywords.items():
+            if any(kw.lower() in col_clean for kw in keywords):
                 mapping[col] = field; break
     return mapping
 
 def generate_qr(id, name, model, uid):
-    """生成二维码并上传，UID 用于路径隔离"""
     try:
-        qr_data = json.dumps({"id": id, "name": name, "model": model}, ensure_ascii=False)
-        factory = qrcode.image.svg.SvgImage
-        img = qrcode.make(qr_data, image_factory=factory)
-        img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr)
-        img_byte_arr.seek(0)
-        # R2 路径：inventory/user_{uid}/qrcodes/qr_{id}.svg
-        qr_url = upload_to_r2(img_byte_arr, "qrcodes", fixed_name=f"qr_{id}", app_name=f"inventory/user_{uid}")
-        if qr_url:
-            d1.execute("UPDATE components SET qrcode_path = ? WHERE id = ? AND user_id = ?", [qr_url, id, uid])
-            return qr_url
-    except Exception as e:
-        print(f"QR Gen Error: {e}")
-    return ""
+        qr_content = json.dumps({"id": str(id), "uid": str(uid)}, separators=(',', ':'))
+        img = qrcode.make(qr_content, image_factory=qrcode.image.svg.SvgImage)
+        buf = io.BytesIO()
+        img.save(buf); buf.seek(0)
+        url = upload_to_r2(buf, "qrcodes", fixed_name=f"qr_{id}", app_name=f"inventory/user_{uid}")
+        if url: d1.execute("UPDATE components SET qrcode_path = ? WHERE id = ?", [url, id])
+        return url
+    except: return ""
 
 def sanitize_filename(name):
-    """清理文件名中的非法字符"""
     if not name: return "unnamed"
-    for char in ['/', '\\', ':', '*', '?', '"', '<', '>', '|']:
-        name = name.replace(char, '_')
-    return name.strip()
+    return re.sub(r'[\\/:*?"<>|]', '_', name).strip()
 
-@inventory_bp.route('/backup')
-def backup():
-    uid = get_current_uid()
-    try:
-        res = d1.execute("SELECT * FROM components WHERE user_id = ?", [uid])
-        items = res.get('results', []) if res else []
-        if not items: return jsonify(success=False, error="数据库无数据")
-        data_json = json.dumps(items, ensure_ascii=False, indent=2)
-        output = BytesIO()
-        with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zf:
-            zf.writestr('inventory_data.json', data_json)
-            for item in items:
-                for field, folder, prefix in [('img_path', 'images', 'img'), ('qrcode_path', 'qrcodes', 'qr'), ('doc_path', 'docs', 'doc')]:
-                    url = item.get(field)
-                    if url and url.startswith('http'):
-                        try:
-                            resp = requests.get(url, timeout=10, verify=False)
-                            if resp.status_code == 200:
-                                ext = url.split('.')[-1].split('?')[0]
-                                zf.writestr(f"inventory/{folder}/{prefix}_{item['id']}.{ext}", resp.content)
-                        except: pass
-        output.seek(0)
-        return send_file(output, mimetype='application/zip', as_attachment=True, download_name=f"Inventory_Backup_{uid}_{datetime.now().strftime('%Y%m%d')}.zip")
-    except Exception as e: return jsonify(success=False, error=str(e))
-
-@inventory_bp.route('/restore', methods=['POST'])
-def restore():
-    uid = get_current_uid()
-    file = request.files.get('backup_zip')
-    if not file: return jsonify(success=False, error="未检测到文件")
-    try:
-        with zipfile.ZipFile(file, 'r') as zf:
-            items = json.loads(zf.read('inventory_data.json').decode('utf-8'))
-            db_count = 0
-            for item in items:
-                item['user_id'] = uid # 强制归属于当前用户
-                keys = [k for k in item.keys() if k in ['img_path','doc_path','qrcode_path','category','name','model','package','quantity','unit','location','supplier','channel','price','buy_time','remark','user_id']]
-                placeholders = ', '.join(['?'] * len(keys))
-                sql = f"INSERT OR REPLACE INTO components ({', '.join(keys)}) VALUES ({placeholders})"
-                d1.execute(sql, [item[k] for k in keys])
-                db_count += 1
-        return jsonify(success=True, count=db_count)
-    except Exception as e: return jsonify(success=False, error=str(e))
+def _perform_delete(id, uid):
+    res = d1.execute("SELECT img_path, doc_path, qrcode_path FROM components WHERE id=? AND user_id=?", [id, uid])
+    if res and res.get('results'):
+        item = res['results'][0]
+        for field in ['img_path', 'doc_path', 'qrcode_path']:
+            url = item.get(field)
+            if url and url.startswith('http'):
+                delete_from_r2(url)
+        d1.execute("DELETE FROM components WHERE id=? AND user_id=?", [id, uid])
+        return True
+    return False
 
 @inventory_bp.route('/')
 def index():
     uid = get_current_uid()
     args = request.args
-    q = args.get('q', '').strip()
-    filters = {k: args.get(k, '') for k in ['category', 'name', 'model', 'package', 'location', 'supplier', 'channel', 'buy_time']}
-    
-    sql = "SELECT * FROM components WHERE user_id = ?"
-    params = [uid]
-    
+    q, filters = args.get('q', '').strip(), {k: args.get(k, '') for k in ['category', 'name', 'model', 'package', 'location', 'supplier', 'channel', 'buy_time']}
+    sql, params = "SELECT * FROM components WHERE user_id = ?", [uid]
     if q:
         sql += " AND (model LIKE ? OR category LIKE ? OR name LIKE ? OR remark LIKE ?)"
         search = f"%{q}%"; params.extend([search]*4)
     for k, v in filters.items():
         if v: sql += f" AND {k} LIKE ?"; params.append(f"%{v}%")
-    
-    sql += " ORDER BY created_at DESC"
-    res = d1.execute(sql, params)
+    res = d1.execute(sql + " ORDER BY created_at DESC", params)
     items = res.get('results', []) if res else []
-    
-    cats = d1.execute("SELECT DISTINCT category FROM components WHERE user_id = ? AND category != ''", [uid])
+    for item in items:
+        try: item['quantity'] = int(float(item.get('quantity', 0) or 0))
+        except: item['quantity'] = 0
+        try: item['price'] = float(item.get('price', 0) or 0.0)
+        except: item['price'] = 0.0
+        item['docs'] = [{'file_name': '技术手册.pdf', 'file_url': item['doc_path']}] if item.get('doc_path') else []
     locs = d1.execute("SELECT DISTINCT location FROM components WHERE user_id = ? AND location != ''", [uid])
-    
-    return render_template('inventory.html', items=items, categories=[r['category'] for r in cats.get('results', [])] if cats else [], locations=[r['location'] for r in locs.get('results', [])] if locs else [], q=q, filters=filters, system_fields=SYSTEM_FIELDS)
-
-@inventory_bp.route('/add', methods=['POST'])
-def add():
-    uid = get_current_uid()
-    d, f = request.form, request.files
-    cols = ['category', 'name', 'model', 'package', 'quantity', 'unit', 'location', 'supplier', 'channel', 'price', 'buy_time', 'remark', 'user_id']
-    sql = f"INSERT INTO components ({','.join(cols)}) VALUES ({','.join(['?']*len(cols))})"
-    
-    try: p = float(str(d.get('price', '0')).replace('¥','').replace(',','').strip() or 0.0)
-    except: p = 0.0
-    
-    vals = [d.get('category','未分类'), d.get('name','未命名'), d.get('model',''), d.get('package','N/A'), int(float(d.get('quantity',0))), d.get('unit','个'), d.get('location','未定义'), d.get('supplier','未知'), d.get('channel','未知'), p, d.get('buy_time',''), d.get('remark',''), uid]
-    
-    d1.execute(sql, vals)
-    res = d1.execute("SELECT id FROM components WHERE user_id = ? ORDER BY id DESC LIMIT 1", [uid])
-    if res and res.get('results'):
-        new_id = res['results'][0]['id']
-        app_path = f"inventory/user_{uid}"
-        img_url = upload_to_r2(f.get('img_file'), 'images', fixed_name=f"img_{new_id}", app_name=app_path) if f.get('img_file') else ''
-        doc_url = upload_to_r2(f.get('doc_file'), 'docs', fixed_name=f"doc_{new_id}", app_name=app_path) if f.get('doc_file') else ''
-        d1.execute("UPDATE components SET img_path = ?, doc_path = ? WHERE id = ? AND user_id = ?", [img_url, doc_url, new_id, uid])
-        generate_qr(new_id, d.get('name',''), d.get('model',''), uid)
-    
-    return redirect(url_for('inventory.index'))
+    return render_template('inventory.html', items=items, locations=[r['location'] for r in locs.get('results', [])] if locs else [], q=q, filters=filters, system_fields=SYSTEM_FIELDS)
 
 @inventory_bp.route('/get/<int:id>')
 def get_one(id):
     uid = get_current_uid()
     res = d1.execute("SELECT * FROM components WHERE id = ? AND user_id = ?", [id, uid])
-    if res and res.get('results'): return jsonify(success=True, data=res['results'][0])
+    if res and res.get('results'):
+        data = res['results'][0]
+        data['docs'] = [{'id': 0, 'file_name': '技术手册.pdf', 'file_url': data['doc_path']}] if data.get('doc_path') else []
+        return jsonify(success=True, data=data)
     return jsonify(success=False), 404
+
+@inventory_bp.route('/add', methods=['POST'])
+def add():
+    uid, d, f = get_current_uid(), request.form, request.files
+    if not all([d.get('name'), d.get('model')]): return "必填项缺失", 400
+    user_res = d1.execute("SELECT username FROM users WHERE id = ?", [uid])
+    username = user_res['results'][0]['username'] if user_res and user_res.get('results') else "System"
+    cols = ['category', 'name', 'model', 'package', 'quantity', 'unit', 'location', 'supplier', 'channel', 'price', 'buy_time', 'remark', 'user_id', 'creator']
+    try: p = float(str(d.get('price', '0')).replace('¥','').replace(',','').strip() or 0.0); q = int(float(d.get('quantity', 0) or 0))
+    except: p, q = 0.0, 0
+    vals = [d.get('category','未分类'), d.get('name'), d.get('model'), d.get('package'), q, d.get('unit','个'), d.get('location','未定义'), d.get('supplier','未知'), d.get('channel','未知'), p, d.get('buy_time',''), d.get('remark',''), uid, username]
+    d1.execute(f"INSERT INTO components ({','.join(cols)}) VALUES ({','.join(['?']*len(cols))})", vals)
+    res = d1.execute("SELECT id FROM components WHERE user_id=? AND name=? AND model=? ORDER BY id DESC LIMIT 1", [uid, d.get('name'), d.get('model')])
+    if res and res.get('results'):
+        new_id, app_path = res['results'][0]['id'], f"inventory/user_{uid}"
+        img_url = upload_to_r2(f.get('img_file'), 'images', fixed_name=f"img_{new_id}", app_name=app_path) if f.get('img_file') else ''
+        doc_url = upload_to_r2(f.get('doc_file'), 'docs', fixed_name=f"doc_{new_id}", app_name=app_path) if f.get('doc_file') else ''
+        qr_url = generate_qr(new_id, d.get('name'), d.get('model'), uid)
+        d1.execute("UPDATE components SET img_path = ?, doc_path = ?, qrcode_path = ? WHERE id = ?", [img_url, doc_url, qr_url, new_id])
+    return redirect(url_for('inventory.index'))
 
 @inventory_bp.route('/update/<int:id>', methods=['POST'])
 def update(id):
-    uid = get_current_uid()
-    d, f = request.form, request.files
-    curr_res = d1.execute("SELECT name, model, img_path, doc_path, qrcode_path FROM components WHERE id = ? AND user_id = ?", [id, uid])
-    if not curr_res or not curr_res.get('results'): abort(403)
-    curr = curr_res['results'][0]
-    
-    updates = {
-        'category': d.get('category'), 'name': d.get('name'), 'model': d.get('model'),
-        'package': d.get('package'), 'quantity': int(float(d.get('quantity', 0))),
-        'unit': d.get('unit'), 'location': d.get('location'), 'supplier': d.get('supplier'),
-        'channel': d.get('channel'), 'buy_time': d.get('buy_time'), 'remark': d.get('remark')
-    }
+    uid, d, f = get_current_uid(), request.form, request.files
+    curr = d1.execute("SELECT img_path, doc_path, qrcode_path FROM components WHERE id=? AND user_id=?", [id, uid]).get('results', [{}])[0]
+    updates = {'category': d.get('category'), 'name': d.get('name'), 'model': d.get('model'), 'package': d.get('package'), 'quantity': int(float(d.get('quantity', 0) or 0)), 'unit': d.get('unit'), 'location': d.get('location'), 'supplier': d.get('supplier'), 'channel': d.get('channel'), 'buy_time': d.get('buy_time'), 'remark': d.get('remark')}
     try: updates['price'] = float(str(d.get('price', '0')).replace('¥','').replace(',','').strip() or 0.0)
     except: updates['price'] = 0.0
-    
     app_path = f"inventory/user_{uid}"
     if f.get('img_file'):
         if curr.get('img_path'): delete_from_r2(curr['img_path'])
@@ -204,116 +148,235 @@ def update(id):
     if f.get('doc_file'):
         if curr.get('doc_path'): delete_from_r2(curr['doc_path'])
         updates['doc_path'] = upload_to_r2(f['doc_file'], 'docs', fixed_name=f"doc_{id}", app_name=app_path)
-        
     set_sql = ", ".join([f"{c}=?" for c in updates.keys()])
     d1.execute(f"UPDATE components SET {set_sql} WHERE id=? AND user_id=?", list(updates.values()) + [id, uid])
-    if d.get('name') != curr.get('name') or d.get('model') != curr.get('model'):
-        generate_qr(id, d.get('name'), d.get('model'), uid)
     return redirect(url_for('inventory.index'))
 
 @inventory_bp.route('/delete/<int:id>')
-def delete(id):
+def delete_api(id):
     uid = get_current_uid()
-    res = d1.execute("SELECT img_path, doc_path, qrcode_path FROM components WHERE id=? AND user_id=?", [id, uid])
-    if res and res.get('results'):
-        item = res['results'][0]
-        for key in ['img_path', 'doc_path', 'qrcode_path']:
-            if item.get(key): delete_from_r2(item[key])
-        d1.execute("DELETE FROM components WHERE id=? AND user_id=?", [id, uid])
+    _perform_delete(id, uid)
     return redirect(url_for('inventory.index'))
 
 @inventory_bp.route('/batch_delete', methods=['POST'])
 def batch_delete():
     uid = get_current_uid()
-    ids = request.form.getlist('ids[]')
-    for i in ids:
-        res = d1.execute("SELECT img_path, doc_path, qrcode_path FROM components WHERE id=? AND user_id=?", [i, uid])
-        if res and res.get('results'):
-            item = res['results'][0]
-            for key in ['img_path', 'doc_path', 'qrcode_path']:
-                if item.get(key): delete_from_r2(item[key])
-            d1.execute("DELETE FROM components WHERE id=? AND user_id=?", [i, uid])
+    for i in request.form.getlist('ids[]'): _perform_delete(int(i), uid)
     return jsonify(success=True)
 
 @inventory_bp.route('/batch_update', methods=['POST'])
 def batch_update():
-    uid = get_current_uid()
-    data = request.json
+    uid, data = get_current_uid(), request.json
     ids, updates = data.get('ids', []), data.get('updates', {})
-    allowed_fields = ['category', 'name', 'package', 'unit', 'location', 'supplier', 'channel', 'price', 'buy_time', 'remark']
+    allowed = ['category', 'name', 'package', 'unit', 'location', 'supplier', 'channel', 'price', 'remark', 'buy_time']
     set_clauses, values = [], []
     for field, val in updates.items():
-        if field in allowed_fields:
-            set_clauses.append(f"{field} = ?")
-            values.append(val)
-    if not set_clauses: return jsonify(success=False, error="无可修改字段")
-    sql = f"UPDATE components SET {', '.join(set_clauses)} WHERE id IN ({','.join(['?']*len(ids))}) AND user_id = ?"
-    d1.execute(sql, values + ids + [uid])
+        if field in allowed and val: set_clauses.append(f"{field} = ?"); values.append(val)
+    if not set_clauses: return jsonify(success=False)
+    d1.execute(f"UPDATE components SET {', '.join(set_clauses)} WHERE id IN ({','.join(['?']*len(ids))}) AND user_id = ?", values + ids + [uid])
     return jsonify(success=True)
 
 @inventory_bp.route('/import/parse', methods=['POST'])
 def import_parse():
     mode = request.form.get('mode')
     try:
-        if mode == 'file': df = pd.read_excel(request.files.get('file'), engine='openpyxl').fillna('')
-        else: df = pd.DataFrame([r.split('\t') for r in request.form.get('text','').strip().split('\n')]).fillna(''); df.columns=df.iloc[0]; df=df[1:]
+        if mode == 'file': 
+            f = request.files.get('file')
+            df = pd.read_csv(f).fillna('') if f.filename.endswith('.csv') else pd.read_excel(f, engine='openpyxl').fillna('')
+        else: 
+            txt = request.form.get('text', '').strip()
+            df = pd.DataFrame([r.split('\t') for r in txt.split('\n')]).fillna('')
+            if not df.empty: df.columns = df.iloc[0]; df = df[1:]
         return jsonify(success=True, columns=df.columns.tolist(), total_rows=len(df), preview=df.head(3).values.tolist(), mapping=smart_match(df.columns.tolist()), raw_data=df.to_dict(orient='records'))
     except Exception as e: return jsonify(success=False, error=str(e))
 
 @inventory_bp.route('/import/verify', methods=['POST'])
 def import_verify():
-    uid = get_current_uid()
-    data = request.json
+    uid, data = get_current_uid(), request.json
     mapping, raw = data.get('mapping'), data.get('raw_data')
+    fields = ['category', 'name', 'model', 'package', 'quantity', 'location', 'price', 'unit', 'supplier', 'channel', 'buy_time', 'remark']
     standardized = []
-    fields_to_check = ['category', 'name', 'model', 'package', 'quantity', 'location', 'price', 'unit', 'supplier', 'channel']
     for row in raw:
-        item = {f: '' for f in fields_to_check}
-        for col, field in mapping.items():
-            if field in fields_to_check and col in row: item[field] = str(row[col]).strip()
+        item = {f: '' for f in fields}; [item.update({mapping[col]: str(row[col]).strip()}) for col in mapping if mapping[col] in fields and col in row]
         if item.get('name') or item.get('model'): standardized.append(item)
-    
-    existing_res = d1.execute("SELECT id, name, model, package FROM components WHERE user_id = ?", [uid])
-    existing = existing_res.get('results', []) if existing_res else []
-    
+    existing = d1.execute("SELECT * FROM components WHERE user_id = ?", [uid]).get('results', [])
     conflicts, uniques = [], []
     for item in standardized:
         match = next((r for r in existing if (str(r['name']).lower() == str(item['name']).lower() and str(r['package']).lower() == str(item['package']).lower()) or (str(r['model']).lower() == str(item['model']).lower() and str(r['package']).lower() == str(item['package']).lower())), None)
-        if match: conflicts.append({'new': item, 'old': match, 'diff': {f: True for f in fields_to_check}})
+        if match: conflicts.append({'new': item, 'old': match, 'diff': {f: str(item[f]) != str(match.get(f,'')) for f in fields}})
         else: uniques.append(item)
     return jsonify(success=True, conflicts=conflicts, uniques=uniques)
 
 @inventory_bp.route('/import/execute', methods=['POST'])
 def import_execute():
-    uid = get_current_uid()
-    data = request.json
+    uid, data = get_current_uid(), request.json
     uniques, resolved = data.get('uniques', []), data.get('resolved', [])
-    
-    added, updated, skipped = 0, 0, 0
-    
+    user_res = d1.execute("SELECT username FROM users WHERE id = ?", [uid])
+    username = user_res['results'][0]['username'] if user_res and user_res.get('results') else "System"
     for item in uniques:
-        item['user_id'] = uid
+        if not item.get('name') or not item.get('model'): continue
+        item.update({'user_id': uid, 'creator': username})
         keys = list(item.keys())
         d1.execute(f"INSERT INTO components ({','.join(keys)}) VALUES ({','.join(['?']*len(keys))})", [item[k] for k in keys])
-        added += 1
-        res = d1.execute("SELECT id FROM components WHERE user_id = ? ORDER BY id DESC LIMIT 1", [uid])
-        if res and res.get('results'):
-            generate_qr(res['results'][0]['id'], item.get('name',''), item.get('model',''), uid)
-            
+        id_res = d1.execute("SELECT id FROM components WHERE user_id=? AND name=? AND model=? ORDER BY id DESC LIMIT 1", [uid, item['name'], item['model']])
+        if id_res and id_res.get('results'): generate_qr(id_res['results'][0]['id'], item['name'], item['model'], uid)
     for entry in resolved:
         strat, new, old_id = entry.get('strategy'), entry.get('new'), entry.get('old_id')
-        if strat == 'merge':
-            d1.execute("UPDATE components SET quantity = quantity + ? WHERE id = ? AND user_id = ?", [new.get('quantity',0), old_id, uid])
-            updated += 1
+        if strat == 'merge': d1.execute("UPDATE components SET quantity = quantity + ?, creator = ? WHERE id = ?", [int(float(new.get('quantity',0))), username, old_id])
         elif strat == 'cover':
-            new['user_id'] = uid
+            new.update({'user_id': uid, 'creator': username})
             keys = [k for k in new.keys() if k != 'id']
-            d1.execute(f"UPDATE components SET {', '.join([f'{k}=?' for k in keys])} WHERE id=? AND user_id=?", [new[k] for k in keys] + [old_id, uid])
-            updated += 1
-        else:
-            skipped += 1
-            
-    return jsonify(success=True, added=added, updated=updated, skipped=skipped)
+            d1.execute(f"UPDATE components SET {', '.join([f'{k}=?' for k in keys])} WHERE id=?", [new[k] for k in keys] + [old_id])
+    return jsonify(success=True)
+
+@inventory_bp.route('/export', methods=['POST'])
+def export():
+    uid, data = get_current_uid(), request.form
+    ids_str, fields = data.get('ids', ''), [f for f in data.getlist('fields') if f in [x[0] for f in SYSTEM_FIELDS]] or [f[0] for f in SYSTEM_FIELDS]
+    ids, fmt, with_assets = [int(i) for i in ids_str.split(',') if i.strip().isdigit()] if ids_str else [], data.get('format', 'xlsx'), data.get('with_assets') == '1'
+    res = d1.execute(f"SELECT * FROM components WHERE user_id = ? {'AND id IN ('+','.join(['?']*len(ids))+')' if ids else ''}", [uid] + ids)
+    items = res.get('results', []) if res else []
+    if not items: return jsonify(success=False, error="无数据")
+    field_map = {k: v for k, v in SYSTEM_FIELDS}
+    df = pd.DataFrame([{field_map.get(f, f): item.get(f, '') for f in fields} for item in items])
+    base_name = f"Export_{datetime.now().strftime('%m%d_%H%M')}"; output = BytesIO()
+    try:
+        if fmt == 'zip' and with_assets:
+            with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zf:
+                eb = BytesIO(); df.to_excel(eb, index=False); zf.writestr("Inventory.xlsx", eb.getvalue())
+                for item in items:
+                    for f_k, fld in [('img_path','images'),('qrcode_path','qrcodes'),('doc_path','docs')]:
+                        url = item.get(f_k)
+                        if url and url.startswith('http'):
+                            try:
+                                r = requests.get(url, timeout=5, verify=False, headers={'User-Agent': 'Mozilla/5.0'})
+                                if r.status_code == 200: 
+                                    ext = url.split('.')[-1].split('?')[0]
+                                    zf.writestr(f"attachments/{fld}/{item['id']}_{fld}.{ext}", r.content)
+                            except: pass
+            output.seek(0); return send_file(output, mimetype='application/zip', as_attachment=True, download_name=f"Export_{datetime.now().strftime('%m%d%H%M')}.zip")
+        df.to_excel(output, index=False); output.seek(0)
+        return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name=f"Export_{datetime.now().strftime('%m%d%H%M')}.xlsx")
+    except Exception as e: return jsonify(success=False, error=str(e))
+
+@inventory_bp.route('/backup')
+
+def backup():
+
+    uid = get_current_uid()
+
+    print(f"--- 开始为用户 {uid} 执行全量备份 ---")
+
+    try:
+
+        items = d1.execute("SELECT * FROM components WHERE user_id = ?", [uid]).get('results', [])
+
+        output = BytesIO()
+
+        session = requests.Session()
+
+        session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'})
+
+        
+
+        with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zf:
+
+            zf.writestr('inventory_data.json', json.dumps(items, ensure_ascii=False))
+
+            for item in items:
+
+                for f, fd in [('img_path','images'), ('qrcode_path','qrcodes'), ('doc_path','docs')]:
+
+                    url = item.get(f)
+
+                    if url and isinstance(url, str) and url.startswith('http'):
+
+                        fname = url.split('?')[0].split('/')[-1]
+
+                        print(f"正在抓取: {fname}...", end=' ', flush=True)
+
+                        try: 
+
+                            r = session.get(url, verify=False, timeout=15)
+
+                            if r.status_code == 200:
+
+                                zf.writestr(f"inventory/{fd}/{fname}", r.content)
+
+                                print("成功 ✅")
+
+                            else:
+
+                                print(f"失败 (状态码: {r.status_code}) ❌")
+
+                        except Exception as e:
+
+                            print(f"报错: {str(e)} ❌")
+
+        
+
+        print("--- 备份包构建完成 ---")
+
+        output.seek(0); return send_file(output, mimetype='application/zip', as_attachment=True, download_name=f"Backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip")
+
+    except Exception as e:
+
+        print(f"备份失败: {e}")
+
+        return jsonify(success=False, error=str(e))
+
+@inventory_bp.route('/restore', methods=['POST'])
+def restore():
+    uid, file = get_current_uid(), request.files.get('backup_zip')
+    if not file: return jsonify(success=False)
+    try:
+        count, app_path = 0, f"inventory/user_{uid}"
+        d1.execute("DELETE FROM components WHERE user_id = ?", [uid])
+        with zipfile.ZipFile(file, 'r') as zf:
+            available_files = {} 
+            for name in zf.namelist():
+                if name.endswith('/'): continue
+                raw = os.path.basename(name); match = re.search(r'(img|qr|doc)_(\d+)', raw)
+                if match:
+                    f_t, f_i = match.group(1), match.group(2)
+                    base_name, ext = os.path.splitext(raw); ext = ext.lower()
+                    file_data = BytesIO(zf.read(name)); file_data.filename = raw
+                    fld = 'images' if f_t == 'img' else ('qrcodes' if f_t == 'qr' else 'docs')
+                    new_url = upload_to_r2(file_data, fld, fixed_name=f"{f_t}_{f_i}", app_name=app_path)
+                    if new_url: available_files[f"{f_t}_{f_i}"] = ext
+            if 'inventory_data.json' in zf.namelist():
+                items = json.loads(zf.read('inventory_data.json').decode('utf-8'))
+                for item in items:
+                    item['user_id'] = uid
+                    for f_key, prefix, fld in [('img_path','img','images'),('qrcode_path','qr','qrcodes'),('doc_path','doc','docs')]:
+                        base_key = f"{prefix}_{item['id']}"
+                        # 核心保底逻辑：如果zip里有新文件，用新的；没有则保留json里的旧链接（防误删）
+                        if base_key in available_files:
+                            real_ext = available_files[base_key]
+                            item[f_key] = f"{Config.R2_PUBLIC_URL}/{app_path}/{fld}/{base_key}{real_ext}"
+                        # else: keep item[f_key] as is (from json)
+                    
+                    # 核心 ID 保留：将 id 显式加入插入列表
+                    keys = [k for k in item.keys() if k in [f[0] for f in SYSTEM_FIELDS]+['id','img_path','doc_path','qrcode_path','creator','user_id']]
+                    d1.execute(f"INSERT INTO components ({','.join(keys)}) VALUES ({','.join(['?']*len(keys))})", [item[k] for k in keys])
+                    count += 1
+        return jsonify(success=True, count=count)
+    except Exception as e: return jsonify(success=False, error=str(e))
+
+@inventory_bp.route('/view_doc/<int:id>')
+def view_doc(id):
+    uid = get_current_uid()
+    res = d1.execute("SELECT doc_path FROM components WHERE id=? AND user_id=?", [id, uid])
+    if res and res.get('results') and res['results'][0].get('doc_path'): return redirect(res['results'][0]['doc_path'])
+    abort(404)
+
+@inventory_bp.route('/delete_file/<int:id>/<field>')
+def delete_file(id, field):
+    uid = get_current_uid()
+    res = d1.execute(f"SELECT {field} FROM components WHERE id=? AND user_id=?", [id, uid])
+    if res and res.get('results') and res['results'][0].get(field):
+        delete_from_r2(res['results'][0][field]); d1.execute(f"UPDATE components SET {field} = '' WHERE id=? AND user_id=?", [id, uid]); return jsonify(success=True)
+    return jsonify(success=False)
 
 @inventory_bp.route('/get_export_files')
 def get_export_files():
@@ -321,104 +384,31 @@ def get_export_files():
     if os.path.exists(export_dir):
         for f in os.listdir(export_dir):
             if f.endswith(('.xlsx', '.csv', '.zip')):
-                fp = os.path.join(export_dir, f)
-                files.append({'name': f, 'time': datetime.fromtimestamp(os.path.getmtime(fp)).strftime('%Y-%m-%d %H:%M'), 'size': f"{os.path.getsize(fp)/1024:.1f} KB"})
+                fp = os.path.join(export_dir, f); files.append({'name': f, 'time': datetime.fromtimestamp(os.path.getmtime(fp)).strftime('%Y-%m-%d %H:%M'), 'size': f"{os.path.getsize(fp)/1024:.1f} KB"})
     files.sort(key=lambda x: x['time'], reverse=True)
-    return jsonify({'files': files[:20]})
+    return jsonify({'files': files})
 
 @inventory_bp.route('/delete_export_file/<filename>')
 def delete_export_file(filename):
     try:
-        if '..' in filename or '/' in filename or '\\' in filename: return jsonify(success=False, error="非法文件名")
-        fp = os.path.join(export_dir, filename)
+        fp = os.path.join(export_dir, secure_filename(filename))
         if os.path.exists(fp): os.remove(fp); return jsonify(success=True)
-        return jsonify(success=False, error="文件不存在")
-    except Exception as e: return jsonify(success=False, error=str(e))
+    except: pass
+    return jsonify(success=False)
 
 @inventory_bp.route('/clear_export_history')
 def clear_export_history():
     try:
         if os.path.exists(export_dir):
-            for f in os.listdir(export_dir):
-                if f.endswith(('.xlsx', '.csv', '.zip')): os.remove(os.path.join(export_dir, f))
+            for f in os.listdir(export_dir): os.remove(os.path.join(export_dir, f))
         return jsonify(success=True)
-    except Exception as e: return jsonify(success=False, error=str(e))
-
-@inventory_bp.route('/export', methods=['POST'])
-def export():
-    uid = get_current_uid()
-    data = request.form
-    ids_str, fields = data.get('ids', ''), data.getlist('fields') or [f[0] for f in SYSTEM_FIELDS]
-    ids = [int(i) for i in ids_str.split(',') if i.strip().isdigit()] if ids_str else []
-    fmt, with_assets = data.get('format', 'xlsx'), data.get('with_assets') == '1'
-    filename_mode, custom_name = data.get('filename_mode', 'default'), data.get('custom_filename', '').strip()
-    if ids:
-        sql = f"SELECT * FROM components WHERE id IN ({','.join(['?']*len(ids))}) AND user_id = ?"; res = d1.execute(sql, ids + [uid])
-    else: sql = "SELECT * FROM components WHERE user_id = ?"; res = d1.execute(sql, [uid])
-    items = res.get('results', []) if res else []
-    if not items: return jsonify(success=False, error="没有数据可导出")
-    export_data = []
-    field_map = {k: v for k, v in SYSTEM_FIELDS}
-    for item in items:
-        row = {}
-        for f in fields: row[field_map.get(f, f)] = item.get(f, '')
-        export_data.append(row)
-    df = pd.DataFrame(export_data)
-    if filename_mode == 'custom' and custom_name: base_name = sanitize_filename(custom_name)
-    elif len(items) == 1: base_name = sanitize_filename(f"{items[0].get('name')}_{items[0].get('model')}")
-    else: base_name = f"库存导出_{datetime.now().strftime('%m%d_%H%M')}"
-    try:
-        output = BytesIO()
-        if fmt == 'zip' and with_assets:
-            final_name, mimetype = f"{base_name}.zip", 'application/zip'
-            with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zf:
-                excel_buf = BytesIO(); df.to_excel(excel_buf, index=False); zf.writestr(f"{base_name}.xlsx", excel_buf.getvalue())
-                for item in items:
-                    file_id_name = sanitize_filename(f"{item.get('name')}_{item.get('model')}")
-                    for field, folder in [('img_path', 'images'), ('qrcode_path', 'qrcodes')]:
-                        url = item.get(field)
-                        if url and url.startswith('http'):
-                            try:
-                                c = requests.get(url, timeout=5, verify=False).content
-                                zf.writestr(f"inventory/{folder}/{file_id_name}.{url.split('.')[-1]}", c)
-                            except: pass
-        elif fmt == 'xlsx':
-            final_name, mimetype = f"{base_name}.xlsx", 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            df.to_excel(output, index=False)
-            if not os.path.exists(export_dir): os.makedirs(export_dir)
-            with open(os.path.join(export_dir, final_name), 'wb') as f: f.write(output.getvalue())
-        else:
-            final_name, mimetype = f"{base_name}.csv", 'text/csv'; df.to_csv(output, index=False, encoding='utf-8-sig')
-        output.seek(0)
-        return send_file(output, mimetype=mimetype, as_attachment=True, download_name=final_name)
-    except Exception as e: return jsonify(success=False, error=str(e))
-
-@inventory_bp.route('/delete_file/<int:id>/<field>')
-def delete_file(id, field):
-    uid = get_current_uid()
-    if field not in ['img_path', 'doc_path']: return jsonify(success=False, error="无效字段")
-    res = d1.execute(f"SELECT {field} FROM components WHERE id=? AND user_id=?", [id, uid])
-    if res and res.get('results'):
-        url = res['results'][0].get(field)
-        if url: delete_from_r2(url); d1.execute(f"UPDATE components SET {field} = '' WHERE id=? AND user_id=?", [id, uid]); return jsonify(success=True)
-    return jsonify(success=False, error="文件未找到")
-
-@inventory_bp.route('/view_doc/<int:id>')
-def view_doc(id):
-    uid = get_current_uid()
-    res = d1.execute("SELECT doc_path FROM components WHERE id=? AND user_id=?", [id, uid])
-    if res and res.get('results'):
-        url = res['results'][0].get('doc_path')
-        if url: return redirect(url)
-    abort(404, description="文档未找到")
+    except: return jsonify(success=False)
 
 @inventory_bp.route('/regenerate_qr/<int:id>')
 def regenerate_qr_api(id):
     uid = get_current_uid()
-    res = d1.execute("SELECT name, model, qrcode_path FROM components WHERE id=? AND user_id=?", [id, uid])
+    res = d1.execute("SELECT name, model FROM components WHERE id=? AND user_id=?", [id, uid])
     if res and res.get('results'):
-        item = res['results'][0]
-        if item.get('qrcode_path'): delete_from_r2(item['qrcode_path'])
-        new_url = generate_qr(id, item.get('name'), item.get('model'), uid)
-        if new_url: return jsonify(success=True, qrcode_path=new_url)
-    return jsonify(success=False, error="生成失败")
+        u = generate_qr(id, res['results'][0]['name'], res['results'][0]['model'], uid)
+        return jsonify(success=True, qrcode_path=u)
+    return jsonify(success=False)
