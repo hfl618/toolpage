@@ -16,9 +16,9 @@ def create_app():
     
     app.config.from_object(Config)
 
-    # --- 1. 注册认证蓝图 ---
-    from tools.auth import auth_bp
-    app.register_blueprint(auth_bp, url_prefix='/auth')
+    # --- 1. 注册认证与用户模块 ---
+    from tools.user.routes import user_bp
+    app.register_blueprint(user_bp, url_prefix='/auth')
 
     # --- 2. 模块化业务注册 ---
     from tools.inventory.routes import inventory_bp
@@ -90,9 +90,9 @@ def create_app():
 
     @app.route('/api/user/profile')
     def api_profile_proxy():
-        # 内部重定向到 auth 模块的接口
-        from tools.auth import profile_api
-        return profile_api()
+        # 内部重定向到新的 user 模块接口
+        from tools.user.routes import user_bp
+        return app.view_functions['user.profile_api']()
 
     @app.route('/health')
     def health():
