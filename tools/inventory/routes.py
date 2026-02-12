@@ -84,6 +84,7 @@ def _perform_delete(id, uid):
 
 @inventory_bp.route('/')
 def index():
+    import glob
     uid = get_current_uid()
     args = request.args
     q, filters = args.get('q', '').strip(), {k: args.get(k, '') for k in ['category', 'name', 'model', 'package', 'location', 'supplier', 'channel', 'buy_time']}
@@ -102,7 +103,20 @@ def index():
         except: item['price'] = 0.0
         item['docs'] = [{'file_name': '技术手册.pdf', 'file_url': item['doc_path']}] if item.get('doc_path') else []
     locs = d1.execute("SELECT DISTINCT location FROM components WHERE user_id = ? AND location != ''", [uid])
-    return render_template('inventory.html', items=items, locations=[r['location'] for r in locs.get('results', [])] if locs else [], q=q, filters=filters, system_fields=SYSTEM_FIELDS)
+    
+    # 动态加载帮助手册
+    docs_zh, docs_en = "", ""
+    static_dir = os.path.join(curr_dir, 'static')
+    try:
+        zh_files = sorted(glob.glob(os.path.join(static_dir, 'inventory_zh_*.md')))
+        if zh_files:
+            with open(zh_files[-1], 'r', encoding='utf-8') as f: docs_zh = f.read()
+        en_files = sorted(glob.glob(os.path.join(static_dir, 'inventory_en_*.md')))
+        if en_files:
+            with open(en_files[-1], 'r', encoding='utf-8') as f: docs_en = f.read()
+    except: pass
+
+    return render_template('inventory.html', items=items, locations=[r['location'] for r in locs.get('results', [])] if locs else [], q=q, filters=filters, system_fields=SYSTEM_FIELDS, docs_zh=docs_zh, docs_en=docs_en)
 
 @inventory_bp.route('/get/<int:id>')
 def get_one(id):

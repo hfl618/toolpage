@@ -162,8 +162,6 @@ def create_app():
                     </script>
                     """
                     response.set_data(data.replace("</body>", bug_widget + "</body>"))
-                    """
-                    response.set_data(data.replace("</body>", bug_widget + "</body>"))
                 if is_passthrough:
                     response.direct_passthrough = True
             except: pass

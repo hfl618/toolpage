@@ -66,8 +66,13 @@
                 <li><a class="dropdown-item py-2 rounded-xl" href="javascript:void(0)" id="menuBtnRestore"><i class="ri-refresh-line me-2 text-orange-500"></i>还原数据</a></li>
             </ul>
         </div>
-        <div class="h-5 w-px bg-slate-200 mx-2"></div>
-        <div id="userArea" class="relative group flex items-center gap-3 px-2 cursor-pointer hover:bg-slate-50 rounded-lg transition-all" onclick="if(!event.target.closest('.dropdown-content')) location.href='/profile'">
+                <div class="h-5 w-px bg-slate-200 mx-2"></div>
+                <button type="button" onclick="openDocs()" class="px-3 py-1.5 flex items-center gap-2 bg-white text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all font-bold text-xs shadow-sm" title="使用手册">
+                    <i class="ri-book-open-line text-blue-500"></i>
+                    <span class="hidden md:inline i18n" data-zh="说明" data-en="Guide">说明</span>
+                </button>
+                <div id="userArea"
+         class="relative group flex items-center gap-3 px-2 cursor-pointer hover:bg-slate-50 rounded-lg transition-all" onclick="if(!event.target.closest('.dropdown-content')) location.href='/profile'">
             <div class="animate-pulse flex items-center gap-2"><div class="w-8 h-8 bg-slate-100 rounded-full"></div><div class="h-2 w-12 bg-slate-100 rounded"></div></div>
         </div>
     </div>
@@ -192,6 +197,46 @@
     window.addEventListener('DOMContentLoaded', () => { initUser(); initDragAndDrop(); updateBatchBtn(); });
 </script>
 <script src="{{ url_for('inventory.static', filename='js/inventory.js') }}?v={{ range(1,9999)|random }}"></script>
+
+<!-- 帮助手册模态框 -->
+<div class="modal fade" id="docsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-2xl rounded-[2rem] overflow-hidden">
+            <div class="modal-header border-b border-slate-100 p-6 bg-white">
+                <h3 class="text-lg font-black text-slate-900 i18n" data-zh="元器件系统使用指南" data-en="Inventory System Guide">元器件系统使用指南</h3>
+                <button type="button" class="btn-close opacity-50 hover:opacity-100" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-8 bg-slate-50/50">
+                <div id="docs-content" class="prose prose-sm max-w-none text-slate-600 font-medium"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const translations = {
+        zh: { docs: {{ docs_zh | tojson | safe }} },
+        en: { docs: {{ docs_en | tojson | safe }} }
+    };
+
+    function openDocs() {
+        // 尝试从 localStorage 或 layout.html 的变量获取当前语言
+        const lang = localStorage.getItem('lang') || 'zh';
+        let raw = translations[lang].docs || translations['zh'].docs;
+        
+        // 简易 Markdown 渲染逻辑
+        let html = raw
+            .replace(/^# (.*$)/gm, '<h2 class="text-xl font-black text-slate-900 mb-6 border-b-4 border-blue-500 pb-2">$1</h2>')
+            .replace(/^## (.*$)/gm, '<h3 class="text-base font-black text-slate-800 mt-8 mb-4 flex items-center gap-2"><i class="ri-settings-3-fill text-blue-500"></i> $1</h3>')
+            .replace(/^- (.*$)/gm, '<li class="ml-4 mb-2 text-slate-600 font-bold list-none flex items-start gap-2"><div class="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0"></div><span>$1</span></li>')
+            .replace(/^---$/gm, '<hr class="my-8 border-slate-100">')
+            .replace(/\*(.*?)\*/g, '<i class="text-slate-400 text-xs">$1</i>')
+            .replace(/`(.*?)`/g, '<code class="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md font-mono text-[10px] font-black">$1</code>');
+
+        document.getElementById('docs-content').innerHTML = '<div class="space-y-2">' + html + '</div>';
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('docsModal')).show();
+    }
+</script>
 
 </body>
 </html>
