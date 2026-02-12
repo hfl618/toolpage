@@ -213,6 +213,7 @@ function renderUltraDashboard(user) {
     <script>
         const tools = [
             { id: 'stock', title: '元器件管理', desc: '全功能库存与BOM系统', longDesc: '全方位数字化元器件管理方案。支持扫码入库、BOM智能解析、多级库位管理。', icon: 'ri-cpu-line', cat: 'dev', color: 'bg-blue-50 text-blue-600', comments: ['BOM解析非常准确', '极大地提高了仓储效率'], url: '/inventory/' },
+            { id: 'lvgl', title: 'LVGL 图像处理', desc: '嵌入式 UI 素材转换', longDesc: '专为 LVGL 设计的图像资产处理工具。支持 PNG/JPG/BMP 转 C 数组，支持高质量缩放、抖动处理及 Alpha 预乘。', icon: 'ri-image-edit-line', cat: 'dev', color: 'bg-emerald-50 text-emerald-600', comments: ['转换速度极快', 'RGB565A8 效果很棒'], url: '/lvgl_image/' },
             { id: 'ai', title: 'AI 识别中心', desc: '视觉分析终端', longDesc: '基于尖端深度学习模型，支持物料视觉识别、文本信息提取及自动纠错。', icon: 'ri-eye-2-line', cat: 'ai', color: 'bg-purple-50 text-purple-600', comments: ['识别速度惊人', 'OCR 准确率很高'], url: '/ai_tools' },
             { id: 'admin', title: '系统终端', desc: '权限与日志管理', longDesc: '管理员专用控制台，实时监控系统流量，配置用户权限。', icon: 'ri-terminal-window-line', cat: 'dev', color: 'bg-gray-100 text-gray-700', comments: ['日志审计很详细'], url: '/admin' }
         ];
