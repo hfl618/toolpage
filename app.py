@@ -94,7 +94,7 @@ def create_app():
                 if "</body>" in data:
                     bug_widget = """
                     <!-- Bug 反馈悬浮按钮 -->
-                    <div id="bug-report-trigger" onclick="toggleBugModal()" style="position:fixed; right:24px; bottom:100px; width:48px; height:48px; background:white; border:1px solid #f1f5f9; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border-radius:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:9999; transition:all 0.3s;" onmouseover="this.style.transform='scale(1.1)';this.style.background='#fef2f2';" onmouseout="this.style.transform='scale(1)';this.style.background='white';">
+                    <div id="bug-report-trigger" onclick="toggleBugModal()" style="position:fixed; right:24px; bottom:100px; width:48px; height:48px; background:white; border:1px solid #f1f5f9; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border-radius:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:9999; transition:all 0.3s;" onmouseover="this.style.transform='scale(1.1)';" onmouseout="this.style.transform='scale(1)';">
                         <i class="ri-bug-2-line" style="font-size:20px; color:#94a3b8;"></i>
                     </div>
                     <div id="bug-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.4); backdrop-filter:blur(4px); z-index:10000; align-items:center; justify-content:center; padding:16px;">
@@ -106,8 +106,8 @@ def create_app():
                                 <div onclick="document.getElementById('bug-image').click()" style="width:48px; height:48px; border-radius:12px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#64748b; border:1px dashed #cbd5e1;">
                                     <i class="ri-camera-line" style="font-size:20px;"></i>
                                 </div>
-                                <input type="file" id="bug-image" accept="image/*" style="display:none;" onchange="updateBugPreview(this)">
-                                <div id="bug-preview-name" class="bug-i18n" data-zh="上传截图 (可选)" data-en="Upload Screenshot (Optional)" style="font-size:11px; color:#94a3b8; font-weight:700;">上传截图 (可选)</div>
+                                <input type="file" id="bug-image" accept="image/*" multiple style="display:none;" onchange="updateBugPreview(this)">
+                                <div id="bug-preview-name" class="bug-i18n" data-zh="上传截图 (支持多选)" data-en="Upload Screenshots" style="font-size:11px; color:#94a3b8; font-weight:700;">上传截图 (支持多选)</div>
                             </div>
                             <button id="bug-submit-btn" onclick="submitBug()" class="bug-i18n" data-zh="提交反馈" data-en="Submit Feedback" style="width:100%; padding:16px; background:#0f172a; color:white; border-radius:16px; font-weight:800; border:none; cursor:pointer;">提交反馈</button>
                             <button onclick="toggleBugModal()" style="position:absolute; top:24px; right:24px; border:none; background:none; cursor:pointer; color:#94a3b8;"><i class="ri-close-line" style="font-size:20px;"></i></button>
@@ -116,9 +116,9 @@ def create_app():
                     <script>
                         function updateBugPreview(i) {
                             const l = document.getElementById('bug-preview-name');
-                            if (i.files && i.files[0]) { 
-                                const lang = localStorage.getItem('lang') || 'zh';
-                                l.innerText = (lang === 'en' ? "Selected: " : "已选择: ") + i.files[0].name; 
+                            const lang = localStorage.getItem('lang') || 'zh';
+                            if (i.files && i.files.length > 0) { 
+                                l.innerText = (lang === 'en' ? "Selected: " : "已选择: ") + i.files.length + (lang === 'en' ? " images" : " 张图片");
                                 l.style.color = "#3b82f6"; 
                             }
                         }
@@ -138,21 +138,21 @@ def create_app():
                             const fileInput = document.getElementById('bug-image');
                             const lang = localStorage.getItem('lang') || 'zh';
                             if(!content) return;
-                            btn.disabled = true; btn.innerText = lang === 'en' ? "Sending..." : "正在发送...";
+                            btn.disabled = true; btn.innerText = lang === 'en' ? "Sending..." : "发送中...";
                             const fd = new FormData();
                             fd.append('content', content);
                             fd.append('page_url', window.location.href);
                             fd.append('device_info', navigator.userAgent);
-                            if(fileInput.files[0]) fd.append('image', fileInput.files[0]);
+                            for(let i=0; i<fileInput.files.length; i++) { fd.append('image', fileInput.files[i]); }
                             try {
                                 const r = await fetch('/support/report_bug', { method: 'POST', body: fd });
                                 if(r.ok) { 
-                                    alert(lang === 'en' ? "Thank you for your feedback!" : "提交成功，感谢支持！"); 
+                                    alert(lang === 'en' ? "Thank you!" : "反馈已收到，感谢支持！"); 
                                     document.getElementById('bug-content').value=""; 
                                     fileInput.value=""; 
-                                    document.getElementById('bug-preview-name').innerText = lang === 'en' ? "Upload Screenshot (Optional)" : "上传截图 (可选)";
+                                    document.getElementById('bug-preview-name').innerText = lang === 'en' ? "Upload Screenshots" : "上传截图 (支持多选)";
                                     toggleBugModal(); 
-                                } else { alert(lang === 'en' ? "Submission failed" : "提交失败"); }
+                                } else { alert("Failed"); }
                             } catch(e) { alert("Network error"); }
                             finally { 
                                 btn.disabled = false; 
@@ -160,6 +160,8 @@ def create_app():
                             }
                         }
                     </script>
+                    """
+                    response.set_data(data.replace("</body>", bug_widget + "</body>"))
                     """
                     response.set_data(data.replace("</body>", bug_widget + "</body>"))
                 if is_passthrough:

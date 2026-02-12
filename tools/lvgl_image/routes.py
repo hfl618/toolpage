@@ -27,14 +27,37 @@ def get_tool_config():
     except: pass
     return {"daily_limit_free": 20, "daily_limit_pro": 200, "is_public": 1}
 
+import os
+import io
+import uuid
+import shutil
+import glob
+from flask import Blueprint, render_template, request, send_file, jsonify, current_app
+# ... (其余导入保持不变)
+
 @lvgl_image_bp.route('/')
 def index():
     docs_zh, docs_en = "", ""
+    # 确保使用绝对路径定位 static 目录
     curr_dir = os.path.dirname(os.path.abspath(__file__))
+    static_dir = os.path.join(curr_dir, 'static')
+    
     try:
-        with open(os.path.join(curr_dir, 'static', 'docs.txt'), 'r', encoding='utf-8') as f: docs_zh = f.read()
-        with open(os.path.join(curr_dir, 'static', 'docs_en.txt'), 'r', encoding='utf-8') as f: docs_en = f.read()
-    except: pass
+        # 识别最新的 md 文件 (按文件名排序，日期最大的在最后)
+        zh_pattern = os.path.join(static_dir, 'lvgl_image_zh_*.md')
+        zh_files = sorted(glob.glob(zh_pattern))
+        if zh_files:
+            with open(zh_files[-1], 'r', encoding='utf-8') as f:
+                docs_zh = f.read()
+            
+        en_pattern = os.path.join(static_dir, 'lvgl_image_en_*.md')
+        en_files = sorted(glob.glob(en_pattern))
+        if en_files:
+            with open(en_files[-1], 'r', encoding='utf-8') as f:
+                docs_en = f.read()
+    except Exception as e:
+        current_app.logger.error(f"Docs path error: {e}")
+        
     return render_template('lvgl_image.html', docs_zh=docs_zh, docs_en=docs_en)
 
 @lvgl_image_bp.route('/usage')
