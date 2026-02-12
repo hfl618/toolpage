@@ -25,7 +25,18 @@ def get_visitor_id():
 
 @lvgl_image_bp.route('/')
 def index():
-    return render_template('lvgl_image.html')
+    # 后端直接读取 TXT 文件内容
+    docs_content = ""
+    try:
+        curr_dir = os.path.dirname(os.path.abspath(__file__))
+        docs_path = os.path.join(curr_dir, 'static', 'docs.txt')
+        if os.path.exists(docs_path):
+            with open(docs_path, 'r', encoding='utf-8') as f:
+                docs_content = f.read()
+    except Exception as e:
+        docs_content = f"文档读取失败: {str(e)}"
+        
+    return render_template('lvgl_image.html', docs_text=docs_content)
 
 def get_tool_config():
     """从数据库获取工具配置"""
