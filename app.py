@@ -32,6 +32,9 @@ def create_app():
     from tools.project_hub.routes import project_bp
     app.register_blueprint(project_bp, url_prefix='/projects')
 
+    from tools.lvgl_image.routes import lvgl_image_bp
+    app.register_blueprint(lvgl_image_bp, url_prefix='/lvgl_image')
+
     # --- 3. 核心中间件：身份模拟与网关安全校验 ---
     @app.before_request
     def handle_auth_and_security():
@@ -52,6 +55,7 @@ def create_app():
         # 2. 放开认证、健康检查、静态资源、图片代理以及前端页面
         if request.path == '/' or request.path.startswith('/auth') or \
            request.path == '/health' or request.path == '/proxy_img' or \
+           request.path.startswith('/lvgl_image') or \
            request.path.startswith('/static') or request.path.endswith('.html'):
             return
 
@@ -116,12 +120,36 @@ def create_app():
     def serve_index():
         return send_from_directory('frontend', 'index.html')
 
+    @app.route('/login')
+    def serve_login():
+        return send_from_directory('frontend', 'login.html')
+
+    @app.route('/profile')
+    def serve_profile():
+        return send_from_directory('frontend', 'profile.html')
+
+    @app.route('/logout')
+    def serve_logout():
+        # 调用 user 模块的退出逻辑
+        from tools.user.routes import user_bp
+        return app.view_functions['user.logout']()
+
     @app.route('/<path:filename>')
     def serve_frontend(filename):
-        # 优先从 frontend 目录查找文件
+        # 1. 如果请求的是蓝图目录下的静态文件
+        # 路径示例: lvgl_image/static/docs.txt
+        if '/static/' in filename:
+            parts = filename.split('/')
+            if parts[0] in ['lvgl_image', 'inventory', 'projects']:
+                blueprint_dir = os.path.join('tools', parts[0], 'static')
+                static_file = '/'.join(parts[2:]) # 去掉 'lvgl_image' 和 'static'
+                if os.path.exists(os.path.join(blueprint_dir, static_file)):
+                    return send_from_directory(blueprint_dir, static_file)
+
+        # 2. 优先从 frontend 目录查找文件
         if os.path.exists(os.path.join('frontend', filename)):
             return send_from_directory('frontend', filename)
-        # 如果不是前端文件，且不是 API，可能是旧的模板路由，保持默认行为
+        
         return "Not Found", 404
 
     @app.route('/health')

@@ -6,135 +6,176 @@
     <title>个人中心 | 618002.xyz</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body { background: #fbfbfd; font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass-card { background: white; border-radius: 32px; border: 1px solid rgba(0,0,0,0.04); box-shadow: 0 4px 20px -5px rgba(0,0,0,0.03); transition: 0.3s; }
-        .hidden { display: none !important; }
-        .tab-btn.active { background: #f8fafc; color: #000; font-weight: 800; }
-        .fade-in { animation: fadeIn 0.3s ease forwards; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color: #1e293b; -webkit-font-smoothing: antialiased; }
+        .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .bento-card { background: white; border: 1px solid rgba(226, 232, 240, 0.7); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .btn-dark { background: #0f172a; color: white; transition: all 0.3s ease; }
+        .btn-dark:hover { background: #1e293b; transform: scale(1.02); }
+        #toast-container { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 10000; }
+        .toast { background: #0f172a; color: white; padding: 12px 28px; border-radius: 100px; font-weight: 600; box-shadow: 0 15px 30px rgba(0,0,0,0.2); animation: slideUp 0.4s; }
+        @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
-</head>
-<body class="antialiased min-h-screen">
-    <nav class="fixed top-0 w-full z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-4">
-        <div class="max-w-5xl mx-auto flex items-center gap-4">
-            <button onclick="history.back()" class="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition text-gray-600">
-                <i class="ri-arrow-left-line text-xl"></i>
-            </button>
-            <h1 class="text-lg font-bold">个人中心</h1>
-        </div>
-    </nav>
-
-    <main class="max-w-5xl mx-auto px-6 pt-32 pb-20 grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="md:col-span-1 space-y-6">
-            <div class="glass-card p-8 text-center relative overflow-hidden group">
-                <div class="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-blue-400 to-purple-400 opacity-20"></div>
-                <div class="relative inline-block cursor-pointer" onclick="document.getElementById('avatarInput').click()">
-                    <img id="u-avatar" src="" class="w-24 h-24 rounded-full border-4 border-white shadow-lg mx-auto relative z-10 bg-gray-50 object-cover transition group-hover:opacity-80">
-                    <div class="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition"><i class="ri-camera-fill text-white text-2xl drop-shadow-md"></i></div>
-                </div>
-                <input type="file" id="avatarInput" class="hidden" accept="image/*" onchange="uploadAvatar(this)">
-                <h2 class="text-2xl font-extrabold mt-4 text-gray-900" id="u-name">Loading...</h2>
-                <span class="inline-block mt-2 px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-wider rounded-full border border-blue-100" id="u-role">...</span>
-                <div class="mt-8 grid grid-cols-2 gap-4 border-t border-gray-50 pt-6">
-                    <div><p class="text-2xl font-bold text-gray-900" id="stat-days">-</p><p class="text-xs text-gray-400 font-medium uppercase">加入天数</p></div>
-                    <div><p class="text-2xl font-bold text-gray-900" id="stat-usage">-</p><p class="text-xs text-gray-400 font-medium uppercase">总调用</p></div>
-                </div>
-            </div>
-            <div class="glass-card p-6">
-                <h3 class="font-bold text-gray-900 mb-4 px-2 text-sm">快捷操作</h3>
-                <div class="space-y-1">
-                    <button onclick="switchTab('activity')" id="tab-activity" class="tab-btn active w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 text-sm font-medium text-gray-600 flex items-center gap-3 transition"><i class="ri-history-line text-lg text-blue-500"></i> 最近活动</button>
-                    <button onclick="switchTab('password')" id="tab-password" class="tab-btn w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 text-sm font-medium text-gray-600 flex items-center gap-3 transition"><i class="ri-lock-password-line text-lg text-orange-500"></i> 安全设置</button>
-                    <button onclick="logout()" class="w-full text-left px-4 py-3 rounded-xl hover:bg-red-50 text-sm font-medium text-red-500 flex items-center gap-3 transition"><i class="ri-logout-box-r-line text-lg"></i> 退出登录</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="md:col-span-2 space-y-6">
-            <div id="pro-card-container" class="space-y-6">
-                <div class="glass-card p-8">
-                    <h3 class="font-bold text-gray-900 mb-6 flex items-center gap-2"><i class="ri-pie-chart-2-line text-blue-500"></i> 资源使用情况</h3>
-                    <div class="space-y-6">
-                        <div>
-                            <div class="flex justify-between text-sm font-bold mb-2"><span class="text-gray-500">元器件存储</span><span class="text-gray-900 font-black"><span id="storage-used">0</span> <span class="text-gray-300 font-normal">/</span> <span id="storage-limit">500</span></span></div>
-                            <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden"><div id="storage-bar" class="h-full bg-blue-500 rounded-full w-0 transition-all duration-1000"></div></div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-sm font-bold mb-2"><span class="text-gray-500">今日 API 配额</span><span class="text-gray-900 font-black"><span id="api-used">0</span> <span class="text-gray-300 font-normal">/</span> <span id="api-limit">100</span></span></div>
-                            <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden"><div id="api-bar" class="h-full bg-purple-500 rounded-full w-0 transition-all duration-1000"></div></div>
-                        </div>
-                    </div>
-                    <div id="upgrade-box" class="hidden mt-8 p-4 bg-blue-50 rounded-2xl flex items-start gap-4 fade-in">
-                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 flex-shrink-0"><i class="ri-vip-crown-line text-xl"></i></div>
-                        <div><h4 class="font-bold text-blue-900 text-sm">升级到 Pro 会员</h4><p class="text-xs text-blue-700/70 mt-1 leading-relaxed">解锁更高存储限制，获得更快的识别速度。</p><button class="mt-3 text-xs font-bold bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">查看方案</button></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="content-activity" class="glass-card p-10 fade-in">
-                <h3 class="font-bold text-gray-900 mb-8 flex items-center gap-2 text-lg"><i class="ri-history-line text-blue-500"></i> 最近活动</h3>
-                <div id="activity-list" class="space-y-4"></div>
-            </div>
-
-            <div id="content-password" class="glass-card p-10 hidden fade-in">
-                <div class="max-w-md mx-auto"><h3 class="font-bold text-gray-900 mb-2 text-center text-xl">修改安全密码</h3><p class="text-gray-400 text-xs text-center mb-8 font-medium">定期更换密码可以保障数据安全</p>
-                    <form id="pwForm" class="space-y-5"><div class="space-y-1"><label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">当前密码</label><input type="password" id="oldPw" required class="w-full px-5 py-4 rounded-2xl bg-gray-50 border-0 focus:ring-2 focus:ring-blue-500 transition outline-none"></div><div class="space-y-1"><label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">新密码 (至少6位)</label><input type="password" id="newPw" required class="w-full px-5 py-4 rounded-2xl bg-gray-50 border-0 focus:ring-2 focus:ring-blue-500 transition outline-none"></div><div class="space-y-1"><label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">确认新密码</label><input type="password" id="confirmPw" required class="w-full px-5 py-4 rounded-2xl bg-gray-50 border-0 focus:ring-2 focus:ring-blue-500 transition outline-none"></div><div id="pwMsg" class="hidden py-3 rounded-xl bg-red-50 text-red-500 text-xs font-bold text-center border border-red-100"></div><button type="submit" id="pwBtn" class="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-lg mt-4">更新密码</button></form>
-                </div>
-            </div>
-        </div>
-    </main>
-
     <script>
-        async function logout() { try { await fetch('/auth/logout'); } catch(e) {} location.href = '/'; }
-        function switchTab(tab) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('tab-' + tab).classList.add('active'); document.getElementById('content-activity').classList.toggle('hidden', tab !== 'activity'); document.getElementById('content-password').classList.toggle('hidden', tab !== 'password'); }
-        async function uploadAvatar(input) {
-            if (!input.files[0]) return;
-            const fd = new FormData(); fd.append('avatar', input.files[0]);
-            try {
-                const res = await fetch('/auth/upload_avatar', { method: 'POST', body: fd });
-                const data = await res.json();
-                if (data.success) { document.getElementById('u-avatar').src = data.url + '?v=' + Date.now(); alert('更新成功'); }
-            } catch(e) { alert('请求失败'); }
+        function showToast(m) {
+            const c = document.getElementById('toast-container') || (()=>{const d=document.createElement('div');d.id='toast-container';document.body.appendChild(d);return d;})();
+            const el = document.createElement('div'); el.className = 'toast'; el.innerHTML = m; c.appendChild(el); setTimeout(()=>el.remove(), 3000);
         }
-        async function fetchProfile() {
-            try {
-                const res = await fetch('/auth/profile_api');
-                if (res.status === 401) { location.href = '/login.html?next=' + encodeURIComponent(location.pathname); return; }
-                const data = await res.json();
-                if (data.success) {
-                    const u = data.user; const s = data.stats;
-                    document.getElementById('u-name').innerText = u.username;
-                    document.getElementById('u-role').innerText = u.role.toUpperCase() + ' MEMBER';
-                    document.getElementById('u-avatar').src = u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`;
-                    const upgradeBox = document.getElementById('upgrade-box');
-                    if (u.role.toUpperCase() === 'PRO') upgradeBox.classList.add('hidden'); else upgradeBox.classList.remove('hidden');
-                    document.getElementById('stat-days').innerText = s.days;
-                    document.getElementById('stat-usage').innerText = s.api_calls;
-                    document.getElementById('storage-used').innerText = s.storage_used;
-                    document.getElementById('storage-limit').innerText = s.storage_limit;
-                    document.getElementById('storage-bar').style.width = Math.min(100, (s.storage_used / s.storage_limit * 100)) + '%';
-                    document.getElementById('api-used').innerText = s.api_today;
-                    document.getElementById('api-limit').innerText = s.api_limit;
-                    document.getElementById('api-bar').style.width = Math.min(100, (s.api_today / s.api_limit * 100)) + '%';
-                    const list = document.getElementById('activity-list');
-                    if (data.activities && data.activities.length) {
-                        list.innerHTML = data.activities.map(act => `<div class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition"><div class="w-10 h-10 ${act.color} rounded-xl flex items-center justify-center text-xl"><i class="${act.icon}"></i></div><div><p class="text-sm font-bold text-gray-800">${act.text}</p><p class="text-xs text-gray-400 mt-0.5">${act.time}</p></div></div>`).join('');
-                    } else list.innerHTML = '<p class="text-gray-400 text-sm italic text-center py-4">暂无活动</p>';
-                }
-            } catch (e) { console.error(e); }
-        }
-        document.getElementById('pwForm').onsubmit = async (e) => {
-            e.preventDefault(); const msg = document.getElementById('pwMsg'); const newPw = document.getElementById('newPw').value;
-            if(newPw !== document.getElementById('confirmPw').value) { msg.innerText = "密码不一致"; msg.classList.remove('hidden'); return; }
-            try {
-                const res = await fetch('/auth/change_password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ old_password: document.getElementById('oldPw').value, new_password: newPw }) });
-                const data = await res.json();
-                if(data.success) { alert('密码已更新，请重新登录'); logout(); } else { msg.innerText = data.error; msg.classList.remove('hidden'); }
-            } catch(e) { msg.innerText = "请求异常"; msg.classList.remove('hidden'); }
-        };
-        fetchProfile();
     </script>
+</head>
+<body class="bg-[#f8fafc] pt-24">
+  <nav class="fixed top-0 w-full z-40 glass-nav h-20 flex items-center px-6">
+    <div class="max-w-5xl mx-auto w-full flex justify-between items-center">
+      <div class="flex items-center gap-4">
+        <button onclick="smartBack()" class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center border border-gray-100 shadow-sm hover:bg-gray-50 transition cursor-pointer"><i class="ri-arrow-left-s-line text-xl"></i></button>
+        <h1 class="text-xl font-black">账户中心</h1>
+      </div>
+      <div id="u-role-tag" class="px-4 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded-xl border border-blue-100 uppercase tracking-widest">MEMBER</div>
+    </div>
+  </nav>
+
+  <div class="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-8">
+    <div class="md:col-span-4 space-y-3">
+      <div class="bento-card p-10 text-center relative overflow-hidden rounded-[40px] fade-in">
+        <div class="absolute top-0 left-0 w-full h-24 bg-slate-900 opacity-5"></div>
+        <div class="relative w-28 h-28 mx-auto z-10 group cursor-pointer" onclick="document.getElementById('avatar-input').click()">
+          <img id="u-avatar" src="" class="w-full h-full rounded-[40px] border-4 border-white shadow-2xl bg-white object-cover">
+          <div class="absolute inset-0 bg-black/40 rounded-[40px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-white text-2xl"><i class="ri-camera-lens-line"></i></div>
+        </div>
+        <input type="file" id="avatar-input" class="hidden" accept="image/*" onchange="uploadAvatar(this)">
+        <h2 id="u-name" class="text-3xl font-black text-slate-900 mt-6 tracking-tight">Loading...</h2>
+        
+        <div class="mt-8 grid grid-cols-2 gap-4 border-t border-gray-50 pt-8">
+          <div><div class="text-2xl font-black text-slate-900" id="stat-days">-</div><div class="text-[10px] text-slate-400 font-black uppercase">入驻天数</div></div>
+          <div><div class="text-2xl font-black text-slate-900" id="stat-count">-</div><div class="text-[10px] text-slate-400 font-black uppercase">请求响应</div></div>
+        </div>
+      </div>
+
+      <div class="bento-card p-2 rounded-[32px] space-y-1 fade-in" style="animation-delay: 0.1s">
+        <button onclick="switchTab('main')" id="btn-tab-main" class="w-full flex items-center gap-4 px-6 py-4 text-sm font-black bg-slate-900 text-white rounded-2xl transition shadow-xl shadow-slate-200"><i class="ri-layout-grid-fill"></i> 资源概览</button>
+        <button onclick="switchTab('settings')" id="btn-tab-settings" class="w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-slate-500 hover:bg-gray-50 rounded-2xl transition"><i class="ri-shield-keyhole-fill"></i> 安全设置</button>
+        <button onclick="location.href='/logout'" class="w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-red-500 hover:bg-red-50 rounded-2xl transition text-left"><i class="ri-logout-circle-fill"></i> 退出登录</button>
+      </div>
+    </div>
+
+    <div class="md:col-span-8">
+      <div id="tab-main" class="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+        <div class="bento-card p-12 rounded-[40px]">
+          <h3 class="font-black text-slate-900 mb-10 text-xl flex items-center gap-3"><i class="ri-bar-chart-2-fill text-blue-500"></i> 数据配额消耗</h3>
+          <div class="space-y-10">
+            <div>
+              <div class="flex justify-between text-xs font-black mb-3 text-slate-400 uppercase tracking-widest"><span>当前元器件存储空间</span><span id="val-storage" class="text-slate-900 font-black">0 / 500</span></div>
+              <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner"><div id="bar-storage" class="h-full bg-blue-500 w-0 transition-all duration-1000 shadow-lg shadow-blue-200"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-black mb-3 text-slate-400 uppercase tracking-widest"><span>今日接口请求限额</span><span id="val-api" class="text-slate-900 font-black">0 / 50</span></div>
+              <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner"><div id="bar-api" class="h-full bg-indigo-500 w-0 transition-all duration-1000 shadow-lg shadow-indigo-200"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="bento-card p-12 rounded-[40px]">
+          <h3 class="font-black text-slate-900 mb-8 text-xl tracking-tight">最近动态记录</h3>
+          <div id="activity-list" class="space-y-4"></div>
+        </div>
+      </div>
+
+      <div id="tab-settings" class="hidden bento-card p-12 rounded-[40px] animate-in slide-in-from-bottom-4 duration-500">
+        <h3 class="font-black text-slate-900 mb-10 text-xl flex items-center gap-3"><i class="ri-lock-password-fill text-indigo-500"></i> 账号安全设置</h3>
+        <div class="space-y-6 text-left">
+          <div class="relative">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">修改系统用户名</label>
+              <input type="text" id="new-username" placeholder="如果不需要修改请留空" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm">
+              <span id="userStatus" class="absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight"></span>
+          </div>
+          <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">重置系统访问密码</label><input type="password" id="new-password" placeholder="留空则保持当前密码" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm"></div>
+          <button onclick="updateAccount()" id="saveBtn" class="w-full py-5 btn-dark rounded-2xl font-black shadow-2xl mt-4">确认并保存修改</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function smartBack() {
+        if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
+            history.back();
+        } else {
+            location.href = '/';
+        }
+    }
+
+    function switchTab(t) {
+      document.getElementById('tab-main').classList.toggle('hidden', t!=='main');
+      document.getElementById('tab-settings').classList.toggle('hidden', t!=='settings');
+      document.getElementById('btn-tab-main').className = t==='main' ? 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black bg-slate-900 text-white rounded-2xl shadow-xl' : 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-slate-500 hover:bg-gray-50 rounded-2xl';
+      document.getElementById('btn-tab-settings').className = t==='settings' ? 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black bg-slate-900 text-white rounded-2xl shadow-xl' : 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-slate-500 hover:bg-gray-50 rounded-2xl';
+    }
+
+    // 实时检测
+    document.getElementById('new-username').addEventListener('input', async (e) => {
+        const val = e.target.value.trim();
+        const status = document.getElementById('userStatus');
+        if (!val) { status.innerText = ""; return; }
+        try {
+            const r = await fetch(`/auth/check_username?username=${encodeURIComponent(val)}`);
+            const d = await r.json();
+            status.innerText = d.msg;
+            status.className = `absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight ${d.status === 'success' ? 'text-green-500' : 'text-red-400'}`;
+        } catch(e) {}
+    });
+
+    async function sync() {
+      try {
+        const r = await fetch('/auth/profile_api');
+        const d = await r.json();
+        if (d.success) {
+          if(d.user) { 
+              document.getElementById('u-name').innerText = d.user.username; 
+              document.getElementById('u-avatar').src = d.user.avatar || ('https://api.dicebear.com/7.x/avataaars/svg?seed=' + d.user.username); 
+              document.getElementById('u-role-tag').innerText = d.user.role.toUpperCase() + ' MEMBER';
+          }
+          const s = d.stats || {};
+          document.getElementById('stat-days').innerText = s.days || 1;
+          document.getElementById('stat-count').innerText = s.total_calls || 0;
+          document.getElementById('val-storage').innerText = (s.storage_used || 0) + ' / 500';
+          document.getElementById('bar-storage').style.width = ((s.storage_used || 0)/500*100) + '%';
+          document.getElementById('val-api').innerText = (s.api_today || 0) + ' / 50';
+          document.getElementById('bar-api').style.width = ((s.api_today || 0)/50*100) + '%';
+          if(d.activities) document.getElementById('activity-list').innerHTML = d.activities.map(a => `
+            <div class="flex items-center gap-5 p-5 bg-gray-50/50 rounded-[28px] border border-transparent hover:border-gray-100 transition shadow-sm group cursor-default">
+              <div class="w-12 h-12 ${a.bg} ${a.color} rounded-2xl flex items-center justify-center text-xl transition-transform group-hover:scale-110"><i class="${a.icon}"></i></div>
+              <div><p class="text-sm font-black text-slate-700">${a.text}</p><p class="text-[10px] font-black text-slate-300 uppercase mt-1 tracking-widest">${a.time}</p></div>
+            </div>`).join('');
+        }
+      } catch(e){}
+    }
+
+    async function uploadAvatar(i) {
+      if(!i.files[0]) return;
+      const f = new FormData(); f.append('file', i.files[0]);
+      showToast('正在上传并同步头像...');
+      try {
+        const r = await fetch('/auth/upload_avatar', {method:'POST', body:f});
+        const d = await r.json();
+        if(d.success) { document.getElementById('u-avatar').src = d.url; showToast('头像更新成功'); }
+        else { showToast(d.error); }
+      } catch(e) { showToast('服务器上传异常'); }
+    }
+
+    async function updateAccount() {
+      const u = document.getElementById('new-username').value, p = document.getElementById('new-password').value;
+      if(!u && !p) return showToast('未检测到任何修改项');
+      const b = document.getElementById('saveBtn'); b.disabled = true; b.innerText = '提交修改中...';
+      try {
+        const r = await fetch('/auth/update_profile', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u, password:p})});
+        const d = await r.json();
+        if(d.success) { showToast('资料修改成功，请重新验证'); setTimeout(()=>location.href='/logout', 1500); }
+        else { showToast(d.error || '修改失败'); b.disabled = false; b.innerText = '确认保存修改'; }
+      } catch(e) { showToast('后端服务未响应'); b.disabled = false; b.innerText = '确认保存修改'; }
+    }
+    sync();
+  </script>
 </body>
 </html>

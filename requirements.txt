@@ -8,3 +8,5 @@ boto3
 qrcode
 urllib3
 gunicorn
+pypng
+lz4

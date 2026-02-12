@@ -6,147 +6,90 @@
     <title>身份验证 | 618002.xyz</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; overflow: hidden; background: #f5f5f7; }
-        .ambient-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at 0% 0%, #eef2ff 0%, #f5f5f7 50%, #fff 100%); }
-        .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.6; animation: float 10s infinite ease-in-out; }
-        .orb-1 { width: 300px; height: 300px; background: #bfdbfe; top: -50px; left: -50px; }
-        .orb-2 { width: 400px; height: 400px; background: #e9d5ff; bottom: -100px; right: -100px; animation-delay: -5s; }
-        @keyframes float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, 50px); } }
-        .login-card { background: rgba(255, 255, 255, 0.65); backdrop-filter: saturate(180%) blur(24px); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 32px; box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08); width: 90%; max-width: 420px; padding: 48px; position: relative; transition: all 0.3s ease; }
-        input { transition: all 0.2s; background: rgba(255, 255, 255, 0.5); border: 1px solid #e5e7eb; }
-        input:focus { background: #fff; border-color: #0071e3; box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15); outline: none; }
-        .fade-in { animation: fadeIn 0.4s ease forwards; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #ffffff; color: #1e293b; -webkit-font-smoothing: antialiased; }
+        .bg-mesh { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(at 0% 0%, rgba(59,130,246,0.05) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(139,92,246,0.05) 0px, transparent 50%); }
+        .bento-card { background: white; border: 1px solid rgba(226, 232, 240, 0.7); box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
+        .btn-dark { background: #0f172a; color: white; transition: all 0.3s ease; }
+        .btn-dark:hover { background: #1e293b; transform: scale(1.02); }
+        #toast-container { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 10000; }
+        .toast { background: #0f172a; color: white; padding: 12px 28px; border-radius: 100px; font-weight: 600; box-shadow: 0 15px 30px rgba(0,0,0,0.2); animation: slideUp 0.4s; }
+        @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .hidden { display: none !important; }
     </style>
-</head>
-<body>
-    <div class="ambient-bg"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
-    
-    <div class="login-card fade-in">
-        <div class="text-center mb-10">
-            <div class="w-14 h-14 bg-black rounded-2xl flex items-center justify-center text-white text-2xl font-bold mx-auto mb-6 shadow-xl cursor-pointer hover:scale-105 transition-transform" onclick="location.href='/'">6</div>
-            <h1 id="title" class="text-3xl font-bold tracking-tight text-gray-900 mb-2">欢迎回来</h1>
-            <p id="subtitle" class="text-gray-500 font-medium">输入您的凭证以访问工作台</p>
-        </div>
-
-        <form id="authForm" class="space-y-5">
-            <div class="space-y-4">
-                <div class="relative">
-                    <input type="text" id="username" required class="w-full px-5 py-4 rounded-2xl text-gray-900 placeholder-gray-400 font-medium" placeholder="用户名">
-                    <div id="usernameStatus" class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase"></div>
-                </div>
-                <input type="password" id="password" required class="w-full px-5 py-4 rounded-2xl text-gray-900 placeholder-gray-400 font-medium" placeholder="密码">
-            </div>
-            <div id="errorMsg" class="hidden text-red-500 text-sm font-medium bg-red-50 px-4 py-3 rounded-xl border border-red-100 text-center"></div>
-            <button type="submit" id="submitBtn" class="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-lg flex items-center justify-center gap-2">
-                <span>立即登录</span> <i class="ri-arrow-right-line"></i>
-            </button>
-        </form>
-
-        <div class="mt-10 text-center">
-            <p class="text-sm text-gray-400 font-medium">
-                <span id="toggleText">还没有账号？</span> 
-                <a href="javascript:void(0)" id="toggleBtn" class="text-[#0071e3] hover:text-[#005bb5] font-bold ml-1">创建新账户</a>
-            </p>
-        </div>
-    </div>
-
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            let isLogin = true;
-            let checkTimeout = null;
-            const authForm = document.getElementById('authForm');
-            const toggleBtn = document.getElementById('toggleBtn');
-            const submitBtn = document.getElementById('submitBtn');
-            const usernameInput = document.getElementById('username');
-            const statusDiv = document.getElementById('usernameStatus');
-            const API_BASE = window.location.protocol === 'file:' ? 'http://127.0.0.1:7860' : '';
-
-            // 切换模式逻辑
-            toggleBtn.onclick = () => {
-                isLogin = !isLogin;
-                document.getElementById('title').innerText = isLogin ? '欢迎回来' : '创建账户';
-                document.getElementById('subtitle').innerText = isLogin ? '输入您的凭证以访问工作台' : '只需几秒，开启高效管理之旅';
-                
-                const btnText = submitBtn.querySelector('span');
-                if (btnText) btnText.innerText = isLogin ? '立即登录' : '立即注册';
-                
-                document.getElementById('toggleText').innerText = isLogin ? '还没有账号？' : '已有账号？';
-                toggleBtn.innerText = isLogin ? '创建新账户' : '返回登录';
-                document.getElementById('errorMsg').classList.add('hidden');
-                statusDiv.innerText = ''; 
-            };
-
-            // 实时查重逻辑 (防抖)
-            usernameInput.oninput = () => {
-                if (isLogin) return; 
-                clearTimeout(checkTimeout);
-                statusDiv.innerText = '...';
-                statusDiv.className = 'absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase text-gray-400';
-
-                checkTimeout = setTimeout(async () => {
-                    const val = usernameInput.value.trim();
-                    if (!val) { statusDiv.innerText = ''; return; }
-                    try {
-                        const res = await fetch(`${API_BASE}/auth/check_username?username=${encodeURIComponent(val)}`);
-                        const data = await res.json();
-                        statusDiv.innerText = data.reason || '';
-                        statusDiv.className = `absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase ${data.available ? 'text-green-500' : 'text-red-500'}`;
-                    } catch(e) { statusDiv.innerText = ''; }
-                }, 500);
-            };
-
-            // 提交逻辑
-            authForm.onsubmit = async (e) => {
-                e.preventDefault();
-                const errorDiv = document.getElementById('errorMsg');
-                submitBtn.disabled = true;
-                const originalContent = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<i class="ri-loader-4-line animate-spin text-xl"></i>';
-                errorDiv.classList.add('hidden');
-
-                const payload = {
-                    username: usernameInput.value,
-                    password: document.getElementById('password').value
-                };
-
-                const endpoint = isLogin ? '/auth/login' : '/auth/register';
-
-                try {
-                    const resp = await fetch(API_BASE + endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const result = await resp.json();
-
-                    if (resp.ok) {
-                        submitBtn.innerHTML = '<i class="ri-check-line text-xl"></i>';
-                        submitBtn.classList.replace('bg-black', 'bg-green-600');
-                        if (isLogin) {
-                            const next = new URLSearchParams(window.location.search).get('next') || '/';
-                            setTimeout(() => { location.href = next; }, 800);
-                        } else {
-                            alert("注册成功！请登录。");
-                            toggleBtn.click();
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = originalContent;
-                            submitBtn.classList.replace('bg-green-600', 'bg-black');
-                        }
-                    } else {
-                        throw new Error(result.error || '操作失败');
-                    }
-                } catch (err) {
-                    errorDiv.innerText = err.message;
-                    errorDiv.classList.remove('hidden');
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalContent;
-                }
-            };
-        });
+        function showToast(m) {
+            const c = document.getElementById('toast-container') || (()=>{const d=document.createElement('div');d.id='toast-container';document.body.appendChild(d);return d;})();
+            const el = document.createElement('div'); el.className = 'toast'; el.innerHTML = m; c.appendChild(el); setTimeout(()=>el.remove(), 3000);
+        }
     </script>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+  <div class="bg-mesh opacity-50"></div>
+  <div class="max-w-md w-full p-10 text-center fade-in">
+    <div class="w-20 h-20 bg-slate-900 text-white rounded-[32px] flex items-center justify-center text-4xl font-black mx-auto mb-10 shadow-2xl shadow-slate-200 cursor-pointer" onclick="location.href='/'">6</div>
+    <h1 class="text-4xl font-black text-slate-900 tracking-tighter mb-4">身份验证</h1>
+    <p class="text-slate-400 font-bold mb-12">请输入您的凭证以访问 618002 数字化 Hub</p>
+    
+    <div class="bento-card p-10 rounded-[40px] text-left">
+        <form id="authForm" class="space-y-4">
+          <div class="relative">
+              <label class="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-1">用户名</label>
+              <input type="text" id="username" placeholder="您的账号" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm" required>
+              <span id="userStatus" class="absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight"></span>
+          </div>
+          <div><label class="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-1">访问密码</label><input type="password" id="password" placeholder="您的密码" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm" required></div>
+          <button type="submit" id="subBtn" class="w-full py-5 btn-dark rounded-3xl font-black text-lg shadow-2xl shadow-slate-200 mt-6">立即进入工作空间</button>
+        </form>
+    </div>
+    
+    <p class="mt-12 text-xs font-black text-slate-300 uppercase tracking-widest">
+        <span id="toggleMsg">还没有注册账户?</span> 
+        <a href="#" onclick="toggleMode()" id="toggleBtn" class="text-blue-500 hover:underline">点击这里切换</a>
+    </p>
+  </div>
+  <script>
+    let isLogin = true;
+    const userInput = document.getElementById('username');
+    const userStatus = document.getElementById('userStatus');
+
+    userInput.addEventListener('input', async () => {
+        if (isLogin) { userStatus.innerText = ""; return; }
+        const val = userInput.value.trim();
+        if (!val) { userStatus.innerText = ""; return; }
+        try {
+            const r = await fetch(`/auth/check_username?username=${encodeURIComponent(val)}`);
+            const d = await r.json();
+            userStatus.innerText = d.msg;
+            userStatus.className = `absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight ${d.status === 'success' ? 'text-green-500' : 'text-red-400'}`;
+        } catch(e) {}
+    });
+
+    function toggleMode() {
+        isLogin = !isLogin;
+        userStatus.innerText = "";
+        document.getElementById('subBtn').innerText = isLogin ? '立即进入工作空间' : '立即创建新账号';
+        document.getElementById('toggleMsg').innerText = isLogin ? '还没有注册账户?' : '已有账号?';
+        document.getElementById('toggleBtn').innerText = isLogin ? '点击这里切换' : '返回登录验证';
+    }
+
+    document.getElementById('authForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = { username: document.getElementById('username').value, password: document.getElementById('password').value };
+      const btn = document.getElementById('subBtn'); btn.disabled = true; btn.innerText = "正在验证身份...";
+      try {
+        const r = await fetch(isLogin ? '/auth/login' : '/auth/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        if(r.ok) location.href = '/'; 
+        else { 
+            const d = await r.json(); 
+            showToast(d.error || "认证失败，请重试"); 
+            btn.disabled = false; 
+            btn.innerText = isLogin?"立即进入工作空间":"立即创建新账号"; 
+        }
+      } catch(e) { showToast("连接服务器超时"); btn.disabled = false; }
+    });
+  </script>
 </body>
 </html>
