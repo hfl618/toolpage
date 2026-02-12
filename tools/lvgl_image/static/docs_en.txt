@@ -1,36 +1,25 @@
-LVGL Image Converter - Professional Guide
-========================================
+# LVGL Image Converter - User Guide
 
-1. 🚀 Advanced Features
--------------------------
-- Stride Align: 
-  Supports 1~64 bytes alignment. For DMA hardware (SPI/LTDC), 4 or 16 bytes is recommended to prevent shifting.
-  
-- Smart Background Fill:
-  When converting transparent PNG to opaque formats like RGB565, specify a color to blend the background.
+## 1. Core Configuration
+- **LVGL Version**: Supports v9 (Latest) and v8 (Legacy). v9 uses the new color format macros; v8 automatically maps to legacy struct names.
+- **Color Format**:
+  - `RGB565A8`: Specialized format, 16-bit color + 8-bit independent Alpha map. Best balance between speed and quality.
+  - `I1/I2/I4/I8`: Indexed modes using palettes. Greatly reduces RAM/Flash footprint.
+  - `RAW`: Pass-through mode. Converts original file to C array directly. Requires built-in decoders.
+- **Memory Align**:
+  - `4 Bytes`: Standard alignment for most ARM Cortex-M MCUs.
+  - `32 Bytes`: Cache Line alignment. Recommended for high-performance chips (e.g., i.MX RT) to prevent cache thrashing.
+  - `64 Bytes`: Ultra-high alignment for specialized GPUs or high-speed DMA burst transfers.
 
-- Resampling:
-  High-quality Lanczos algorithm. Resizing on the server saves MCU RAM and provides better results than dynamic zooming.
+## 2. Advanced Features
+- **Dithering**: Highly recommended for 16-bit colors (RGB565) to eliminate banding in gradients.
+- **Premultiply Alpha**: Pre-calculates Alpha values into RGB channels to save MCU cycles during runtime rendering.
+- **NEMA GFX Optimized**: Byte-order and palette optimization specifically for hardware supporting NEMA GFX accelerators.
 
-- RAW Mode:
-  Directly packages JPG/PNG binaries. Best for saving Flash, requires LVGL runtime decoders enabled.
+## 3. Usage Tips
+- **Output Name**: Use lowercase and underscores (e.g., `ui_img_logo`). If empty, the system defaults to the original filename.
+- **Resize**: Leave blank to keep original size. If only Width or Height is provided, the image will scale proportionally.
+- **LVGL v8 Warning**: For v8 projects, stick to standard color formats (like RGB565) for maximum compatibility.
 
-2. 🎨 Color Format Description
-----------------------------------
-- RGB565: 16-bit color, most common for embedded displays.
-- RGB565A8: [Recommended] 16-bit color + 8-bit Alpha layer. Best balance of performance and smooth transparency.
-- ARGB8888: 32-bit full color with Alpha, best quality.
-- Indexed (I1/I2/I4/I8): Squeezes size using an adaptive palette, great for icons.
-
-3. 🛠️ Compatibility
--------------------
-- Versions: Supports LVGL v8 & v9. Automatically adjusts struct definitions.
-- Custom Naming: Define C variable names for direct use in your UI code.
-
-4. 🛡️ Privacy & Quota
------------------
-- Security: Data processed in memory and destroyed immediately. No cloud storage.
-- Quotas:
-  - Guests: Limited daily trial (1/4 of Free quota).
-  - Users: Full free daily quota.
-  - Pro: High-volume production quota.
+---
+*Last Updated: 2026-02-12*

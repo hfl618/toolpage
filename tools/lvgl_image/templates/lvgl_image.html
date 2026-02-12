@@ -1,111 +1,191 @@
 {% extends "layout.html" %}
 
-{% block title %}LVGL LVGL图像处理{% endblock %}
+{% block title %}LVGL 图像处理{% endblock %}
 {% block app_icon %}L{% endblock %}
 {% block app_name %}LVGL Image{% endblock %}
 
 {% block extra_css %}
 <style>
-    .upload-zone { border: 2px dashed #e2e8f0; border-radius: 24px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: linear-gradient(145deg, #ffffff, #f8fafc); position: relative; overflow: hidden; }
-    .upload-zone:hover { border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.1); }
-    .upload-hint-box { background: #f1f5f9; padding: 2px 10px; border-radius: 100px; font-size: 9px; font-weight: 800; color: #94a3b8; display: inline-block; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-    .compress-btn { display: block; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; text-align: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 11px; color: #64748b; background: white; }
-    input[name="compress"]:checked + .compress-btn { background: #eff6ff; border-color: #3b82f6; color: #3b82f6; }
-    #image-preview { max-height: 240px; max-width: 100%; object-fit: contain; border-radius: 16px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1); border: 4px solid white; background: #f8fafc; }
-    .form-label { font-size: 0.75rem; font-weight: 800; color: #64748b; margin-bottom: 0.6rem; text-transform: uppercase; }
-    .form-select, .form-control { border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 12px; font-weight: 600; font-size: 0.85rem; }
-    .status-pill { padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 13px; }
-    pre { background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; font-family: inherit; font-size: 13px; line-height: 1.6; white-space: pre-wrap; text-align: left; }
+    /* 1. 交互优化：覆盖 Bootstrap 默认聚焦样式，与整体风格统一 */
+    .form-control:focus, .form-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    
+    /* 2. 上传区域：更现代的虚线边框和悬浮反馈 */
+    .upload-zone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #f8fafc;
+        position: relative;
+        overflow: hidden;
+    }
+    .upload-zone:hover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        transform: translateY(-2px);
+    }
+
+    /* 3. 压缩选项：iOS 风格分段控制器 (Segmented Control) */
+    .segmented-control {
+        background: #f1f5f9;
+        padding: 4px;
+        border-radius: 14px;
+        display: flex;
+    }
+    .segment-btn {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+        font-size: 11px;
+        font-weight: 800;
+        color: #64748b;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+    }
+    /* 选中状态 */
+    input[name="compress"]:checked + .segment-btn {
+        background: white;
+        color: #0f172a;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    /* 4. 透明背景网格：用于预览带透明度的图片 */
+    .preview-bg {
+        background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+        background-size: 10px 10px;
+        background-color: #ffffff;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-    <div class="mb-8 flex flex-col md:flex-row justify-between items-end gap-4">
+    <div class="mb-10 flex flex-col md:flex-row justify-between items-end gap-6">
         <div>
-            <h1 class="text-3xl font-black text-slate-900 tracking-tighter mb-1 i18n" data-zh="LVGL 图像处理" data-en="LVGL Asset Studio">资产工作台</h1>
-            <p class="text-xs text-slate-400 font-bold i18n" data-zh="高性能嵌入式图形转换中心" data-en="High-performance embedded graphics converter">高性能嵌入式图形转换中心</p>
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight mb-2 i18n" data-zh="资产工作台" data-en="Asset Studio">资产工作台</h1>
+            <p class="text-sm font-semibold text-slate-400 i18n" data-zh="高性能嵌入式图形转换引擎" data-en="High-performance embedded graphics converter">高性能嵌入式图形转换引擎</p>
         </div>
-        <div class="flex items-center gap-2 pb-1">
-            <div id="usage-badge" class="hidden px-3 py-1.5 bg-white border border-slate-100 rounded-xl text-[10px] font-black text-slate-400 shadow-sm">
-                <span class="i18n" data-zh="余量:" data-en="Quota:">余量:</span> <span id="remaining-count" class="text-blue-500 font-extrabold">-</span>
+        <div class="flex items-center gap-3">
+            <div id="usage-badge" class="hidden px-4 py-2 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-500 shadow-sm flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                <span class="i18n" data-zh="余量:" data-en="Quota:">余量:</span> 
+                <span id="remaining-count" class="text-slate-900 font-black">-</span>
             </div>
-            <button type="button" onclick="openDocs()" class="px-4 h-9 flex items-center gap-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 shadow-lg transition-all active:scale-95">
-                <i class="ri-book-open-line text-sm"></i>
-                <span class="text-[10px] font-black uppercase i18n" data-zh="使用说明" data-en="Docs">使用说明</span>
+            <button type="button" onclick="openDocs()" class="px-5 py-2.5 flex items-center gap-2 bg-white text-slate-700 border border-slate-200 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-xs shadow-sm">
+                <i class="ri-book-open-line"></i>
+                <span class="i18n" data-zh="使用说明" data-en="Docs">使用说明</span>
             </button>
         </div>
     </div>
 
     <form id="convert-form" enctype="multipart/form-data">
-        <div class="row g-4">
-            <div class="col-lg-4">
-                <div class="card-apple p-6 h-full bg-white/50 backdrop-blur-sm">
-                    <label class="form-label i18n" data-zh="原始素材" data-en="Source Media">原始素材</label>
-                    <div class="upload-zone" onclick="document.getElementById('file-input').click()" id="drop-zone">
-                        <div class="w-14 h-14 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="ri-upload-cloud-2-line text-2xl"></i></div>
-                        <h3 class="text-base font-black text-slate-800 m-0 i18n" data-zh="选择素材" data-en="Pick Asset">选择素材</h3>
-                        <div class="upload-hint-box">PNG / JPG / BMP</div>
-                        <input type="file" name="file" id="file-input" class="hidden" accept="image/*">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-4 flex flex-col gap-6">
+                <div class="card-apple p-1 h-full flex flex-col">
+                    <div class="p-6 border-b border-slate-50">
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider i18n" data-zh="原始素材" data-en="Source Media">原始素材</label>
                     </div>
-                    <div id="preview-container" class="hidden mt-6 text-center">
-                        <img id="image-preview" src="#" alt="Preview">
-                        <div class="mt-4 flex justify-between items-center px-2">
-                            <span id="img-info" class="text-[9px] font-black text-slate-400 uppercase"></span>
-                            <button type="button" onclick="resetFile()" class="text-red-500 text-[10px] font-black i18n" data-zh="移除" data-en="Remove">移除</button>
+                    
+                    <div class="p-6 flex-1 flex flex-col justify-center">
+                        <div class="upload-zone py-12 px-6 text-center cursor-pointer group" onclick="document.getElementById('file-input').click()" id="drop-zone">
+                            <div class="w-16 h-16 bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                                <i class="ri-image-add-line text-3xl text-blue-500"></i>
+                            </div>
+                            <h3 class="text-sm font-black text-slate-900 mb-2 i18n" data-zh="点击或拖拽上传" data-en="Click to Upload">点击或拖拽上传</h3>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">PNG / JPG / BMP</p>
+                            <input type="file" name="file" id="file-input" class="hidden" accept="image/*">
+                        </div>
+
+                        <div id="preview-container" class="hidden flex flex-col h-full">
+                            <div class="preview-bg rounded-2xl border border-slate-100 p-2 flex-1 flex items-center justify-center relative overflow-hidden group">
+                                <img id="image-preview" src="#" alt="Preview" class="max-h-[300px] max-w-full object-contain rounded-lg shadow-lg relative z-10">
+                            </div>
+                            
+                            <div class="mt-4 flex items-center justify-between bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
+                                <div class="flex items-center gap-2">
+                                    <i class="ri-information-fill text-slate-400"></i>
+                                    <span id="img-info" class="text-xs font-black text-slate-600 font-mono"></span>
+                                </div>
+                                <button type="button" onclick="resetFile()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm">
+                                    <i class="ri-delete-bin-line"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-lg-8">
-                <div class="card-apple p-6">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label i18n" data-zh="目标版本" data-en="Version">目标版本</label>
-                            <select name="lv_version" class="form-select font-bold">
-                                <option value="v9" selected>v9 (Latest)</option>
-                                <option value="v8">v8 (Legacy)</option>
+            <div class="lg:col-span-8">
+                <div class="card-apple p-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <h2 class="text-lg font-black text-slate-900 i18n" data-zh="转换配置" data-en="Configuration">转换配置</h2>
+                        <div id="status" class="hidden"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                        
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 i18n" data-zh="LVGL 版本" data-en="Target Version">LVGL 版本</label>
+                            <select name="lv_version" class="form-select w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-2.5 focus:bg-white transition-colors">
+                                <option value="v9" selected>LVGL v9 (Latest)</option>
+                                <option value="v8">LVGL v8 (Legacy)</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label i18n" data-zh="导出目标" data-en="Format">导出目标</label>
-                            <select name="ofmt" class="form-select font-bold">
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 i18n" data-zh="导出格式" data-en="Output Format">导出格式</label>
+                            <select name="ofmt" class="form-select w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-2.5 focus:bg-white transition-colors">
                                 <option value="C" selected>C Array (.c)</option>
                                 <option value="BIN">Binary (.bin)</option>
                             </select>
                         </div>
-                        <div class="col-md-12">
-                            <label class="form-label i18n" data-zh="输出命名" data-en="Output Name">输出命名</label>
-                            <input type="text" name="output_name" id="output_name" placeholder="ui_img_logo" class="form-control font-bold">
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 i18n" data-zh="输出命名 (不填默认图片名)" data-en="Output Name (Default to image name)">输出命名 (不填默认图片名)</label>
+                            <input type="text" name="output_name" id="output_name" placeholder="ui_img_logo" class="form-control w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-2.5 focus:bg-white transition-colors">
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label i18n" data-zh="跨行对齐" data-en="Align">跨行对齐</label>
-                            <select name="align" class="form-select font-bold">
-                                <option value="1">1 Byte</option>
-                                <option value="4" selected>4 Bytes</option>
-                                <option value="16">16 Bytes</option>
+
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 i18n" data-zh="内存对齐" data-en="Memory Align">内存对齐</label>
+                            <select name="align" class="form-select w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-2.5">
+                                <option value="1">1 Byte (Compact)</option>
+                                <option value="4" selected>4 Bytes (Standard)</option>
+                                <option value="16">16 Bytes (DMA Safe)</option>
+                                <option value="32">32 Bytes (Cache Line)</option>
+                                <option value="64">64 Bytes (Ultra-High)</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label i18n" data-zh="背景填充" data-en="Background">背景填充</label>
+
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 i18n" data-zh="背景填充色" data-en="Background Fill">背景填充色</label>
                             <div class="flex gap-2">
-                                <input type="color" name="background" value="#000000" class="form-control form-control-color w-10 h-9 p-1">
-                                <input type="text" id="bg-hex" value="#000000" class="form-control flex-1 text-[10px] font-mono font-bold uppercase">
+                                <div class="relative w-10 h-10 flex-shrink-0">
+                                    <input type="color" name="background" value="#000000" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                    <div class="w-full h-full rounded-xl border border-slate-200 shadow-sm" style="background-color: #000000" id="color-preview"></div>
+                                </div>
+                                <input type="text" id="bg-hex" value="#000000" class="form-control w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-700 uppercase">
                             </div>
                         </div>
-                        <div class="col-md-12">
-                            <label class="form-label i18n" data-zh="输出尺寸" data-en="Resize">输出尺寸</label>
-                            <div class="flex gap-3 items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                <input type="number" name="target_w" id="target_w" placeholder="W" class="form-control text-center font-black py-1">
-                                <span class="text-slate-300">×</span>
-                                <input type="number" name="target_h" id="target_h" placeholder="H" class="form-control text-center font-black py-1">
-                                <button type="button" id="lock-ratio" class="p-1.5 text-blue-500 bg-white rounded-lg shadow-sm border border-slate-100"><i class="ri-lock-2-fill"></i></button>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 i18n" data-zh="输出尺寸 (PX)" data-en="Resize (PX)">输出尺寸 (PX)</label>
+                            <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-xl">
+                                <input type="number" name="target_w" id="target_w" placeholder="W" class="form-control border-0 bg-transparent text-center font-black text-slate-700 focus:ring-0 text-sm">
+                                <span class="text-slate-300 font-light">×</span>
+                                <input type="number" name="target_h" id="target_h" placeholder="H" class="form-control border-0 bg-transparent text-center font-black text-slate-700 focus:ring-0 text-sm">
+                                <button type="button" id="lock-ratio" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg border border-slate-200 text-blue-500 shadow-sm hover:text-blue-600 transition-colors">
+                                    <i class="ri-lock-2-fill text-xs"></i>
+                                </button>
                             </div>
                         </div>
-                        <div class="col-md-12">
-                            <label class="form-label i18n" data-zh="颜色格式" data-en="Color Format">颜色格式</label>
-                            <select name="cf" class="form-select font-mono text-xs font-bold">
-                                <option value="AUTO">AUTO (Smart)</option>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 i18n" data-zh="色彩格式" data-en="Color Format">色彩格式</label>
+                            <select name="cf" class="form-select w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-700 py-2.5 focus:bg-white transition-colors">
+                                <option value="AUTO">AUTO (Smart Detect)</option>
                                 <optgroup label="RGB Bitmaps">
                                     <option value="RGB565">RGB565 (16-bit)</option>
                                     <option value="RGB565A8" selected>RGB565A8 (16-bit + Alpha)</option>
@@ -131,47 +211,96 @@
                                 </optgroup>
                             </select>
                         </div>
-                        <div class="col-md-12">
-                            <label class="form-label i18n" data-zh="压缩策略" data-en="Compression">压缩策略</label>
-                            <div class="grid grid-cols-3 gap-2">
-                                <label><input type="radio" name="compress" value="NONE" checked class="hidden peer"><div class="compress-btn peer-checked:bg-blue-50 peer-checked:border-blue-500 peer-checked:text-blue-500">None</div></label>
-                                <label><input type="radio" name="compress" value="RLE" class="hidden peer"><div class="compress-btn peer-checked:bg-blue-50 peer-checked:border-blue-500 peer-checked:text-blue-500">RLE</div></label>
-                                <label><input type="radio" name="compress" value="LZ4" class="hidden peer"><div class="compress-btn peer-checked:bg-blue-50 peer-checked:border-blue-500 peer-checked:text-blue-500">LZ4</div></label>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 i18n" data-zh="压缩策略" data-en="Compression">压缩策略</label>
+                            <div class="segmented-control">
+                                <label class="flex-1">
+                                    <input type="radio" name="compress" value="NONE" checked class="hidden peer">
+                                    <div class="segment-btn">None</div>
+                                </label>
+                                <label class="flex-1">
+                                    <input type="radio" name="compress" value="RLE" class="hidden peer">
+                                    <div class="segment-btn">RLE (Run-Length)</div>
+                                </label>
+                                <label class="flex-1">
+                                    <input type="radio" name="compress" value="LZ4" class="hidden peer">
+                                    <div class="segment-btn">LZ4 (Fast)</div>
+                                </label>
                             </div>
                         </div>
-                        <div class="col-md-12">
-                            <div class="flex gap-4 pt-1">
-                                <div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="dither" value="true" id="dither"><label class="form-check-label text-[10px] font-black text-slate-500 ml-1" for="dither">Dither</label></div>
-                                <div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="premultiply" value="true" id="premul"><label class="form-check-label text-[10px] font-black text-slate-500 ml-1" for="premul">Premul</label></div>
+
+                        <div class="md:col-span-2 flex flex-wrap gap-6 pt-2">
+                            <div class="form-check form-switch flex items-center gap-2 pl-0">
+                                <input class="form-check-input float-none m-0 focus:shadow-none" type="checkbox" name="dither" value="true" id="dither" style="width: 2.5em; height: 1.5em;">
+                                <label class="form-check-label text-xs font-bold text-slate-600 cursor-pointer select-none" for="dither">Dithering (抖动)</label>
+                            </div>
+                            <div class="form-check form-switch flex items-center gap-2 pl-0">
+                                <input class="form-check-input float-none m-0 focus:shadow-none" type="checkbox" name="premultiply" value="true" id="premul" style="width: 2.5em; height: 1.5em;">
+                                <label class="form-check-label text-xs font-bold text-slate-600 cursor-pointer select-none" for="premul">Premultiply Alpha</label>
+                            </div>
+                            <div class="form-check form-switch flex items-center gap-2 pl-0">
+                                <input class="form-check-input float-none m-0 focus:shadow-none" type="checkbox" name="nemagfx" value="true" id="nemagfx" style="width: 2.5em; height: 1.5em;">
+                                <label class="form-check-label text-xs font-bold text-slate-600 cursor-pointer select-none i18n" for="nemagfx" data-zh="NEMA 加速优化" data-en="NEMA-GFX Optimized">NEMA 加速优化</label>
                             </div>
                         </div>
-                        <div class="col-md-12 mt-4">
-                            <button type="submit" id="submit-btn" class="btn-apple-primary w-full py-4 text-base shadow-xl i18n flex items-center justify-center gap-3 group overflow-hidden relative" data-zh="立即转换并下载资产" data-en="Convert & Download">
-                                <span class="relative z-10 i18n" data-zh="立即转换并下载资产" data-en="Convert & Download">立即转换并导出代码</span>
-                                <i class="ri-arrow-right-line group-hover:translate-x-1 transition-transform relative z-10"></i>
-                                <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            </button>
-                        </div>
+
                     </div>
-                    <div id="status" class="mt-4 hidden"></div>
+
+                    <div class="mt-8 pt-6 border-t border-slate-100">
+                        <button type="submit" id="submit-btn" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl shadow-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group">
+                            <span class="font-black text-sm uppercase tracking-wide i18n" data-zh="开始转换并下载" data-en="Convert & Download">开始转换并下载</span>
+                            <div class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                                <i class="ri-arrow-right-line text-sm"></i>
+                            </div>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </form>
 
-    <div class="modal fade" id="docsModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-2xl rounded-[32px] overflow-hidden"><div class="modal-header border-0 p-6 pb-0 flex justify-between items-center"><h3 class="text-xl font-black i18n" data-zh="转换指南" data-en="Guide">转换指南</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-6 overflow-y-auto max-h-[70vh]"><div id="docs-content"></div></div></div></div></div>
+    <div class="modal fade" id="docsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-2xl rounded-[32px] overflow-hidden">
+                <div class="modal-header border-b border-slate-100 p-6 bg-white">
+                    <h3 class="text-xl font-black text-slate-900 i18n" data-zh="LVGL 图像转换指南" data-en="LVGL Image Converter Guide">LVGL 图像转换指南</h3>
+                    <button type="button" class="btn-close opacity-50 hover:opacity-100" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-8 bg-slate-50/50">
+                    <div id="docs-content" class="prose prose-sm max-w-none text-slate-600 font-medium"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     const translations = {
-        zh: { docs: `{{ docs_zh | safe }}`, success: "导出成功！", error: "导出失败: ", no_file: "请先上传图片" },
-        en: { docs: `{{ docs_en | safe }}`, success: "Success!", error: "Failed: ", no_file: "Pick an image" }
+        zh: { docs: {{ docs_zh | tojson | safe }}, success: "处理完成", error: "转换失败: ", no_file: "请先选择一张图片" },
+        en: { docs: {{ docs_en | tojson | safe }}, success: "Completed", error: "Failed: ", no_file: "Please select an image first" }
     };
 
-    function onLangChange() { updateUsage(); }
+    // 监听全局语言切换事件 (由 layout.html 触发)
+    window.addEventListener('languageChanged', function() {
+        updateUsage();
+    });
+
     function openDocs() {
-        document.getElementById('docs-content').innerHTML = `<pre>${translations[currentLang].docs}</pre>`;
+        const lang = localStorage.getItem('lang') || 'zh';
+        let raw = translations[lang].docs;
+        
+        // 简易 Markdown 渲染逻辑
+        let html = raw
+            .replace(/^# (.*$)/gm, '<h2 class="text-2xl font-black text-slate-900 mb-6 border-b-4 border-blue-500 pb-2">$1</h2>')
+            .replace(/^## (.*$)/gm, '<h3 class="text-lg font-black text-slate-800 mt-8 mb-4 flex items-center gap-2"><i class="ri-settings-3-fill text-blue-500"></i> $1</h3>')
+            .replace(/^- (.*$)/gm, '<li class="ml-4 mb-2 text-slate-600 font-bold list-none flex items-start gap-2"><div class="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0"></div><span>$1</span></li>')
+            .replace(/^---$/gm, '<hr class="my-8 border-slate-100">')
+            .replace(/\*(.*?)\*/g, '<i class="text-slate-400 text-xs">$1</i>')
+            .replace(/`(.*?)`/g, '<code class="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md font-mono text-xs font-black">$1</code>');
+
+        document.getElementById('docs-content').innerHTML = '<div class="space-y-2">' + html + '</div>';
         bootstrap.Modal.getOrCreateInstance(document.getElementById('docsModal')).show();
     }
 
@@ -184,7 +313,7 @@
             if(d.success && badge && count) {
                 badge.classList.remove('hidden');
                 count.innerText = d.remaining;
-                count.className = d.remaining <= 0 ? "text-red-500 font-extrabold" : "text-blue-500 font-extrabold";
+                count.className = d.remaining <= 0 ? "text-red-500 font-black" : "text-slate-900 font-black";
             }
         } catch(e){}
     }
@@ -197,10 +326,16 @@
 
     form.onsubmit = async (e) => {
         e.preventDefault();
-        if(!fileIn.files.length) return showToast(translations[currentLang].no_file, 'error');
+        const lang = localStorage.getItem('lang') || 'zh';
+        if(!fileIn.files.length) return showToast(translations[lang].no_file, 'error');
+        
         const status = document.getElementById('status');
         status.classList.remove('hidden');
-        status.innerHTML = `<div class="status-pill bg-blue-50 text-blue-600 border border-blue-100 shadow-sm"><i class="ri-loader-4-line animate-spin"></i> Converting...</div>`;
+        status.innerHTML = `
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold animate-pulse">
+                <i class="ri-loader-4-line animate-spin"></i> Processing...
+            </div>`;
+            
         try {
             const res = await fetch('{{ url_for("lvgl_image.convert") }}', { method: 'POST', body: new FormData(form) });
             if (res.ok) {
@@ -209,10 +344,22 @@
                 const disp = res.headers.get('Content-Disposition');
                 a.download = (disp && disp.includes('filename=')) ? disp.split('filename=')[1].replace(/"/g, '') : "lv_assets.c";
                 a.click();
-                status.innerHTML = `<div class="status-pill bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm"><i class="ri-check-line"></i> ${translations[currentLang].success}</div>`;
+                
+                status.innerHTML = `
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold">
+                        <i class="ri-check-double-line"></i> ${translations[lang].success}
+                    </div>`;
                 updateUsage();
-            } else { throw new Error((await res.json()).error); }
-        } catch (err) { status.innerHTML = `<div class="status-pill bg-red-50 text-red-600 border border-red-100 shadow-sm"><i class="ri-error-warning-fill"></i> ${err.message}</div>`; }
+            } else { 
+                const errData = await res.json();
+                throw new Error(errData.error || "Unknown Error"); 
+            }
+        } catch (err) { 
+            status.innerHTML = `
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold">
+                    <i class="ri-error-warning-line"></i> ${err.message}
+                </div>`;
+        }
     };
 
     fileIn.onchange = () => {
@@ -225,7 +372,7 @@
                 document.getElementById('drop-zone').classList.add('hidden');
                 const img = new Image();
                 img.onload = () => {
-                    document.getElementById('img-info').innerText = `${img.width}×${img.height} PX`;
+                    document.getElementById('img-info').innerText = `${img.width} × ${img.height} PX`;
                     ratio = img.width / img.height;
                     targetW.placeholder = img.width; targetH.placeholder = img.height;
                 };
@@ -241,14 +388,35 @@
         document.getElementById('drop-zone').classList.remove('hidden');
     }
 
-    if(lockBtn) lockBtn.onclick = () => { isLocked = !isLocked; lockBtn.innerHTML = isLocked ? '<i class="ri-lock-2-fill"></i>' : '<i class="ri-lock-unlock-line"></i>'; lockBtn.classList.toggle('text-blue-500'); lockBtn.classList.toggle('text-slate-400'); };
+    if(lockBtn) lockBtn.onclick = () => { 
+        isLocked = !isLocked; 
+        lockBtn.innerHTML = isLocked ? '<i class="ri-lock-2-fill text-xs"></i>' : '<i class="ri-lock-unlock-line text-xs"></i>'; 
+        lockBtn.classList.toggle('text-blue-500'); 
+        lockBtn.classList.toggle('text-slate-400'); 
+        if(isLocked) { // Re-lock sync
+             if(targetW.value) targetH.value = Math.round(targetW.value / ratio);
+        }
+    };
+    
     if(targetW && targetH) {
         targetW.oninput = () => { if(isLocked && targetW.value) targetH.value = Math.round(targetW.value / ratio); };
         targetH.oninput = () => { if(isLocked && targetH.value) targetW.value = Math.round(targetH.value * ratio); };
     }
 
-    const bgP = document.querySelector('input[name="background"]'), bgH = document.getElementById('bg-hex');
-    if(bgP && bgH) { bgP.oninput = () => bgH.value = bgP.value.toUpperCase(); bgH.oninput = () => { if(/^#[0-9A-F]{6}$/i.test(bgHex.value)) bgP.value = bgH.value; }; }
+    // Color picker sync
+    const bgP = document.querySelector('input[name="background"]'), bgH = document.getElementById('bg-hex'), bgPreview = document.getElementById('color-preview');
+    if(bgP && bgH) { 
+        bgP.oninput = () => { 
+            bgH.value = bgP.value.toUpperCase(); 
+            bgPreview.style.backgroundColor = bgP.value; 
+        }; 
+        bgH.oninput = () => { 
+            if(/^#[0-9A-F]{6}$/i.test(bgH.value)) { 
+                bgP.value = bgH.value; 
+                bgPreview.style.backgroundColor = bgH.value;
+            } 
+        }; 
+    }
 
     updateUsage();
 </script>

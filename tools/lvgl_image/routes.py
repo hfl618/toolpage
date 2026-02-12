@@ -95,7 +95,7 @@ def convert():
                     img_rgba = img_rgba.resize((w, h), Image.Resampling.LANCZOS)
                 img_rgba.save(ipath, "PNG")
             
-            img = LVGLImage().from_png(ipath, cf=cf, background=bg_color, rgb565_dither=(request.form.get('dither')=='true'))
+            img = LVGLImage().from_png(ipath, cf=cf, background=bg_color, rgb565_dither=(request.form.get('dither')=='true'), nema_gfx=(request.form.get('nemagfx')=='true'))
             img.adjust_stride(align=stride_align)
             if request.form.get('premultiply')=='true' and img.cf.has_alpha: img.premultiply()
             
