@@ -141,30 +141,101 @@ def upload_avatar():
 def profile_api():
     uid = get_uid_from_request()
     if not uid: return jsonify(success=False), 401
+    
+    # 1. 识别来源 (优先从 URL 参数获取，再从 Referrer 获取)
+    # 前端跳转时会带上 ?from=xxx
+    from_arg = request.args.get('from', '')
+    referrer = request.referrer or ''
+    
+    from_path = ''
+    # 统一映射逻辑
+    source = from_arg if from_arg else referrer
+    
+    if 'inventory' in source: from_path = '/inventory'
+    elif 'lvgl_image' in source: from_path = '/lvgl_image'
+    elif 'projects' in source: from_path = '/projects'
+    
     try:
         user_res = d1.execute("SELECT username, role, avatar, created_at FROM users WHERE id = ?", [uid])
         u = user_res['results'][0] if user_res and user_res.get('results') else {}
-        comp_res = d1.execute("SELECT COUNT(*) as count FROM components WHERE user_id = ?", [uid])
-        api_res = d1.execute("SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND request_date = DATE('now')", [uid])
+        role = u.get('role', 'free')
         
-        # 加入天数计算
+        # 2. 获取配置
+        if from_path:
+            config_res = d1.execute("SELECT * FROM tool_configs WHERE path = ?", [from_path])
+            configs = config_res.get('results', [])
+        else:
+            config_res = d1.execute("SELECT * FROM tool_configs WHERE is_public = 1")
+            configs = config_res.get('results', [])
+
+        # 3. 计算消耗
+        quotas = []
+        for cfg in configs:
+            path = cfg['path']
+            limit = cfg['daily_limit_pro'] if role == 'pro' else cfg['daily_limit_free']
+            used = 0
+            
+            if path == '/inventory':
+                comp_res = d1.execute("SELECT COUNT(*) as count FROM components WHERE user_id = ?", [uid])
+                used = comp_res['results'][0]['count'] if comp_res else 0
+                unit = "个"
+            else:
+                # 统一从 usage_logs 查今日请求
+                log_res = d1.execute("SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND path LIKE ? AND request_date = DATE('now')", [uid, f"{path}%"])
+                used = log_res['results'][0]['count'] if log_res else 0
+                unit = "次"
+            
+            quotas.append({
+                "path": path,
+                "label": cfg.get('label', path),
+                "shadow": cfg.get('shadow', 'shadow-blue-200'),
+                "color": cfg.get('color', 'bg-blue-500'),
+                "used": used,
+                "limit": limit,
+                "unit": unit,
+                "type": cfg['limit_type']
+            })
+
+        # 4. 其他统计
         days = 1
         if u.get('created_at'):
             from datetime import datetime
             try: delta = datetime.utcnow() - datetime.strptime(u['created_at'][:10], '%Y-%m-%d'); days = max(1, delta.days)
             except: pass
+            
+        total_api_res = d1.execute("SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ?", [uid])
+        total_calls = total_api_res['results'][0]['count'] if total_api_res else 0
+
+        # 最近记录
+        logs_res = d1.execute("SELECT path, created_at, status FROM usage_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 5", [uid])
+        activities = []
+        from datetime import timedelta
+        for log in logs_res.get('results', []):
+            # 时差修复：数据库是 UTC，转为 UTC+8
+            try:
+                utc_time = datetime.datetime.strptime(log['created_at'], '%Y-%m-%d %H:%M:%S')
+                local_time = utc_time + timedelta(hours=8)
+                display_time = local_time.strftime('%H:%M')
+            except:
+                display_time = log['created_at'][11:16] if len(log['created_at'])>16 else "最近"
+
+            activities.append({
+                "text": f"访问了 {log['path']}",
+                "time": display_time,
+                "icon": "ri-history-line",
+                "bg": "bg-slate-50",
+                "color": "text-slate-400"
+            })
+        if not activities:
+            activities = [{"text": "本地系统就绪", "time": "刚刚", "icon": "ri-check-double-line", "bg": "bg-green-50", "color": "text-green-600"}]
 
         return jsonify({
             "success": True,
-            "user": {"username": u.get('username', 'User'), "role": u.get('role', 'free'), "avatar": u.get('avatar', '')},
-            "stats": {
-                "days": days, "total_calls": 0, 
-                "storage_used": comp_res['results'][0]['count'] if comp_res else 0,
-                "storage_limit": 5000 if u.get('role') == 'pro' else 500,
-                "api_today": api_res['results'][0]['count'] if api_res else 0,
-                "api_limit": 1000 if u.get('role') == 'pro' else 100
-            },
-            "activities": [{"text": "本地系统就绪", "time": "刚刚", "icon": "ri-check-double-line", "bg": "bg-green-50", "color": "text-green-600"}]
+            "user": {"username": u.get('username', 'User'), "role": role, "avatar": u.get('avatar', '')},
+            "stats": { "days": days, "total_calls": total_calls },
+            "quotas": quotas,
+            "is_single": bool(from_path),
+            "activities": activities
         })
     except Exception as e: return jsonify(success=False, error=str(e)), 500
 

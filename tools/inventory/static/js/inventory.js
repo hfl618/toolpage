@@ -60,7 +60,7 @@ async function initUser() {
                 <div class="text-right hidden md:block"><div class="text-[10px] font-bold text-slate-900">${u.username}</div><div class="text-[8px] font-bold text-blue-600 uppercase mt-1">${u.role}</div></div>
                 <img src="${avatar}" class="w-10 h-10 rounded-full border shadow-sm object-cover bg-gray-100">
                 <div class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 p-2 z-[1000]">
-                    <a href="/profile.html" class="flex items-center gap-3 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 rounded-lg no-underline"><i class="ri-user-settings-line"></i> 个人中心</a>
+                    <a href="/profile?from=inventory" class="flex items-center gap-3 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 rounded-lg no-underline"><i class="ri-user-settings-line"></i> 个人中心</a>
                     <button onclick="event.stopPropagation(); logout()" class="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition text-left border-0 bg-transparent mt-1"><i class="ri-logout-box-r-line"></i> 退出登录</button>
                 </div>`;
         } else {

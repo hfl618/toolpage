@@ -12,39 +12,50 @@ def get_help_doc():
     lang = request.args.get('lang', 'zh')
     
     parts = path.strip('/').split('/')
-    if not parts or parts[0] == '': 
-        module = 'inventory' # 默认模块
+    if not parts or parts[0] == '' or path == '/': 
+        module = 'support' # 主页默认指向 support 模块
     else:
         module = parts[0]
         if module == 'projects': module = 'project_hub'
         if module in ['auth', 'login', 'profile']: module = 'user'
-        if module == 'support': module = 'support' # 明确 support
+        if module == 'support': module = 'support'
     
     if not module.replace('_', '').isalnum(): return jsonify(success=False)
 
     try:
         # 兼容根目录和 tools 目录运行
         base_path = os.getcwd()
-        if not base_path.endswith('toolpage'):
-             # 如果在子目录运行，尝试定位到根
-             pass
-             
-        static_dir = os.path.join(base_path, 'tools', module, 'static')
-        pattern = os.path.join(static_dir, f"{module}_{lang}_*.md")
-        files = sorted(glob.glob(pattern))
         
-        content = ""
-        if files:
-            with open(files[-1], 'r', encoding='utf-8') as f:
-                content = f.read()
-        else:
-            # 如果没找到对应语言，尝试找英文
+        static_dir = os.path.join(base_path, 'tools', module, 'static')
+        # 优先查找的子目录
+        md_dir = os.path.join(static_dir, 'md')
+        
+        search_dirs = [md_dir, static_dir]
+        found_file = None
+        
+        for sd in search_dirs:
+            if not os.path.exists(sd):
+                continue
+                
+            # 1. 优先匹配具体语言的模块文档: {module}_{lang}_*.md
+            pattern = os.path.join(sd, f"{module}_{lang}_*.md")
+            files = sorted(glob.glob(pattern))
+            if files:
+                found_file = files[-1]
+                break
+            
+            # 2. 如果没找到对应语言，尝试找英文: {module}_en_*.md
             if lang == 'zh':
-                pattern_en = os.path.join(static_dir, f"{module}_en_*.md")
+                pattern_en = os.path.join(sd, f"{module}_en_*.md")
                 files_en = sorted(glob.glob(pattern_en))
                 if files_en:
-                    with open(files_en[-1], 'r', encoding='utf-8') as f:
-                        content = f.read()
+                    found_file = files_en[-1]
+                    break
+
+        content = ""
+        if found_file:
+            with open(found_file, 'r', encoding='utf-8') as f:
+                content = f.read()
         
         return jsonify(success=True, content=content)
     except Exception as e:

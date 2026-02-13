@@ -128,7 +128,9 @@
 
     async function sync() {
       try {
-        const r = await fetch('/auth/profile_api');
+        const params = new URLSearchParams(window.location.search);
+        const fromVal = params.get('from') || '';
+        const r = await fetch(`/auth/profile_api?from=${encodeURIComponent(fromVal)}`);
         const d = await r.json();
         if (d.success) {
           if(d.user) { 
@@ -139,10 +141,36 @@
           const s = d.stats || {};
           document.getElementById('stat-days').innerText = s.days || 1;
           document.getElementById('stat-count').innerText = s.total_calls || 0;
-          document.getElementById('val-storage').innerText = (s.storage_used || 0) + ' / 500';
-          document.getElementById('bar-storage').style.width = ((s.storage_used || 0)/500*100) + '%';
-          document.getElementById('val-api').innerText = (s.api_today || 0) + ' / 50';
-          document.getElementById('bar-api').style.width = ((s.api_today || 0)/50*100) + '%';
+          
+          // 动态渲染配额
+          const quotaContainer = document.querySelector('#tab-main .bento-card div.space-y-10');
+          if(d.quotas && d.quotas.length > 0) {
+              if(d.is_single) {
+                  // 单个工具：显示大进度条
+                  quotaContainer.className = "space-y-10";
+                  quotaContainer.innerHTML = d.quotas.map(q => `
+                    <div>
+                      <div class="flex justify-between text-xs font-black mb-3 text-slate-400 uppercase tracking-widest">
+                        <span>${q.label}</span>
+                        <span class="text-slate-900 font-black">${q.used} / ${q.limit}</span>
+                      </div>
+                      <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                        <div class="h-full ${q.color} shadow-lg ${q.shadow} transition-all duration-1000" style="width: ${Math.min(100, (q.used/q.limit)*100)}%"></div>
+                      </div>
+                    </div>
+                  `).join('');
+              } else {
+                  // 多个工具：显示 3 列文字卡片
+                  quotaContainer.className = "grid grid-cols-1 sm:grid-cols-3 gap-6";
+                  quotaContainer.innerHTML = d.quotas.map(q => `
+                    <div class="bg-slate-50 p-6 rounded-3xl border border-gray-100 hover:bg-white hover:shadow-xl transition-all duration-300">
+                      <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">${q.label}</p>
+                      <p class="text-xl font-black text-slate-900">${q.used} <span class="text-slate-300 text-xs font-bold">/ ${q.limit}</span></p>
+                    </div>
+                  `).join('');
+              }
+          }
+
           if(d.activities) document.getElementById('activity-list').innerHTML = d.activities.map(a => `
             <div class="flex items-center gap-5 p-5 bg-gray-50/50 rounded-[28px] border border-transparent hover:border-gray-100 transition shadow-sm group cursor-default">
               <div class="w-12 h-12 ${a.bg} ${a.color} rounded-2xl flex items-center justify-center text-xl transition-transform group-hover:scale-110"><i class="${a.icon}"></i></div>

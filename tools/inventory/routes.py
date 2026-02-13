@@ -107,13 +107,25 @@ def index():
     # 动态加载帮助手册
     docs_zh, docs_en = "", ""
     static_dir = os.path.join(curr_dir, 'static')
+    md_dir = os.path.join(static_dir, 'md')
+    
     try:
-        zh_files = sorted(glob.glob(os.path.join(static_dir, 'inventory_zh_*.md')))
-        if zh_files:
-            with open(zh_files[-1], 'r', encoding='utf-8') as f: docs_zh = f.read()
-        en_files = sorted(glob.glob(os.path.join(static_dir, 'inventory_en_*.md')))
-        if en_files:
-            with open(en_files[-1], 'r', encoding='utf-8') as f: docs_en = f.read()
+        # 尝试从 md 目录或 static 目录找中文
+        zh_found = False
+        for d in [md_dir, static_dir]:
+            if not os.path.exists(d): continue
+            zh_files = sorted(glob.glob(os.path.join(d, 'inventory_zh_*.md')))
+            if zh_files:
+                with open(zh_files[-1], 'r', encoding='utf-8') as f: docs_zh = f.read()
+                zh_found = True; break
+        
+        # 尝试从 md 目录或 static 目录找英文
+        for d in [md_dir, static_dir]:
+            if not os.path.exists(d): continue
+            en_files = sorted(glob.glob(os.path.join(d, 'inventory_en_*.md')))
+            if en_files:
+                with open(en_files[-1], 'r', encoding='utf-8') as f: docs_en = f.read()
+                break
     except: pass
 
     return render_template('inventory.html', items=items, locations=[r['location'] for r in locs.get('results', [])] if locs else [], q=q, filters=filters, system_fields=SYSTEM_FIELDS, docs_zh=docs_zh, docs_en=docs_en)
