@@ -168,15 +168,21 @@ def create_app():
 
     @app.route('/<path:filename>')
     def serve_frontend(filename):
-        if '/static/' in filename:
-            parts = filename.split('/')
-            if parts[0] in ['lvgl_image', 'inventory', 'projects', 'support', 'serial_tool']:
-                blueprint_dir = os.path.join('tools', parts[0], 'static')
+        # 1. 检查是否是各工具模块的静态文件请求 (例如: serial_tool/static/...)
+        parts = filename.split('/')
+        if len(parts) >= 3 and parts[1] == 'static':
+            module_name = parts[0]
+            if module_name in ['lvgl_image', 'inventory', 'projects', 'support', 'serial_tool']:
+                blueprint_dir = os.path.join('tools', module_name, 'static')
                 static_file = '/'.join(parts[2:])
-                if os.path.exists(os.path.join(blueprint_dir, static_file)):
+                full_path = os.path.join(blueprint_dir, static_file)
+                if os.path.exists(full_path):
                     return send_from_directory(blueprint_dir, static_file)
+
+        # 2. 检查根 frontend 目录
         if os.path.exists(os.path.join('frontend', filename)):
             return send_from_directory('frontend', filename)
+        
         return "Not Found", 404
 
     @app.route('/health')

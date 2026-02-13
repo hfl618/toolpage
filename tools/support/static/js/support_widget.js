@@ -15,13 +15,40 @@ async function toggleHelpModal() {
             const r = await fetch('/support/help_doc?lang=' + lang + '&path=' + window.location.pathname);
             const d = await r.json();
             if(d.success && d.content) {
-                let html = d.content
-                    .replace(/^# (.*$)/gm, '<h2 style="font-size:24px; font-weight:900; margin-bottom:16px; border-bottom:4px solid #3b82f6; padding-bottom:8px;">$1</h2>')
-                    .replace(/^## (.*$)/gm, '<h3 style="font-size:18px; font-weight:800; margin-top:24px; margin-bottom:12px; display:flex; align-items:center; gap:8px;"><i class="ri-settings-3-fill" style="color:#3b82f6;"></i> $1</h3>')
+                let html = d.content;
+                
+                // 1. 处理表格 (必须在处理其它行级元素前完成)
+                html = html.replace(/(\|.*\|)\n(\|.*---.*\|)\n((?:\|.*\|\n?)*)/g, function(match, header, divider, body) {
+                    let tableHtml = '<div style="overflow-x:auto; margin:16px 0;"><table style="width:100%; border-collapse:collapse; font-size:12px; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden;">';
+                    // 表头
+                    tableHtml += '<thead style="background:#f8fafc; border-bottom:2px solid #e2e8f0;"><tr>';
+                    header.split('|').filter(c => c.trim()).forEach(c => {
+                        tableHtml += `<th style="padding:12px; text-align:left; font-weight:900; color:#1e293b;">${c.trim()}</th>`;
+                    });
+                    tableHtml += '</tr></thead><tbody>';
+                    // 表体
+                    body.trim().split('\n').forEach(line => {
+                        tableHtml += '<tr style="border-bottom:1px solid #f1f5f9;">';
+                        line.split('|').filter(c => c.trim()).forEach(c => {
+                            tableHtml += `<td style="padding:12px; color:#475569;">${c.trim()}</td>`;
+                        });
+                        tableHtml += '</tr>';
+                    });
+                    tableHtml += '</tbody></table></div>';
+                    return tableHtml;
+                });
+
+                // 2. 处理其它 Markdown 元素
+                html = html
+                    .replace(/^# (.*$)/gm, '<h2 style="font-size:24px; font-weight:900; margin-bottom:16px; border-bottom:4px solid #3b82f6; padding-bottom:8px; color:#1e293b;">$1</h2>')
+                    .replace(/^## (.*$)/gm, '<h3 style="font-size:18px; font-weight:800; margin-top:24px; margin-bottom:12px; display:flex; align-items:center; gap:8px; color:#1e293b;"><i class="ri-settings-3-fill" style="color:#3b82f6;"></i> $1</h3>')
+                    .replace(/^### (.*$)/gm, '<h4 style="font-size:15px; font-weight:800; margin-top:16px; margin-bottom:8px; color:#334155;">$1</h4>')
                     .replace(/^- (.*$)/gm, '<div style="margin-left:16px; margin-bottom:8px; display:flex; align-items:start; gap:8px;"><div style="width:6px; height:6px; border-radius:50%; background:#60a5fa; margin-top:8px; flex-shrink:0;"></div><span style="font-weight:700; color:#475569;">$1</span></div>')
                     .replace(/^---$/gm, '<hr style="margin:24px 0; border:none; border-top:1px solid #e2e8f0;">')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#1e293b; font-weight:900;">$1</strong>')
                     .replace(/\*(.*?)\*/g, '<i style="color:#94a3b8; font-size:12px;">$1</i>')
                     .replace(/`(.*?)`/g, '<code style="background:#eff6ff; color:#2563eb; padding:2px 6px; border-radius:6px; font-family:monospace; font-size:12px; font-weight:900;">$1</code>');
+                 
                  contentDiv.innerHTML = html;
             } else {
                 contentDiv.innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8; font-weight:700;">' + (lang==='en'?'No documentation available':'暂无帮助文档') + '</div>';

@@ -5,165 +5,234 @@
 {% block app_name %}Serial Studio{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
     :root {
-        --sidebar-w: 280px;
         --mac-bg: #f5f5f7;
+        --mac-dark: #1e1e1e;
         --accent: #007aff;
         --success: #34c759;
         --danger: #ff3b30;
-        --mono-font: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+        --dev-font: 'JetBrains Mono', 'Fira Code', monospace;
     }
-    
-    /* 容器覆盖，适配 layout.html */
-    main.max-w-7xl { max-width: 100% !important; padding: 0 !important; margin-top: 80px !important; height: calc(100vh - 80px); display: flex; overflow: hidden; }
-    
-    /* 侧边栏 */
-    .serial-aside { width: var(--sidebar-w); background: rgba(255,255,255,0.6); backdrop-filter: blur(20px); border-right: 1px solid #d1d1d6; padding: 24px; display: flex; flex-direction: column; gap: 24px; z-index: 10; height: 100%; }
-    
-    /* 主内容区 */
-    .serial-main { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 16px; background: var(--mac-bg); position: relative; height: 100%; }
-    
-    .mac-label { font-size: 10px; font-black: 800; text-transform: uppercase; color: #86868b; letter-spacing: 1px; margin-bottom: 8px; display: block; }
-    
-    .serial-select, .serial-input { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid #d1d1d6; background: white; font-size: 13px; font-weight: 600; outline: none; transition: 0.2s; }
-    .serial-select:focus, .serial-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(0,122,255,0.1); }
-    
-    .serial-btn { width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: 800; font-size: 13px; cursor: pointer; transition: 0.3s active:scale-95; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-connect { background: var(--accent); color: white; box-shadow: 0 4px 12px rgba(0,122,255,0.2); }
-    .btn-disconnect { background: var(--danger); color: white; box-shadow: 0 4px 12px rgba(255,59,48,0.2); }
-    
-    /* 终端区域 */
-    .terminal { flex: 1; background: #1e1e1e; border-radius: 20px; padding: 20px; font-family: var(--mono-font); font-size: 13px; color: #34c759; overflow-y: auto; line-height: 1.6; white-space: pre-wrap; box-shadow: inset 0 2px 20px rgba(0,0,0,0.3); position: relative; border: 1px solid #333; }
-    .terminal::-webkit-scrollbar { width: 6px; }
-    .terminal::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
-    
-    .tx-msg { color: #007aff; font-weight: bold; }
-    .rx-hex { color: #ff9500; }
-    .timestamp { color: #555; margin-right: 10px; user-select: none; font-size: 11px; }
 
-    /* 底部发送栏 */
-    .input-bar { display: flex; gap: 12px; align-items: center; padding: 16px; background: white; border-radius: 20px; border: 1px solid #e5e5ea; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    body { background-color: var(--mac-bg); overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
     
-    /* 状态指示灯 */
-    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #d1d1d6; transition: 0.3s; }
-    .status-dot.connected { background: var(--success); box-shadow: 0 0 12px var(--success); }
-    
-    .macro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .btn-macro { background: #f2f2f7; color: #1d1d1f; border: 1px solid #e5e5ea; }
-    .btn-macro:hover { background: #e5e5ea; }
+    /* 强力覆盖全局边距，对接导航栏 */
+    body main.max-w-7xl { 
+        position: fixed !important;
+        top: 80px !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        max-width: none !important;
+        width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: row !important;
+        background: var(--mac-bg) !important;
+        z-index: 50;
+    }
 
-    /* 开关 */
-    .toggle-group { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #48484a; }
+    /* 栏 1：监控区 */
+    .monitor-area { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 16px; min-width: 400px; overflow: hidden; }
+
+    /* 栏 2+3：控制区总容器 */
+    .controls-area { width: 520px; display: flex; flex-direction: row; background: white; border-left: 1px solid #e2e8f0; flex-shrink: 0; height: 100%; }
+
+    /* 内部子列 */
+    .control-column { flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 20px; overflow-y: auto; border-right: 1px solid #f1f5f9; }
+    .control-column:last-child { border-right: none; }
+
+    /* 拖拽条 */
+    .resizer { width: 10px; cursor: col-resize; background: transparent; flex-shrink: 0; z-index: 100; margin-left: -5px; }
+    .resizer:hover, .resizer.resizing { background: var(--accent); opacity: 0.2; }
+
+    /* 通用卡片 */
+    .card-pro { background: white; border: 1px solid #e2e8f0; border-radius: 1.5rem; overflow: hidden; display: flex; flex-direction: column; }
+    .card-header-pro { padding: 12px 20px; background: #f8fafc; border-bottom: 1px solid #f1f5f9; }
+    .card-title-pro { font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin: 0; }
+
+    /* 终端输出 */
+    .terminal-box { flex: 1; background: white; padding: 20px; font-family: var(--dev-font); font-size: 14px; overflow-y: auto; line-height: 1.6; }
+    .log-entry { border-bottom: 1px solid #f8fafc; padding: 6px 0; display: flex; gap: 10px; align-items: flex-start; }
+    .timestamp { color: #94a3b8; font-weight: 600; min-width: 85px; font-size: 11px; cursor: pointer; }
+    .badge-sim { background: #fef3c7; color: #b45309; padding: 1px 5px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-right: 4px; }
+
+    /* 颜色标识 */
+    .tx-msg { color: var(--accent); font-weight: 700; }
+    .rx-hex { color: #8b5cf6; font-weight: 700; }
+    .auto-msg { color: #f59e0b; font-weight: 700; }
+    .sys-msg { color: #64748b; font-style: italic; font-weight: 600; }
+
+    /* 下拉框与输入 */
+    .min-select { border: none !important; background: transparent !important; font-size: 10px !important; font-weight: 900 !important; color: #64748b !important; cursor: pointer; outline: none; text-transform: uppercase; }
+    .min-select:hover { color: var(--accent) !important; }
+    
+    .input-pro { background: #f1f5f9; border: 2px solid transparent; border-radius: 12px; padding: 10px 16px; font-weight: 600; font-size: 13px; transition: 0.2s; width: 100%; color: #1e293b; }
+    .input-pro:focus { background: white; border-color: var(--accent); outline: none; }
+
+    .btn-pro { padding: 10px 20px; border-radius: 12px; font-weight: 800; font-size: 13px; border: none; cursor: pointer; transition: 0.2s; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-pro-dark { background: #0f172a; color: white; }
+    .btn-pro-dark:hover { background: #1e293b; transform: translateY(-1px); }
+    .btn-connect-active { background: var(--danger) !important; }
+
+    /* 宏指令按钮 */
+    .btn-macro-item { background: #f0f7ff; border: 1px solid #dbeafe; border-radius: 10px; padding: 10px; font-size: 12px; font-weight: 700; color: #1e40af; position: relative; width: 100%; text-align: center; }
+    .btn-macro-item.polling { ring: 2px solid var(--accent); background: #eff6ff; animation: pulse-polling 2s infinite; }
+    @keyframes pulse-polling { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+    /* 列表装饰 */
+    .dynamic-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; position: relative; margin-bottom: 8px; }
+    .item-actions { position: absolute; top: -6px; right: -6px; display: none; gap: 4px; z-index: 10; }
+    .dynamic-item:hover .item-actions { display: flex; }
+    .circle-icon { width: 20px; height: 20px; border-radius: 50%; background: white; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; font-size: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; }
+    .status-dot.connected { background: var(--success); box-shadow: 0 0 10px var(--success); }
+
+    .check-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; }
+    .hl-error { background: #fee2e2; color: #dc2626; padding: 1px 4px; border-radius: 3px; }
+    .hl-success { background: #dcfce7; color: #16a34a; padding: 1px 4px; border-radius: 3px; }
+
+    main > div.mt-12 { display: none !important; }
 </style>
 {% endblock %}
 
 {% block content %}
-    <aside class="serial-aside">
-        <div class="flex items-center gap-3">
-            <div class="status-dot" id="statusDot"></div>
-            <h2 class="text-lg font-black tracking-tight">控制中心</h2>
-        </div>
-
-        <div class="space-y-4">
-            <div>
-                <span class="mac-label">波特率</span>
-                <select id="baudRate" class="serial-select">
-                    <option value="9600">9600</option>
-                    <option value="115200" selected>115200</option>
-                    <option value="921600">921600</option>
-                    <option value="1000000">1000000</option>
-                    <option value="2000000">2000000</option>
-                </select>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <span class="mac-label">数据位</span>
-                    <select id="dataBits" class="serial-select"><option value="8">8 Bits</option><option value="7">7 Bits</option></select>
+    <!-- 监控区 -->
+    <section class="monitor-area" id="monitorCol">
+        <div class="card-pro shadow-sm flex-1">
+            <div class="card-header-pro flex flex-column gap-3">
+                <!-- 行 1：搜索 -->
+                <div class="flex justify-between items-center gap-4">
+                    <div class="flex items-center bg-slate-200/50 rounded-xl px-4 py-1.5 flex-1 shadow-inner">
+                        <i class="ri-search-line text-slate-400 mr-2"></i>
+                        <input type="text" id="logSearch" class="border-0 bg-transparent outline-none text-sm font-bold w-full" placeholder="搜索关键词过滤日志..." oninput="filterLogs()">
+                    </div>
+                    <div class="bg-white border border-slate-200 px-4 py-1.5 rounded-xl shadow-sm text-[10px] font-black text-slate-400 uppercase">
+                        RX: <span id="rxCounter" class="text-blue-600 font-mono text-xs">0</span> B
+                    </div>
                 </div>
-                <div>
-                    <span class="mac-label">停止位</span>
-                    <select id="stopBits" class="serial-select"><option value="1">1 Bit</option><option value="2">2 Bits</option></select>
+                <!-- 行 2：视图控制 -->
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-1 bg-slate-100/80 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                        <select id="dataViewMode" class="min-select !text-blue-600" onchange="resetTerminal()">
+                            <option value="text">VIEW: TEXT</option><option value="hex">VIEW: HEX</option>
+                            <option value="rgb">VIEW: RGB</option><option value="dec">VIEW: DEC</option>
+                        </select>
+                        <div class="w-px h-3 bg-slate-300 mx-1"></div>
+                        <select id="textEncoding" class="min-select" onchange="resetTerminal()">
+                            <option value="utf-8">UTF-8</option><option value="gbk">GBK</option>
+                        </select>
+                        <div class="w-px h-3 bg-slate-300 mx-1"></div>
+                        <select id="tsMode" class="min-select" onchange="toggleTimeMode()">
+                            <option value="abs">ABS TIME</option><option value="delta">DELTA (Δ)</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-5 items-center">
+                        <label class="check-label"><input type="checkbox" id="rxHex"> HEX</label>
+                        <label class="check-label"><input type="checkbox" id="autoScroll" checked> SCROLL</label>
+                        <label class="check-label"><input type="checkbox" id="showChart" onchange="toggleChart()"> WAVE</label>
+                        <button onclick="clearLog()" class="text-[10px] font-black text-slate-300 hover:text-red-500 transition-colors ml-4 uppercase">Clear</button>
+                    </div>
                 </div>
             </div>
+            <div id="terminal" class="terminal-box"></div>
+            <div id="chartContainer" class="hidden border-t border-slate-100 p-4 bg-slate-50/50">
+                <div id="chartLegend" class="flex gap-3 mb-2"></div>
+                <canvas id="waveformCanvas" class="w-full h-40"></canvas>
+            </div>
+        </div>
 
-            <div>
-                <span class="mac-label">校验位</span>
-                <select id="parity" class="serial-select">
-                    <option value="none">None</option>
-                    <option value="even">Even</option>
-                    <option value="odd">Odd</option>
+        <div class="card-pro p-4 shadow-sm">
+            <div class="flex gap-4 items-center">
+                <input type="text" id="txInput" class="input-pro flex-1 font-mono" placeholder="发送指令..." onkeydown="if(event.key==='Enter') sendFromInput()">
+                <select id="lineEnding" class="input-pro !w-auto !py-1.5">
+                    <option value="\r\n">CRLF</option><option value="\n">LF</option><option value="">NONE</option>
                 </select>
+                <label class="check-label border-l pl-4 border-slate-100"><input type="checkbox" id="clearAfterSend" checked> 清空</label>
+                <button class="btn-pro btn-pro-dark px-10 shadow-lg" onclick="sendFromInput()">发送数据</button>
             </div>
-        </div>
-
-        <button id="connectBtn" class="serial-btn btn-connect" onclick="toggleConnection()">
-            <i class="ri-plug-line text-lg"></i> <span>开启串口连接</span>
-        </button>
-
-        <div class="mt-4">
-            <span class="mac-label">快捷宏指令</span>
-            <div class="macro-grid">
-                <button class="serial-btn btn-macro" onclick="sendText('AT
-')">AT</button>
-                <button class="serial-btn btn-macro" onclick="sendText('RST
-')">RST</button>
-                <button class="serial-btn btn-macro" onclick="sendText('help
-')">Help</button>
-                <button class="serial-btn btn-macro" onclick="clearLog()">Clear</button>
-            </div>
-        </div>
-
-        <div class="mt-auto p-4 bg-blue-50 rounded-2xl border border-blue-100">
-            <p class="text-[10px] text-blue-600 font-bold leading-relaxed">
-                <i class="ri-shield-check-line"></i> Web Serial API<br>
-                硬件数据直接在浏览器处理，不经过云端，确保隐私与极致响应速度。
-            </p>
-        </div>
-    </aside>
-
-    <section class="serial-main">
-        <div class="flex justify-between items-center px-2">
-            <div class="flex gap-6">
-                <label class="toggle-group cursor-pointer">
-                    <input type="checkbox" id="rxHex" class="form-check-input"> <span>HEX 接收</span>
-                </label>
-                <label class="toggle-group cursor-pointer">
-                    <input type="checkbox" id="autoScroll" class="form-check-input" checked> <span>自动滚动</span>
-                </label>
-                <label class="toggle-group cursor-pointer">
-                    <input type="checkbox" id="showTimestamp" class="form-check-input" checked> <span>显示时间</span>
-                </label>
-            </div>
-            <div class="text-[11px] font-black text-slate-400">
-                DATA RECIVE: <span id="rxCounter" class="text-blue-500">0</span> BYTES
-            </div>
-        </div>
-
-        <div id="terminal" class="terminal">
-            <div class="h-full flex flex-col items-center justify-center text-slate-600 opacity-50">
-                <i class="ri-usb-line text-6xl mb-4"></i>
-                <p class="font-black">等待硬件连接...</p>
-                <p class="text-xs">请选择正确参数并点击 "开启串口连接"</p>
-            </div>
-        </div>
-
-        <div class="input-bar">
-            <i class="ri-terminal-box-line text-2xl text-slate-300"></i>
-            <input type="text" id="txInput" class="serial-input border-0 bg-transparent flex-1" placeholder="输入指令内容 (按 Enter 发送)..." onkeydown="if(event.key==='Enter') sendFromInput()">
-            
-            <div class="flex items-center gap-4 px-4 border-l border-slate-100">
-                <label class="toggle-group cursor-pointer"><input type="checkbox" id="txHex"> <span>HEX</span></label>
-                <label class="toggle-group cursor-pointer"><input type="checkbox" id="txNewline" checked> <span>
-</span></label>
-            </div>
-            
-            <button class="serial-btn btn-connect w-auto px-8" onclick="sendFromInput()">
-                发送 <i class="ri-send-plane-fill"></i>
-            </button>
         </div>
     </section>
+
+    <div id="resizer" class="resizer"></div>
+
+    <!-- 控制区总成 -->
+    <section class="controls-area" id="controlsArea">
+        <div class="control-column">
+            <div class="card-pro mb-4">
+                <div class="card-header-pro flex justify-between items-center"><span class="card-title-pro">Port Settings</span><div id="statusDot" class="status-dot"></div></div>
+                <div class="p-4 space-y-4">
+                    <div class="flex justify-between items-center bg-amber-50 p-2 rounded-xl border border-amber-100">
+                        <span class="text-[9px] font-black text-amber-700 uppercase">Simulator</span>
+                        <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="demoMode" onchange="toggleDemoMode()"></div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="card-title-pro !text-[9px] mb-1">Baud Rate</label>
+                            <input type="text" id="baudRate" class="input-pro !py-1.5" value="115200">
+                            <div class="flex gap-1 mt-2">
+                                <span class="badge bg-slate-100 text-slate-400 p-1 cursor-pointer hover:bg-blue-500 hover:text-white transition" style="font-size:8px" onclick="document.getElementById('baudRate').value='9600'">9600</span>
+                                <span class="badge bg-slate-100 text-slate-400 p-1 cursor-pointer hover:bg-blue-500 hover:text-white transition" style="font-size:8px" onclick="document.getElementById('baudRate').value='115200'">115200</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="card-title-pro !text-[9px] mb-1">Data</label><select id="dataBits" class="input-pro !py-1"><option value="8">8B</option><option value="7">7B</option></select></div>
+                            <div><label class="card-title-pro !text-[9px] mb-1">Stop</label><select id="stopBits" class="input-pro !py-1"><option value="1">1B</option></select></div>
+                        </div>
+                    </div>
+                    <button id="connectBtn" class="btn-pro btn-pro-dark w-full" onclick="toggleConnection()">开启连接</button>
+                </div>
+            </div>
+
+            <div class="card-pro">
+                <div class="card-header-pro flex justify-between items-center"><span class="card-title-pro">Macros</span><div class="flex gap-2"><button onclick="exportMacros()" class="text-slate-400 hover:text-blue-500"><i class="ri-download-2-line"></i></button><button onclick="importMacros()" class="text-slate-400 hover:text-blue-500"><i class="ri-upload-2-line"></i></button></div></div>
+                <div id="macroGrid" class="p-4 grid grid-cols-1 gap-2 overflow-y-auto" style="max-height: 300px;"></div>
+            </div>
+        </div>
+
+        <div class="control-column">
+            <div class="card-pro mb-4">
+                <div class="card-header-pro flex justify-between items-center"><span class="card-title-pro">Responder</span><button onclick="showAutoReplyEditor()" class="text-blue-500"><i class="ri-add-circle-fill text-lg"></i></button></div>
+                <div id="autoReplyEditor" class="hidden p-4 bg-slate-50 border-b border-slate-100 space-y-3">
+                    <input type="text" id="autoMatchInput" class="input-pro bg-white" placeholder="当收到...">
+                    <input type="text" id="autoReplyInput" class="input-pro bg-white" placeholder="则回复...">
+                    <button onclick="saveAutoReply()" class="btn-pro btn-pro-dark w-full !py-1.5">添加规则</button>
+                </div>
+                <div id="autoReplyList" class="p-4 space-y-2 overflow-y-auto" style="max-height: 250px;"></div>
+            </div>
+
+            <div class="card-pro">
+                <div class="card-header-pro flex justify-between items-center"><span class="card-title-pro">Highlighter</span><button onclick="addHighlightRule()" class="text-indigo-500"><i class="ri-palette-line"></i></button></div>
+                <div id="highlightRules" class="p-4 space-y-2"></div>
+            </div>
+
+            <div class="mt-auto space-y-3">
+                <button onclick="downloadLog()" class="btn-pro bg-white border border-slate-200 text-slate-600 w-full"><i class="ri-file-download-line"></i> 导出日志</button>
+                <div class="p-4 bg-blue-50 border border-blue-100 rounded-2xl"><p class="m-0 text-[9px] font-black text-blue-600 leading-relaxed uppercase tracking-widest"><i class="ri-shield-check-fill"></i> Local Security Enabled</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 宏编辑器弹窗 -->
+    <div id="macroEditor" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-sm">
+            <h6 class="font-black mb-6 uppercase">Edit Macro</h6>
+            <input type="hidden" id="macroIndex" value="-1">
+            <div class="space-y-4">
+                <input type="text" id="macroLabelInput" class="input-pro" placeholder="显示名称">
+                <input type="text" id="macroCmdInput" class="input-pro font-mono" placeholder="指令内容">
+                <div class="flex items-center gap-4">
+                    <div><label class="card-title-pro !text-[9px] mb-1">周期(ms)</label><input type="number" id="macroIntervalInput" class="input-pro !py-1 w-24"></div>
+                    <label class="check-label pt-4"><input type="checkbox" id="macroIsHex"> HEX</label>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-8"><button onclick="saveMacro()" class="btn-pro btn-pro-dark flex-1">保存</button><button onclick="hideMacroEditor()" class="btn-pro bg-slate-100 text-slate-600">取消</button></div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block extra_js %}

@@ -85,8 +85,15 @@
     async function syncUser() {
         try {
             const r = await fetch('/auth/profile_api');
-            const d = await r.json();
             const area = document.getElementById('userArea');
+            
+            if(r.status === 401) {
+                const loginLabel = currentLang === 'zh' ? '立即登录' : 'LOGIN';
+                area.innerHTML = `<a href="/login.html?next=${window.location.pathname}" class="px-4 py-2 bg-slate-900 text-white rounded-full text-[10px] font-black no-underline hover:bg-slate-800 shadow-lg">${loginLabel}</a>`;
+                return;
+            }
+
+            const d = await r.json();
             if(d.success && d.user) {
                 const user = d.user;
                 const avatarUrl = user.avatar ? (user.avatar + (user.avatar.includes('?') ? '&' : '?') + 'v=' + Date.now()) : ('https://api.dicebear.com/7.x/avataaars/svg?seed=' + user.username);
