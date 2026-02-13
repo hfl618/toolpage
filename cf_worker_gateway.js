@@ -178,9 +178,15 @@ function parseUserFromCookie(cookieHeader) {
     
     const payload = JSON.parse(jsonPayload);
     const seed = payload.username || payload.uid || '1';
-    const avatar = payload.avatar && payload.avatar.startsWith('http') 
-                   ? payload.avatar 
-                   : "https://api.dicebear.com/7.x/avataaars/svg?seed=" + seed;
+    let avatar = payload.avatar;
+    
+    // 如果是完整 URL，增加时间戳强制刷新
+    if (avatar && typeof avatar === 'string' && avatar.startsWith('http')) {
+        const sep = avatar.indexOf('?') !== -1 ? '&' : '?';
+        avatar = avatar + sep + 'v=' + Date.now();
+    } else {
+        avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=" + seed;
+    }
     
     return { 
       uid: payload.uid, 
@@ -224,8 +230,8 @@ function renderIndex(user) {
     const toolsJson = JSON.stringify(APP_TOOLS);
     let userHtml = '';
     if (user) {
-        // 增加头像版本号，强制刷新缓存
-        const avatarUrl = user.avatar ? (user.avatar + (user.avatar.includes('?') ? '&' : '?') + 'v=' + Date.now()) : '';
+        // 直接使用 parseUserFromCookie 处理好的头像 URL
+        const avatarUrl = user.avatar;
         userHtml = 
         '<div class="flex items-center gap-2 p-1.5 pr-4 rounded-full bg-white border border-gray-100 shadow-sm cursor-pointer hover:bg-slate-50 transition-all" onclick="toggleUserMenu()">' +
             '<img src="' + avatarUrl + '" class="w-8 h-8 rounded-full object-cover">' +
@@ -480,6 +486,13 @@ function renderLogin() {
 
 function renderProfile(user) {
     const role = user.role ? user.role.toUpperCase() : "FREE";
+    const seed = user.username || user.uid || '1';
+    let avatarUrl = "https://api.dicebear.com/7.x/avataaars/svg?seed=" + seed;
+    if (user.avatar && typeof user.avatar === 'string') {
+        const sep = user.avatar.indexOf('?') !== -1 ? '&' : '?';
+        avatarUrl = user.avatar + sep + 'v=' + Date.now();
+    }
+    
     return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -512,7 +525,7 @@ function renderProfile(user) {
     <div class="md:col-span-4 space-y-3">
       <div class="bento-card p-10 text-center relative overflow-hidden rounded-[40px]">
         <div class="relative w-28 h-28 mx-auto z-10 group cursor-pointer" onclick="document.getElementById('avatar-input').click()">
-          <img id="u-avatar" src="${user.avatar + (user.avatar.includes('?') ? '&' : '?') + 'v=' + Date.now()}" class="w-full h-full rounded-[40px] border-4 border-white shadow-2xl bg-white object-cover">
+          <img id="u-avatar" src="${avatarUrl}" class="w-full h-full rounded-[40px] border-4 border-white shadow-2xl bg-white object-cover">
           <div class="absolute inset-0 bg-black/40 rounded-[40px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-white text-2xl"><i class="ri-camera-lens-line"></i></div>
         </div>
         <input type="file" id="avatar-input" class="hidden" accept="image/*" onchange="uploadAvatar(this)">
