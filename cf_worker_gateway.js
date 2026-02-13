@@ -224,9 +224,11 @@ function renderIndex(user) {
     const toolsJson = JSON.stringify(APP_TOOLS);
     let userHtml = '';
     if (user) {
+        // 增加头像版本号，强制刷新缓存
+        const avatarUrl = user.avatar ? (user.avatar + (user.avatar.includes('?') ? '&' : '?') + 'v=' + Date.now()) : '';
         userHtml = 
         '<div class="flex items-center gap-2 p-1.5 pr-4 rounded-full bg-white border border-gray-100 shadow-sm cursor-pointer hover:bg-slate-50 transition-all" onclick="toggleUserMenu()">' +
-            '<img src="' + user.avatar + '" class="w-8 h-8 rounded-full object-cover">' +
+            '<img src="' + avatarUrl + '" class="w-8 h-8 rounded-full object-cover">' +
             '<span class="text-sm font-bold text-slate-700 hidden md:inline">' + user.username + '</span>' +
             '<i class="ri-arrow-down-s-line text-slate-400"></i>' +
         '</div>' +

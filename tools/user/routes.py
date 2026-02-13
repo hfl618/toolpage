@@ -2,7 +2,7 @@ import datetime
 import jwt
 import time
 import os
-from flask import Blueprint, request, jsonify, make_response, render_template, send_from_directory
+from flask import Blueprint, request, jsonify, make_response, render_template, send_from_directory, redirect
 from werkzeug.security import generate_password_hash, check_password_hash
 from tools.database import d1
 from tools.config import Config
@@ -87,7 +87,6 @@ def register():
     u, p = data.get('username', '').strip(), data.get('password', '')
     
     if not u or not p: return jsonify({"error": "账号密码不能为空"}), 400
-    # 校验：4位以上，字母数字下划线，不能纯数字
     if not re.match(r'^(?!\d+$)[a-zA-Z0-9_]{4,20}$', u):
         return jsonify({"error": "用户名需4位以上字母/数字/下划线组合，且不能为纯数字"}), 400
     if len(p) < 6:
@@ -110,7 +109,6 @@ def update_profile():
     fields, params = [], []
     
     if new_u:
-        # 同样的校验逻辑
         if not re.match(r'^(?!\d+$)[a-zA-Z0-9_]{4,20}$', new_u):
             return jsonify(success=False, error="用户名需4位以上字母/数字/下划线组合，且不能为纯数字"), 400
         exists = d1.execute("SELECT id FROM users WHERE username = ? AND id != ?", [new_u, uid]);
@@ -140,15 +138,11 @@ def upload_avatar():
 @user_bp.route('/profile_api')
 def profile_api():
     uid = get_uid_from_request()
-    if not uid: return jsonify(success=False), 401
+    if not uid: return jsonify(success=False, error="Unauthorized"), 401
     
-    # 1. 识别来源 (优先从 URL 参数获取，再从 Referrer 获取)
-    # 前端跳转时会带上 ?from=xxx
     from_arg = request.args.get('from', '')
     referrer = request.referrer or ''
-    
     from_path = ''
-    # 统一映射逻辑
     source = from_arg if from_arg else referrer
     
     if 'inventory' in source: from_path = '/inventory'
@@ -156,25 +150,22 @@ def profile_api():
     elif 'projects' in source: from_path = '/projects'
     
     try:
-        # 回退到单次查询模式以确保稳定性
         user_res = d1.execute("SELECT username, role, avatar, created_at FROM users WHERE id = ?", [uid])
         u = user_res['results'][0] if user_res and user_res.get('results') else {}
         if not u: return jsonify(success=False, error="User not found"), 404
         
         role = u.get('role', 'free')
         
-        # 1. 获取配置
+        # 1. 获取工具配置与配额统计 (GROUP BY 优化)
         if from_path:
             config_res = d1.execute("SELECT * FROM tool_configs WHERE path = ?", [from_path])
         else:
             config_res = d1.execute("SELECT * FROM tool_configs WHERE is_public = 1")
         configs = config_res.get('results', []) if config_res else []
 
-        # 2. 统计今日配额 (性能优化版：GROUP BY)
         usage_res = d1.execute("SELECT path, COUNT(*) as cnt FROM usage_logs WHERE user_id = ? AND request_date = DATE('now') GROUP BY path", [uid])
         usage_map = {item['path']: item['cnt'] for item in usage_res.get('results', [])} if usage_res else {}
 
-        # 3. 计算配额
         quotas = []
         for cfg in configs:
             path = cfg['path']
@@ -193,7 +184,7 @@ def profile_api():
                 "color": cfg.get('color', 'bg-blue-500'), "used": used, "limit": limit, "unit": unit, "type": cfg['limit_type']
             })
 
-        # 4. 其他统计
+        # 2. 统计入驻天数与总调用量
         days = 1
         if u.get('created_at'):
             from datetime import datetime
@@ -203,11 +194,10 @@ def profile_api():
         total_api_res = d1.execute("SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ?", [uid])
         total_calls = total_api_res['results'][0]['count'] if total_api_res else 0
 
-        # 获取工具映射表用于美化动态
+        # 3. 动态记录：5 分钟去重逻辑
         tools_cfg_res = d1.execute("SELECT path, label FROM tool_configs")
         path_map = {cfg['path']: cfg['label'] for cfg in tools_cfg_res.get('results', [])} if tools_cfg_res else {}
 
-        # 最近记录：实现 5 分钟去重逻辑
         logs_res = d1.execute("SELECT path, created_at, status FROM usage_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 50", [uid])
         activities = []
         raw_logs = logs_res.get('results', [])
@@ -231,7 +221,9 @@ def profile_api():
                         if p.startswith(t_path): display_name = t_label; break
                 
                 activities.append({
-                    "text": f"访问了 {display_name}", "time": local_time.strftime('%H:%M'), "date": local_time.strftime('%m-%d'),
+                    "text": f"访问了 {display_name}", 
+                    "time": local_time.strftime('%H:%M'), 
+                    "date": local_time.strftime('%m-%d'),
                     "icon": "ri-history-line", "bg": "bg-slate-50", "color": "text-slate-400"
                 })
                 last_log = log
@@ -244,70 +236,6 @@ def profile_api():
         return jsonify({
             "success": True,
             "user": {"username": u.get('username', 'User'), "role": role, "avatar": u.get('avatar', '')},
-            "stats": { "days": days, "total_calls": total_calls },
-            "quotas": quotas,
-            "is_single": bool(from_path),
-            "activities": activities
-        })
-
-        # 3. 计算配额
-        quotas = []
-        for cfg in configs:
-            path = cfg['path']
-            limit = cfg['daily_limit_pro'] if role == 'pro' else cfg['daily_limit_free']
-            used = total_components if path == '/inventory' else sum(count for p, count in usage_map.items() if p.startswith(path))
-            unit = "个" if path == '/inventory' else "次"
-            
-            quotas.append({
-                "path": path, "label": cfg.get('label', path), "shadow": cfg.get('shadow', 'shadow-blue-200'),
-                "color": cfg.get('color', 'bg-blue-500'), "used": used, "limit": limit, "unit": unit, "type": cfg['limit_type']
-            })
-
-        # 4. 其他统计
-        days = 1
-        if user_data.get('created_at'):
-            from datetime import datetime
-            try: delta = datetime.utcnow() - datetime.strptime(user_data['created_at'][:10], '%Y-%m-%d'); days = max(1, delta.days)
-            except: pass
-
-        # 最近记录：5 分钟去重
-        activities = []
-        last_log = None
-        from datetime import timedelta
-        for log in raw_logs:
-            try:
-                curr_time = datetime.strptime(log['created_at'], '%Y-%m-%d %H:%M:%S')
-                if last_log:
-                    last_time = datetime.strptime(last_log['created_at'], '%Y-%m-%d %H:%M:%S')
-                    if log['path'] == last_log['path'] and abs((last_time - curr_time).total_seconds()) < 300:
-                        continue
-                local_time = curr_time + timedelta(hours=8)
-                
-                p = log['path']
-                display_name = '系统页面'
-                if p == '/': display_name = '首页'
-                else:
-                    for t_path, t_label in path_map.items():
-                        if p.startswith(t_path): display_name = t_label; break
-                
-                activities.append({
-                    "text": f"访问了 {display_name}", "time": local_time.strftime('%H:%M'), "date": local_time.strftime('%m-%d'),
-                    "icon": "ri-history-line", "bg": "bg-slate-50", "color": "text-slate-400"
-                })
-                last_log = log
-                if len(activities) >= 20: break
-            except: continue
-
-        if not activities:
-            activities = [{"text": "本地系统就绪", "time": "刚刚", "icon": "ri-check-double-line", "bg": "bg-green-50", "color": "text-green-600"}]
-
-        return jsonify({
-            "success": True,
-            "user": {
-                "username": user_data.get('username', 'User'),
-                "role": role,
-                "avatar": user_data.get('avatar', '')
-            },
             "stats": { "days": days, "total_calls": total_calls },
             "quotas": quotas,
             "is_single": bool(from_path),
@@ -327,7 +255,6 @@ def user_info():
 
 @user_bp.route('/logout')
 def logout():
-    from flask import redirect, url_for
     resp = make_response(redirect('/login'))
     resp.set_cookie('auth_token', '', expires=0, path='/')
     return resp
@@ -341,7 +268,6 @@ def check_username():
     if not re.match(r'^[a-zA-Z0-9_]+$', u): return jsonify(status="error", msg="仅限字母/数字/_")
     if u.isdigit(): return jsonify(status="error", msg="不能纯数字")
     
-    # 数据库查重
     try:
         res = d1.execute("SELECT id FROM users WHERE username = ?", [u])
         if res and res.get('results'):
