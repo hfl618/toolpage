@@ -70,7 +70,7 @@ def login():
                 "uid": user['id'],
                 "username": user['username'],
                 "role": user.get('role', 'free'),
-                "avatar": user.get('avatar', ''),
+                "avatar": user.get('avatar') or '',
                 "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=Config.JWT_EXP_DELTA)
             }
             token = jwt.encode(payload, Config.SECRET_KEY, algorithm="HS256")
@@ -156,46 +156,41 @@ def profile_api():
     elif 'projects' in source: from_path = '/projects'
     
     try:
+        # 回退到单次查询模式以确保稳定性
         user_res = d1.execute("SELECT username, role, avatar, created_at FROM users WHERE id = ?", [uid])
         u = user_res['results'][0] if user_res and user_res.get('results') else {}
+        if not u: return jsonify(success=False, error="User not found"), 404
+        
         role = u.get('role', 'free')
         
-        # 2. 获取配置
+        # 1. 获取配置
         if from_path:
             config_res = d1.execute("SELECT * FROM tool_configs WHERE path = ?", [from_path])
         else:
             config_res = d1.execute("SELECT * FROM tool_configs WHERE is_public = 1")
         configs = config_res.get('results', []) if config_res else []
 
-        # 性能核心优化：一次性查出该用户今日所有路径的访问计数
+        # 2. 统计今日配额 (性能优化版：GROUP BY)
         usage_res = d1.execute("SELECT path, COUNT(*) as cnt FROM usage_logs WHERE user_id = ? AND request_date = DATE('now') GROUP BY path", [uid])
         usage_map = {item['path']: item['cnt'] for item in usage_res.get('results', [])} if usage_res else {}
 
-        # 3. 计算消耗
+        # 3. 计算配额
         quotas = []
         for cfg in configs:
             path = cfg['path']
             limit = cfg['daily_limit_pro'] if role == 'pro' else cfg['daily_limit_free']
-            
             used = 0
             if path == '/inventory':
-                comp_res = d1.execute("SELECT COUNT(*) as count FROM components WHERE user_id = ?", [uid])
-                used = comp_res['results'][0]['count'] if comp_res else 0
+                c_res = d1.execute("SELECT COUNT(*) as count FROM components WHERE user_id = ?", [uid])
+                used = c_res['results'][0]['count'] if c_res and c_res.get('results') else 0
                 unit = "个"
             else:
-                # 在内存中快速累加
                 used = sum(count for p, count in usage_map.items() if p.startswith(path))
                 unit = "次"
             
             quotas.append({
-                "path": path,
-                "label": cfg.get('label', path),
-                "shadow": cfg.get('shadow', 'shadow-blue-200'),
-                "color": cfg.get('color', 'bg-blue-500'),
-                "used": used,
-                "limit": limit,
-                "unit": unit,
-                "type": cfg['limit_type']
+                "path": path, "label": cfg.get('label', path), "shadow": cfg.get('shadow', 'shadow-blue-200'),
+                "color": cfg.get('color', 'bg-blue-500'), "used": used, "limit": limit, "unit": unit, "type": cfg['limit_type']
             })
 
         # 4. 其他统计
@@ -208,7 +203,7 @@ def profile_api():
         total_api_res = d1.execute("SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ?", [uid])
         total_calls = total_api_res['results'][0]['count'] if total_api_res else 0
 
-        # 获取工具配置映射表，用于动态美化路径
+        # 获取工具映射表用于美化动态
         tools_cfg_res = d1.execute("SELECT path, label FROM tool_configs")
         path_map = {cfg['path']: cfg['label'] for cfg in tools_cfg_res.get('results', [])} if tools_cfg_res else {}
 
@@ -222,35 +217,22 @@ def profile_api():
         for log in raw_logs:
             try:
                 curr_time = datetime.strptime(log['created_at'], '%Y-%m-%d %H:%M:%S')
-                
-                # 5分钟去重：如果路径相同且时间差小于300秒，跳过
                 if last_log:
                     last_time = datetime.strptime(last_log['created_at'], '%Y-%m-%d %H:%M:%S')
                     if log['path'] == last_log['path'] and abs((last_time - curr_time).total_seconds()) < 300:
                         continue
                 
                 local_time = curr_time + timedelta(hours=8)
-                display_time = local_time.strftime('%H:%M')
-                
-                # 动态路径美化逻辑
                 p = log['path']
                 display_name = '系统页面'
-                if p == '/': 
-                    display_name = '首页'
+                if p == '/': display_name = '首页'
                 else:
-                    # 优先从数据库配置表找匹配的前缀
                     for t_path, t_label in path_map.items():
-                        if p.startswith(t_path):
-                            display_name = t_label
-                            break
+                        if p.startswith(t_path): display_name = t_label; break
                 
                 activities.append({
-                    "text": f"访问了 {display_name}",
-                    "time": display_time,
-                    "date": local_time.strftime('%m-%d'),
-                    "icon": "ri-history-line",
-                    "bg": "bg-slate-50",
-                    "color": "text-slate-400"
+                    "text": f"访问了 {display_name}", "time": local_time.strftime('%H:%M'), "date": local_time.strftime('%m-%d'),
+                    "icon": "ri-history-line", "bg": "bg-slate-50", "color": "text-slate-400"
                 })
                 last_log = log
                 if len(activities) >= 20: break
@@ -262,6 +244,70 @@ def profile_api():
         return jsonify({
             "success": True,
             "user": {"username": u.get('username', 'User'), "role": role, "avatar": u.get('avatar', '')},
+            "stats": { "days": days, "total_calls": total_calls },
+            "quotas": quotas,
+            "is_single": bool(from_path),
+            "activities": activities
+        })
+
+        # 3. 计算配额
+        quotas = []
+        for cfg in configs:
+            path = cfg['path']
+            limit = cfg['daily_limit_pro'] if role == 'pro' else cfg['daily_limit_free']
+            used = total_components if path == '/inventory' else sum(count for p, count in usage_map.items() if p.startswith(path))
+            unit = "个" if path == '/inventory' else "次"
+            
+            quotas.append({
+                "path": path, "label": cfg.get('label', path), "shadow": cfg.get('shadow', 'shadow-blue-200'),
+                "color": cfg.get('color', 'bg-blue-500'), "used": used, "limit": limit, "unit": unit, "type": cfg['limit_type']
+            })
+
+        # 4. 其他统计
+        days = 1
+        if user_data.get('created_at'):
+            from datetime import datetime
+            try: delta = datetime.utcnow() - datetime.strptime(user_data['created_at'][:10], '%Y-%m-%d'); days = max(1, delta.days)
+            except: pass
+
+        # 最近记录：5 分钟去重
+        activities = []
+        last_log = None
+        from datetime import timedelta
+        for log in raw_logs:
+            try:
+                curr_time = datetime.strptime(log['created_at'], '%Y-%m-%d %H:%M:%S')
+                if last_log:
+                    last_time = datetime.strptime(last_log['created_at'], '%Y-%m-%d %H:%M:%S')
+                    if log['path'] == last_log['path'] and abs((last_time - curr_time).total_seconds()) < 300:
+                        continue
+                local_time = curr_time + timedelta(hours=8)
+                
+                p = log['path']
+                display_name = '系统页面'
+                if p == '/': display_name = '首页'
+                else:
+                    for t_path, t_label in path_map.items():
+                        if p.startswith(t_path): display_name = t_label; break
+                
+                activities.append({
+                    "text": f"访问了 {display_name}", "time": local_time.strftime('%H:%M'), "date": local_time.strftime('%m-%d'),
+                    "icon": "ri-history-line", "bg": "bg-slate-50", "color": "text-slate-400"
+                })
+                last_log = log
+                if len(activities) >= 20: break
+            except: continue
+
+        if not activities:
+            activities = [{"text": "本地系统就绪", "time": "刚刚", "icon": "ri-check-double-line", "bg": "bg-green-50", "color": "text-green-600"}]
+
+        return jsonify({
+            "success": True,
+            "user": {
+                "username": user_data.get('username', 'User'),
+                "role": role,
+                "avatar": user_data.get('avatar', '')
+            },
             "stats": { "days": days, "total_calls": total_calls },
             "quotas": quotas,
             "is_single": bool(from_path),

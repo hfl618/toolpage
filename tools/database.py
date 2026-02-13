@@ -65,6 +65,37 @@ class Database:
                 conn.execute("INSERT OR IGNORE INTO tool_configs (path, is_public, required_role, limit_type, daily_limit_free, daily_limit_pro, shadow, label, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", cfg)
             conn.commit()
 
+    def execute_multi(self, queries):
+        """
+        真正的批量查询：一次请求返回多个结果集。
+        queries: [(sql, params), (sql, params), ...]
+        """
+        if self.env == 'local':
+            results = []
+            with sqlite3.connect(Config.LOCAL_DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                for sql, params in queries:
+                    res = conn.execute(sql, params or []).fetchall()
+                    results.append({'success': True, 'results': [dict(r) for r in res]})
+                conn.commit()
+            return results
+        else:
+            # 构造 D1 批量请求体
+            payload = [{"sql": sql, "params": params or []} for sql, params in queries]
+            try:
+                resp = requests.post(self.url, headers=self.headers, json=payload, timeout=20, verify=False, proxies={"http": None, "https": None})
+                data = resp.json()
+                if data.get('success'):
+                    # D1 批量查询会返回一个数组，每个元素包含 {success: true, results: [...]}
+                    # 增加打印以确认结构
+                    # print(f"D1 Batch Result: {data['result']}")
+                    return data['result']
+                print(f"D1 Batch Error: {resp.text}")
+                return [{'success': False, 'results': [], 'error': 'Batch failed'}] * len(queries)
+            except Exception as e:
+                print(f"D1 Batch Exception: {e}")
+                return [{'success': False, 'results': [], 'error': str(e)}] * len(queries)
+
     def execute(self, sql, params=None):
         if self.env == 'local': return self._execute_local(sql, params)
         else: return self._execute_d1(sql, params)

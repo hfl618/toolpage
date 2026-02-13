@@ -178,11 +178,15 @@ function parseUserFromCookie(cookieHeader) {
     
     const payload = JSON.parse(jsonPayload);
     const seed = payload.username || payload.uid || '1';
+    const avatar = payload.avatar && payload.avatar.startsWith('http') 
+                   ? payload.avatar 
+                   : "https://api.dicebear.com/7.x/avataaars/svg?seed=" + seed;
+    
     return { 
       uid: payload.uid, 
       username: payload.username || ("User_" + payload.uid), 
       role: payload.role || 'free',
-      avatar: payload.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + seed
+      avatar: avatar
     };
   } catch(e) {
     console.error("Cookie Parse Error:", e);
@@ -539,7 +543,14 @@ function renderProfile(user) {
           </div>
         </div>
         <div class="bento-card p-12 rounded-[40px]">
-          <h3 class="font-black text-slate-900 mb-8 text-xl tracking-tight">最近动态</h3>
+          <div class="flex justify-between items-center mb-8">
+            <h3 class="font-black text-slate-900 text-xl tracking-tight">最近动态</h3>
+            <div id="activity-pager" class="flex items-center gap-3 hidden">
+                <button onclick="changePage(-1)" class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition"><i class="ri-arrow-left-s-line"></i></button>
+                <span id="page-info" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">1 / 1</span>
+                <button onclick="changePage(1)" class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition"><i class="ri-arrow-right-s-line"></i></button>
+            </div>
+          </div>
           <div id="activity-list" class="space-y-4"></div>
         </div>
       </div>
