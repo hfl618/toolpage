@@ -59,7 +59,8 @@ class Database:
             # 插入默认配置
             default_configs = [
                 ('/inventory', 1, 'user', 'storage', 500, 5000, 'shadow-blue-200', '元器件管理', 'bg-blue-500'),
-                ('/lvgl_image', 1, 'user', 'request', 20, 200, 'shadow-emerald-200', 'LVGL 图像处理', 'bg-emerald-500')
+                ('/lvgl_image', 1, 'user', 'request', 20, 200, 'shadow-emerald-200', 'LVGL 图像处理', 'bg-emerald-500'),
+                ('/serial', 1, 'user', 'request', 100, 1000, 'shadow-indigo-200', '云端串口调试', 'bg-indigo-500')
             ]
             for cfg in default_configs:
                 conn.execute("INSERT OR IGNORE INTO tool_configs (path, is_public, required_role, limit_type, daily_limit_free, daily_limit_pro, shadow, label, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", cfg)

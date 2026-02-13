@@ -34,6 +34,9 @@ def create_app():
     from tools.lvgl_image.routes import lvgl_image_bp
     app.register_blueprint(lvgl_image_bp, url_prefix='/lvgl_image')
 
+    from tools.serial_tool.routes import serial_tool_bp
+    app.register_blueprint(serial_tool_bp, url_prefix='/serial')
+
     from tools.support.routes import support_bp
     app.register_blueprint(support_bp, url_prefix='/support')
 
@@ -55,6 +58,7 @@ def create_app():
         if request.path == '/' or request.path.startswith('/auth') or \
            request.path == '/health' or request.path == '/proxy_img' or \
            request.path.startswith('/lvgl_image') or \
+           request.path.startswith('/serial') or \
            request.path.startswith('/support') or \
            request.path.startswith('/static') or request.path.endswith('.html'):
             return
@@ -166,7 +170,7 @@ def create_app():
     def serve_frontend(filename):
         if '/static/' in filename:
             parts = filename.split('/')
-            if parts[0] in ['lvgl_image', 'inventory', 'projects', 'support']:
+            if parts[0] in ['lvgl_image', 'inventory', 'projects', 'support', 'serial_tool']:
                 blueprint_dir = os.path.join('tools', parts[0], 'static')
                 static_file = '/'.join(parts[2:])
                 if os.path.exists(os.path.join(blueprint_dir, static_file)):

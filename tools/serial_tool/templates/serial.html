@@ -1,0 +1,171 @@
+{% extends "support/layout.html" %}
+
+{% block title %}云端串口调试 Pro{% endblock %}
+{% block app_icon %}S{% endblock %}
+{% block app_name %}Serial Studio{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --sidebar-w: 280px;
+        --mac-bg: #f5f5f7;
+        --accent: #007aff;
+        --success: #34c759;
+        --danger: #ff3b30;
+        --mono-font: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+    }
+    
+    /* 容器覆盖，适配 layout.html */
+    main.max-w-7xl { max-width: 100% !important; padding: 0 !important; margin-top: 80px !important; height: calc(100vh - 80px); display: flex; overflow: hidden; }
+    
+    /* 侧边栏 */
+    .serial-aside { width: var(--sidebar-w); background: rgba(255,255,255,0.6); backdrop-filter: blur(20px); border-right: 1px solid #d1d1d6; padding: 24px; display: flex; flex-direction: column; gap: 24px; z-index: 10; height: 100%; }
+    
+    /* 主内容区 */
+    .serial-main { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 16px; background: var(--mac-bg); position: relative; height: 100%; }
+    
+    .mac-label { font-size: 10px; font-black: 800; text-transform: uppercase; color: #86868b; letter-spacing: 1px; margin-bottom: 8px; display: block; }
+    
+    .serial-select, .serial-input { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid #d1d1d6; background: white; font-size: 13px; font-weight: 600; outline: none; transition: 0.2s; }
+    .serial-select:focus, .serial-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(0,122,255,0.1); }
+    
+    .serial-btn { width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: 800; font-size: 13px; cursor: pointer; transition: 0.3s active:scale-95; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-connect { background: var(--accent); color: white; box-shadow: 0 4px 12px rgba(0,122,255,0.2); }
+    .btn-disconnect { background: var(--danger); color: white; box-shadow: 0 4px 12px rgba(255,59,48,0.2); }
+    
+    /* 终端区域 */
+    .terminal { flex: 1; background: #1e1e1e; border-radius: 20px; padding: 20px; font-family: var(--mono-font); font-size: 13px; color: #34c759; overflow-y: auto; line-height: 1.6; white-space: pre-wrap; box-shadow: inset 0 2px 20px rgba(0,0,0,0.3); position: relative; border: 1px solid #333; }
+    .terminal::-webkit-scrollbar { width: 6px; }
+    .terminal::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+    
+    .tx-msg { color: #007aff; font-weight: bold; }
+    .rx-hex { color: #ff9500; }
+    .timestamp { color: #555; margin-right: 10px; user-select: none; font-size: 11px; }
+
+    /* 底部发送栏 */
+    .input-bar { display: flex; gap: 12px; align-items: center; padding: 16px; background: white; border-radius: 20px; border: 1px solid #e5e5ea; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    
+    /* 状态指示灯 */
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #d1d1d6; transition: 0.3s; }
+    .status-dot.connected { background: var(--success); box-shadow: 0 0 12px var(--success); }
+    
+    .macro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-macro { background: #f2f2f7; color: #1d1d1f; border: 1px solid #e5e5ea; }
+    .btn-macro:hover { background: #e5e5ea; }
+
+    /* 开关 */
+    .toggle-group { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #48484a; }
+</style>
+{% endblock %}
+
+{% block content %}
+    <aside class="serial-aside">
+        <div class="flex items-center gap-3">
+            <div class="status-dot" id="statusDot"></div>
+            <h2 class="text-lg font-black tracking-tight">控制中心</h2>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <span class="mac-label">波特率</span>
+                <select id="baudRate" class="serial-select">
+                    <option value="9600">9600</option>
+                    <option value="115200" selected>115200</option>
+                    <option value="921600">921600</option>
+                    <option value="1000000">1000000</option>
+                    <option value="2000000">2000000</option>
+                </select>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <span class="mac-label">数据位</span>
+                    <select id="dataBits" class="serial-select"><option value="8">8 Bits</option><option value="7">7 Bits</option></select>
+                </div>
+                <div>
+                    <span class="mac-label">停止位</span>
+                    <select id="stopBits" class="serial-select"><option value="1">1 Bit</option><option value="2">2 Bits</option></select>
+                </div>
+            </div>
+
+            <div>
+                <span class="mac-label">校验位</span>
+                <select id="parity" class="serial-select">
+                    <option value="none">None</option>
+                    <option value="even">Even</option>
+                    <option value="odd">Odd</option>
+                </select>
+            </div>
+        </div>
+
+        <button id="connectBtn" class="serial-btn btn-connect" onclick="toggleConnection()">
+            <i class="ri-plug-line text-lg"></i> <span>开启串口连接</span>
+        </button>
+
+        <div class="mt-4">
+            <span class="mac-label">快捷宏指令</span>
+            <div class="macro-grid">
+                <button class="serial-btn btn-macro" onclick="sendText('AT
+')">AT</button>
+                <button class="serial-btn btn-macro" onclick="sendText('RST
+')">RST</button>
+                <button class="serial-btn btn-macro" onclick="sendText('help
+')">Help</button>
+                <button class="serial-btn btn-macro" onclick="clearLog()">Clear</button>
+            </div>
+        </div>
+
+        <div class="mt-auto p-4 bg-blue-50 rounded-2xl border border-blue-100">
+            <p class="text-[10px] text-blue-600 font-bold leading-relaxed">
+                <i class="ri-shield-check-line"></i> Web Serial API<br>
+                硬件数据直接在浏览器处理，不经过云端，确保隐私与极致响应速度。
+            </p>
+        </div>
+    </aside>
+
+    <section class="serial-main">
+        <div class="flex justify-between items-center px-2">
+            <div class="flex gap-6">
+                <label class="toggle-group cursor-pointer">
+                    <input type="checkbox" id="rxHex" class="form-check-input"> <span>HEX 接收</span>
+                </label>
+                <label class="toggle-group cursor-pointer">
+                    <input type="checkbox" id="autoScroll" class="form-check-input" checked> <span>自动滚动</span>
+                </label>
+                <label class="toggle-group cursor-pointer">
+                    <input type="checkbox" id="showTimestamp" class="form-check-input" checked> <span>显示时间</span>
+                </label>
+            </div>
+            <div class="text-[11px] font-black text-slate-400">
+                DATA RECIVE: <span id="rxCounter" class="text-blue-500">0</span> BYTES
+            </div>
+        </div>
+
+        <div id="terminal" class="terminal">
+            <div class="h-full flex flex-col items-center justify-center text-slate-600 opacity-50">
+                <i class="ri-usb-line text-6xl mb-4"></i>
+                <p class="font-black">等待硬件连接...</p>
+                <p class="text-xs">请选择正确参数并点击 "开启串口连接"</p>
+            </div>
+        </div>
+
+        <div class="input-bar">
+            <i class="ri-terminal-box-line text-2xl text-slate-300"></i>
+            <input type="text" id="txInput" class="serial-input border-0 bg-transparent flex-1" placeholder="输入指令内容 (按 Enter 发送)..." onkeydown="if(event.key==='Enter') sendFromInput()">
+            
+            <div class="flex items-center gap-4 px-4 border-l border-slate-100">
+                <label class="toggle-group cursor-pointer"><input type="checkbox" id="txHex"> <span>HEX</span></label>
+                <label class="toggle-group cursor-pointer"><input type="checkbox" id="txNewline" checked> <span>
+</span></label>
+            </div>
+            
+            <button class="serial-btn btn-connect w-auto px-8" onclick="sendFromInput()">
+                发送 <i class="ri-send-plane-fill"></i>
+            </button>
+        </div>
+    </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('serial_tool.static', filename='js/serial.js') }}?v={{ range(1,9999)|random }}"></script>
+{% endblock %}
