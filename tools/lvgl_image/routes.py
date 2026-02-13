@@ -37,6 +37,11 @@ from flask import Blueprint, render_template, request, send_file, jsonify, curre
 
 @lvgl_image_bp.route('/')
 def index():
+    vid, logged, role = get_visitor_id()
+    # 记录访问日志
+    try:
+        d1.execute("INSERT INTO usage_logs (user_id, path, status) VALUES (?, ?, ?)", [vid, '/lvgl_image/', 200])
+    except: pass
     return render_template('lvgl_image.html')
 
 @lvgl_image_bp.route('/usage')

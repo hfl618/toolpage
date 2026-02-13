@@ -163,26 +163,28 @@ def profile_api():
         # 2. 获取配置
         if from_path:
             config_res = d1.execute("SELECT * FROM tool_configs WHERE path = ?", [from_path])
-            configs = config_res.get('results', [])
         else:
             config_res = d1.execute("SELECT * FROM tool_configs WHERE is_public = 1")
-            configs = config_res.get('results', [])
+        configs = config_res.get('results', []) if config_res else []
+
+        # 性能核心优化：一次性查出该用户今日所有路径的访问计数
+        usage_res = d1.execute("SELECT path, COUNT(*) as cnt FROM usage_logs WHERE user_id = ? AND request_date = DATE('now') GROUP BY path", [uid])
+        usage_map = {item['path']: item['cnt'] for item in usage_res.get('results', [])} if usage_res else {}
 
         # 3. 计算消耗
         quotas = []
         for cfg in configs:
             path = cfg['path']
             limit = cfg['daily_limit_pro'] if role == 'pro' else cfg['daily_limit_free']
-            used = 0
             
+            used = 0
             if path == '/inventory':
                 comp_res = d1.execute("SELECT COUNT(*) as count FROM components WHERE user_id = ?", [uid])
                 used = comp_res['results'][0]['count'] if comp_res else 0
                 unit = "个"
             else:
-                # 统一从 usage_logs 查今日请求
-                log_res = d1.execute("SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND path LIKE ? AND request_date = DATE('now')", [uid, f"{path}%"])
-                used = log_res['results'][0]['count'] if log_res else 0
+                # 在内存中快速累加
+                used = sum(count for p, count in usage_map.items() if p.startswith(path))
                 unit = "次"
             
             quotas.append({
@@ -206,26 +208,54 @@ def profile_api():
         total_api_res = d1.execute("SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ?", [uid])
         total_calls = total_api_res['results'][0]['count'] if total_api_res else 0
 
-        # 最近记录
-        logs_res = d1.execute("SELECT path, created_at, status FROM usage_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 5", [uid])
-        activities = []
-        from datetime import timedelta
-        for log in logs_res.get('results', []):
-            # 时差修复：数据库是 UTC，转为 UTC+8
-            try:
-                utc_time = datetime.datetime.strptime(log['created_at'], '%Y-%m-%d %H:%M:%S')
-                local_time = utc_time + timedelta(hours=8)
-                display_time = local_time.strftime('%H:%M')
-            except:
-                display_time = log['created_at'][11:16] if len(log['created_at'])>16 else "最近"
+        # 获取工具配置映射表，用于动态美化路径
+        tools_cfg_res = d1.execute("SELECT path, label FROM tool_configs")
+        path_map = {cfg['path']: cfg['label'] for cfg in tools_cfg_res.get('results', [])} if tools_cfg_res else {}
 
-            activities.append({
-                "text": f"访问了 {log['path']}",
-                "time": display_time,
-                "icon": "ri-history-line",
-                "bg": "bg-slate-50",
-                "color": "text-slate-400"
-            })
+        # 最近记录：实现 5 分钟去重逻辑
+        logs_res = d1.execute("SELECT path, created_at, status FROM usage_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 50", [uid])
+        activities = []
+        raw_logs = logs_res.get('results', [])
+        last_log = None
+        from datetime import timedelta
+
+        for log in raw_logs:
+            try:
+                curr_time = datetime.strptime(log['created_at'], '%Y-%m-%d %H:%M:%S')
+                
+                # 5分钟去重：如果路径相同且时间差小于300秒，跳过
+                if last_log:
+                    last_time = datetime.strptime(last_log['created_at'], '%Y-%m-%d %H:%M:%S')
+                    if log['path'] == last_log['path'] and abs((last_time - curr_time).total_seconds()) < 300:
+                        continue
+                
+                local_time = curr_time + timedelta(hours=8)
+                display_time = local_time.strftime('%H:%M')
+                
+                # 动态路径美化逻辑
+                p = log['path']
+                display_name = '系统页面'
+                if p == '/': 
+                    display_name = '首页'
+                else:
+                    # 优先从数据库配置表找匹配的前缀
+                    for t_path, t_label in path_map.items():
+                        if p.startswith(t_path):
+                            display_name = t_label
+                            break
+                
+                activities.append({
+                    "text": f"访问了 {display_name}",
+                    "time": display_time,
+                    "date": local_time.strftime('%m-%d'),
+                    "icon": "ri-history-line",
+                    "bg": "bg-slate-50",
+                    "color": "text-slate-400"
+                })
+                last_log = log
+                if len(activities) >= 20: break
+            except: continue
+
         if not activities:
             activities = [{"text": "本地系统就绪", "time": "刚刚", "icon": "ri-check-double-line", "bg": "bg-green-50", "color": "text-green-600"}]
 

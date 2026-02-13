@@ -567,6 +567,40 @@ function renderProfile(user) {
       document.getElementById('btn-tab-settings').className = t==='settings' ? 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200' : 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-slate-500 hover:bg-gray-50 rounded-2xl transition';
     }
     
+    let allActivities = [];
+    let currentPage = 1;
+    const pageSize = 5;
+
+    function renderActivities() {
+        const list = document.getElementById('activity-list');
+        const pager = document.getElementById('activity-pager');
+        const info = document.getElementById('page-info');
+        if(!allActivities.length) {
+            list.innerHTML = '<p class="text-center text-slate-300 py-10">暂无动态记录</p>';
+            if(pager) pager.classList.add('hidden');
+            return;
+        }
+        const totalPages = Math.ceil(allActivities.length / pageSize);
+        if(pager) pager.classList.toggle('hidden', totalPages <= 1);
+        if(info) info.innerText = currentPage + " / " + totalPages;
+        const start = (currentPage - 1) * pageSize;
+        const pageData = allActivities.slice(start, start + pageSize);
+        list.innerHTML = pageData.map(a => 
+          '<div class="flex items-center gap-5 p-5 bg-gray-50/50 rounded-[28px] border border-transparent hover:border-gray-100 transition shadow-sm">' +
+            '<div class="w-12 h-12 ' + a.bg + ' ' + a.color + ' rounded-2xl flex items-center justify-center text-xl"><i class="' + a.icon + '"></i></div>' +
+            '<div><p class="text-sm font-black text-slate-700">' + a.text + '</p>' +
+            '<div class="flex items-center gap-2 mt-1"><span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">' + a.time + '</span>' +
+            '<span class="w-1 h-1 rounded-full bg-slate-200"></span><span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">' + (a.date||"") + '</span></div></div>' +
+          '</div>'
+        ).join('');
+    }
+
+    function changePage(delta) {
+        const totalPages = Math.ceil(allActivities.length / pageSize);
+        const newPage = currentPage + delta;
+        if (newPage >= 1 && newPage <= totalPages) { currentPage = newPage; renderActivities(); }
+    }
+
     async function sync() {
       try {
         const params = new URLSearchParams(window.location.search);
@@ -603,12 +637,7 @@ function renderProfile(user) {
           }
 
           if(d.activities) {
-             document.getElementById('activity-list').innerHTML = d.activities.map(a => 
-               '<div class="flex items-center gap-5 p-5 bg-gray-50/50 rounded-[28px] border border-transparent hover:border-gray-100 transition shadow-sm">' +
-                 '<div class="w-12 h-12 ' + a.bg + ' ' + a.color + ' rounded-2xl flex items-center justify-center text-xl"><i class="' + a.icon + '"></i></div>' +
-                 '<div><p class="text-sm font-black text-slate-700">' + a.text + '</p><p class="text-[10px] font-black text-slate-300 uppercase mt-1 tracking-widest">' + a.time + '</p></div>' +
-               '</div>'
-             ).join('');
+             allActivities = d.activities; currentPage = 1; renderActivities();
           }
         }
       } catch(e){}

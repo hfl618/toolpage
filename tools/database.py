@@ -19,7 +19,17 @@ class Database:
         # 保持本地 SQLite 结构同步
         schema = """
         CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password_hash TEXT, role TEXT DEFAULT 'free', avatar TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-        CREATE TABLE IF NOT EXISTS tool_configs (path TEXT PRIMARY KEY, is_public INTEGER DEFAULT 0, required_role TEXT DEFAULT 'user', limit_type TEXT DEFAULT 'request', daily_limit_free INTEGER DEFAULT 10, daily_limit_pro INTEGER DEFAULT 1000);
+        CREATE TABLE IF NOT EXISTS tool_configs (
+            path TEXT PRIMARY KEY, 
+            is_public INTEGER DEFAULT 0, 
+            required_role TEXT DEFAULT 'user', 
+            limit_type TEXT DEFAULT 'request', 
+            daily_limit_free INTEGER DEFAULT 10, 
+            daily_limit_pro INTEGER DEFAULT 1000,
+            shadow TEXT,
+            label TEXT,
+            color TEXT
+        );
         CREATE TABLE IF NOT EXISTS usage_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, path TEXT, status INTEGER DEFAULT 200, request_date DATE DEFAULT (DATE('now')), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS components (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, category TEXT, name TEXT, model TEXT, package TEXT, quantity INTEGER, unit TEXT, price REAL, supplier TEXT, channel TEXT, location TEXT, buy_time TEXT, remark TEXT, creator TEXT, img_path TEXT, doc_path TEXT, qrcode_path TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
         
@@ -44,7 +54,16 @@ class Database:
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
-        with sqlite3.connect(Config.LOCAL_DB_PATH) as conn: conn.executescript(schema)
+        with sqlite3.connect(Config.LOCAL_DB_PATH) as conn: 
+            conn.executescript(schema)
+            # 插入默认配置
+            default_configs = [
+                ('/inventory', 1, 'user', 'storage', 500, 5000, 'shadow-blue-200', '元器件管理', 'bg-blue-500'),
+                ('/lvgl_image', 1, 'user', 'request', 20, 200, 'shadow-emerald-200', 'LVGL 图像处理', 'bg-emerald-500')
+            ]
+            for cfg in default_configs:
+                conn.execute("INSERT OR IGNORE INTO tool_configs (path, is_public, required_role, limit_type, daily_limit_free, daily_limit_pro, shadow, label, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", cfg)
+            conn.commit()
 
     def execute(self, sql, params=None):
         if self.env == 'local': return self._execute_local(sql, params)

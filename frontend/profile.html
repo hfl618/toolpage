@@ -77,8 +77,15 @@
           </div>
         </div>
         <div class="bento-card p-12 rounded-[40px]">
-          <h3 class="font-black text-slate-900 mb-8 text-xl tracking-tight">最近动态记录</h3>
-          <div id="activity-list" class="space-y-4"></div>
+          <div class="flex justify-between items-center mb-8">
+            <h3 class="font-black text-slate-900 text-xl tracking-tight">最近动态记录</h3>
+            <div id="activity-pager" class="flex items-center gap-3 hidden">
+                <button onclick="changePage(-1)" class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition"><i class="ri-arrow-left-s-line"></i></button>
+                <span id="page-info" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">1 / 1</span>
+                <button onclick="changePage(1)" class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition"><i class="ri-arrow-right-s-line"></i></button>
+            </div>
+          </div>
+          <div id="activity-list" class="space-y-4 min-h-[300px]"></div>
         </div>
       </div>
 
@@ -126,6 +133,51 @@
         } catch(e) {}
     });
 
+    let allActivities = [];
+    let currentPage = 1;
+    const pageSize = 5;
+
+    function renderActivities() {
+        const list = document.getElementById('activity-list');
+        const pager = document.getElementById('activity-pager');
+        const info = document.getElementById('page-info');
+        
+        if (!allActivities.length) {
+            list.innerHTML = '<p class="text-center text-slate-300 py-10">暂无动态记录</p>';
+            pager.classList.add('hidden');
+            return;
+        }
+
+        const totalPages = Math.ceil(allActivities.length / pageSize);
+        pager.classList.toggle('hidden', totalPages <= 1);
+        info.innerText = `${currentPage} / ${totalPages}`;
+
+        const start = (currentPage - 1) * pageSize;
+        const pageData = allActivities.slice(start, start + pageSize);
+
+        list.innerHTML = pageData.map(a => `
+            <div class="flex items-center gap-5 p-5 bg-gray-50/50 rounded-[28px] border border-transparent hover:border-gray-100 transition shadow-sm group cursor-default animate-in fade-in slide-in-from-right-2 duration-300">
+              <div class="w-12 h-12 ${a.bg} ${a.color} rounded-2xl flex items-center justify-center text-xl transition-transform group-hover:scale-110"><i class="${a.icon}"></i></div>
+              <div class="flex-1">
+                <p class="text-sm font-black text-slate-700">${a.text}</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">${a.time}</span>
+                    <span class="w-1 h-1 rounded-full bg-slate-200"></span>
+                    <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">${a.date || ''}</span>
+                </div>
+              </div>
+            </div>`).join('');
+    }
+
+    function changePage(delta) {
+        const totalPages = Math.ceil(allActivities.length / pageSize);
+        const newPage = currentPage + delta;
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentPage = newPage;
+            renderActivities();
+        }
+    }
+
     async function sync() {
       try {
         const params = new URLSearchParams(window.location.search);
@@ -171,11 +223,11 @@
               }
           }
 
-          if(d.activities) document.getElementById('activity-list').innerHTML = d.activities.map(a => `
-            <div class="flex items-center gap-5 p-5 bg-gray-50/50 rounded-[28px] border border-transparent hover:border-gray-100 transition shadow-sm group cursor-default">
-              <div class="w-12 h-12 ${a.bg} ${a.color} rounded-2xl flex items-center justify-center text-xl transition-transform group-hover:scale-110"><i class="${a.icon}"></i></div>
-              <div><p class="text-sm font-black text-slate-700">${a.text}</p><p class="text-[10px] font-black text-slate-300 uppercase mt-1 tracking-widest">${a.time}</p></div>
-            </div>`).join('');
+          if(d.activities) {
+              allActivities = d.activities;
+              currentPage = 1;
+              renderActivities();
+          }
         }
       } catch(e){}
     }
