@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+{% extends "support/layout.html" %}
 
 {% block title %}LVGL 图像处理{% endblock %}
 {% block app_icon %}L{% endblock %}
@@ -74,10 +74,6 @@
                 <span class="i18n" data-zh="余量:" data-en="Quota:">余量:</span> 
                 <span id="remaining-count" class="text-slate-900 font-black">-</span>
             </div>
-            <button type="button" onclick="openDocs()" class="px-5 py-2.5 flex items-center gap-2 bg-white text-slate-700 border border-slate-200 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold text-xs shadow-sm">
-                <i class="ri-book-open-line"></i>
-                <span class="i18n" data-zh="使用说明" data-en="Docs">使用说明</span>
-            </button>
         </div>
     </div>
 
@@ -259,50 +255,14 @@
             </div>
         </div>
     </form>
-
-    <div class="modal fade" id="docsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content border-0 shadow-2xl rounded-[32px] overflow-hidden">
-                <div class="modal-header border-b border-slate-100 p-6 bg-white">
-                    <h3 class="text-xl font-black text-slate-900 i18n" data-zh="LVGL 图像转换指南" data-en="LVGL Image Converter Guide">LVGL 图像转换指南</h3>
-                    <button type="button" class="btn-close opacity-50 hover:opacity-100" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-8 bg-slate-50/50">
-                    <div id="docs-content" class="prose prose-sm max-w-none text-slate-600 font-medium"></div>
-                </div>
-            </div>
-        </div>
-    </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    const translations = {
-        zh: { docs: {{ docs_zh | tojson | safe }}, success: "处理完成", error: "转换失败: ", no_file: "请先选择一张图片" },
-        en: { docs: {{ docs_en | tojson | safe }}, success: "Completed", error: "Failed: ", no_file: "Please select an image first" }
-    };
-
     // 监听全局语言切换事件 (由 layout.html 触发)
     window.addEventListener('languageChanged', function() {
         updateUsage();
     });
-
-    function openDocs() {
-        const lang = localStorage.getItem('lang') || 'zh';
-        let raw = translations[lang].docs;
-        
-        // 简易 Markdown 渲染逻辑
-        let html = raw
-            .replace(/^# (.*$)/gm, '<h2 class="text-2xl font-black text-slate-900 mb-6 border-b-4 border-blue-500 pb-2">$1</h2>')
-            .replace(/^## (.*$)/gm, '<h3 class="text-lg font-black text-slate-800 mt-8 mb-4 flex items-center gap-2"><i class="ri-settings-3-fill text-blue-500"></i> $1</h3>')
-            .replace(/^- (.*$)/gm, '<li class="ml-4 mb-2 text-slate-600 font-bold list-none flex items-start gap-2"><div class="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0"></div><span>$1</span></li>')
-            .replace(/^---$/gm, '<hr class="my-8 border-slate-100">')
-            .replace(/\*(.*?)\*/g, '<i class="text-slate-400 text-xs">$1</i>')
-            .replace(/`(.*?)`/g, '<code class="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md font-mono text-xs font-black">$1</code>');
-
-        document.getElementById('docs-content').innerHTML = '<div class="space-y-2">' + html + '</div>';
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('docsModal')).show();
-    }
 
     async function updateUsage() {
         try {

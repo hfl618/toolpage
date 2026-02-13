@@ -37,28 +37,7 @@ from flask import Blueprint, render_template, request, send_file, jsonify, curre
 
 @lvgl_image_bp.route('/')
 def index():
-    docs_zh, docs_en = "", ""
-    # 确保使用绝对路径定位 static 目录
-    curr_dir = os.path.dirname(os.path.abspath(__file__))
-    static_dir = os.path.join(curr_dir, 'static')
-    
-    try:
-        # 识别最新的 md 文件 (按文件名排序，日期最大的在最后)
-        zh_pattern = os.path.join(static_dir, 'lvgl_image_zh_*.md')
-        zh_files = sorted(glob.glob(zh_pattern))
-        if zh_files:
-            with open(zh_files[-1], 'r', encoding='utf-8') as f:
-                docs_zh = f.read()
-            
-        en_pattern = os.path.join(static_dir, 'lvgl_image_en_*.md')
-        en_files = sorted(glob.glob(en_pattern))
-        if en_files:
-            with open(en_files[-1], 'r', encoding='utf-8') as f:
-                docs_en = f.read()
-    except Exception as e:
-        current_app.logger.error(f"Docs path error: {e}")
-        
-    return render_template('lvgl_image.html', docs_zh=docs_zh, docs_en=docs_en)
+    return render_template('lvgl_image.html')
 
 @lvgl_image_bp.route('/usage')
 def get_usage():

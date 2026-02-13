@@ -93,10 +93,24 @@ def create_app():
 
                 if "</body>" in data:
                     bug_widget = """
+                    <!-- Help Button -->
+                    <div id="help-trigger" onclick="toggleHelpModal()" style="position:fixed; right:24px; bottom:160px; width:48px; height:48px; background:white; border:1px solid #f1f5f9; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border-radius:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:9999; transition:all 0.3s;" onmouseover="this.style.transform='scale(1.1)';" onmouseout="this.style.transform='scale(1)';">
+                        <i class="ri-book-open-line" style="font-size:20px; color:#94a3b8;"></i>
+                    </div>
+
                     <!-- Bug 反馈悬浮按钮 -->
                     <div id="bug-report-trigger" onclick="toggleBugModal()" style="position:fixed; right:24px; bottom:100px; width:48px; height:48px; background:white; border:1px solid #f1f5f9; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border-radius:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:9999; transition:all 0.3s;" onmouseover="this.style.transform='scale(1.1)';" onmouseout="this.style.transform='scale(1)';">
                         <i class="ri-bug-2-line" style="font-size:20px; color:#94a3b8;"></i>
                     </div>
+
+                    <!-- Help Modal -->
+                    <div id="help-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.4); backdrop-filter:blur(4px); z-index:10000; align-items:center; justify-content:center; padding:16px;">
+                        <div style="background:white; width:100%; max-width:600px; max-height:80vh; overflow-y:auto; border-radius:32px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); padding:32px; position:relative;">
+                            <div id="help-content" style="font-size:14px; color:#475569; line-height:1.6;"></div>
+                            <button onclick="toggleHelpModal()" style="position:absolute; top:24px; right:24px; border:none; background:none; cursor:pointer; color:#94a3b8;"><i class="ri-close-line" style="font-size:20px;"></i></button>
+                        </div>
+                    </div>
+
                     <div id="bug-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.4); backdrop-filter:blur(4px); z-index:10000; align-items:center; justify-content:center; padding:16px;">
                         <div style="background:white; width:100%; max-width:400px; border-radius:32px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); padding:32px; position:relative;">
                             <h3 class="bug-i18n" data-zh="报告问题" data-en="Report Issue" style="font-weight:900; font-size:20px; margin-bottom:8px;">报告问题</h3>
@@ -113,53 +127,7 @@ def create_app():
                             <button onclick="toggleBugModal()" style="position:absolute; top:24px; right:24px; border:none; background:none; cursor:pointer; color:#94a3b8;"><i class="ri-close-line" style="font-size:20px;"></i></button>
                         </div>
                     </div>
-                    <script>
-                        function updateBugPreview(i) {
-                            const l = document.getElementById('bug-preview-name');
-                            const lang = localStorage.getItem('lang') || 'zh';
-                            if (i.files && i.files.length > 0) { 
-                                l.innerText = (lang === 'en' ? "Selected: " : "已选择: ") + i.files.length + (lang === 'en' ? " images" : " 张图片");
-                                l.style.color = "#3b82f6"; 
-                            }
-                        }
-                        function toggleBugModal() {
-                            const m = document.getElementById('bug-modal');
-                            const isHidden = m.style.display === 'none';
-                            m.style.display = isHidden ? 'flex' : 'none';
-                            if(isHidden) {
-                                const lang = localStorage.getItem('lang') || 'zh';
-                                document.querySelectorAll('.bug-i18n').forEach(el => { el.innerText = el.getAttribute('data-' + lang); });
-                                document.querySelectorAll('.bug-i18n-ph').forEach(el => { el.placeholder = el.getAttribute('data-' + lang + '-ph'); });
-                            }
-                        }
-                        async function submitBug() {
-                            const btn = document.getElementById('bug-submit-btn');
-                            const content = document.getElementById('bug-content').value.trim();
-                            const fileInput = document.getElementById('bug-image');
-                            const lang = localStorage.getItem('lang') || 'zh';
-                            if(!content) return;
-                            btn.disabled = true; btn.innerText = lang === 'en' ? "Sending..." : "发送中...";
-                            const fd = new FormData();
-                            fd.append('content', content);
-                            fd.append('page_url', window.location.href);
-                            fd.append('device_info', navigator.userAgent);
-                            for(let i=0; i<fileInput.files.length; i++) { fd.append('image', fileInput.files[i]); }
-                            try {
-                                const r = await fetch('/support/report_bug', { method: 'POST', body: fd });
-                                if(r.ok) { 
-                                    alert(lang === 'en' ? "Thank you!" : "反馈已收到，感谢支持！"); 
-                                    document.getElementById('bug-content').value=""; 
-                                    fileInput.value=""; 
-                                    document.getElementById('bug-preview-name').innerText = lang === 'en' ? "Upload Screenshots" : "上传截图 (支持多选)";
-                                    toggleBugModal(); 
-                                } else { alert("Failed"); }
-                            } catch(e) { alert("Network error"); }
-                            finally { 
-                                btn.disabled = false; 
-                                btn.innerText = lang === 'en' ? "Submit Feedback" : "提交反馈"; 
-                            }
-                        }
-                    </script>
+                    <script src="/support/static/js/support_widget.js"></script>
                     """
                     response.set_data(data.replace("</body>", bug_widget + "</body>"))
                 if is_passthrough:

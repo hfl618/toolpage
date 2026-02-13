@@ -1,8 +1,54 @@
+import os
+import glob
 from flask import Blueprint, request, jsonify
 from tools.database import d1
 from tools.r2_client import upload_to_r2
 
-support_bp = Blueprint('support', __name__)
+support_bp = Blueprint('support', __name__, template_folder='templates', static_folder='static')
+
+@support_bp.route('/help_doc')
+def get_help_doc():
+    path = request.args.get('path', '')
+    lang = request.args.get('lang', 'zh')
+    
+    parts = path.strip('/').split('/')
+    if not parts or parts[0] == '': 
+        module = 'inventory' # 默认模块
+    else:
+        module = parts[0]
+        if module == 'projects': module = 'project_hub'
+        if module in ['auth', 'login', 'profile']: module = 'user'
+        if module == 'support': module = 'support' # 明确 support
+    
+    if not module.replace('_', '').isalnum(): return jsonify(success=False)
+
+    try:
+        # 兼容根目录和 tools 目录运行
+        base_path = os.getcwd()
+        if not base_path.endswith('toolpage'):
+             # 如果在子目录运行，尝试定位到根
+             pass
+             
+        static_dir = os.path.join(base_path, 'tools', module, 'static')
+        pattern = os.path.join(static_dir, f"{module}_{lang}_*.md")
+        files = sorted(glob.glob(pattern))
+        
+        content = ""
+        if files:
+            with open(files[-1], 'r', encoding='utf-8') as f:
+                content = f.read()
+        else:
+            # 如果没找到对应语言，尝试找英文
+            if lang == 'zh':
+                pattern_en = os.path.join(static_dir, f"{module}_en_*.md")
+                files_en = sorted(glob.glob(pattern_en))
+                if files_en:
+                    with open(files_en[-1], 'r', encoding='utf-8') as f:
+                        content = f.read()
+        
+        return jsonify(success=True, content=content)
+    except Exception as e:
+        return jsonify(success=False, error=str(e))
 
 def get_visitor_id():
     uid = request.headers.get('X-User-Id')
