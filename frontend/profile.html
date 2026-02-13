@@ -186,8 +186,9 @@
         const d = await r.json();
         if (d.success) {
           if(d.user) { 
+              const avatarUrl = d.user.avatar ? (d.user.avatar + (d.user.avatar.includes('?') ? '&' : '?') + 'v=' + Date.now()) : ('https://api.dicebear.com/7.x/avataaars/svg?seed=' + d.user.username);
               document.getElementById('u-name').innerText = d.user.username; 
-              document.getElementById('u-avatar').src = d.user.avatar || ('https://api.dicebear.com/7.x/avataaars/svg?seed=' + d.user.username); 
+              document.getElementById('u-avatar').src = avatarUrl; 
               document.getElementById('u-role-tag').innerText = d.user.role.toUpperCase() + ' MEMBER';
           }
           const s = d.stats || {};

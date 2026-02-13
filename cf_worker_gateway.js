@@ -512,7 +512,7 @@ function renderProfile(user) {
     <div class="md:col-span-4 space-y-3">
       <div class="bento-card p-10 text-center relative overflow-hidden rounded-[40px]">
         <div class="relative w-28 h-28 mx-auto z-10 group cursor-pointer" onclick="document.getElementById('avatar-input').click()">
-          <img id="u-avatar" src="${user.avatar}" class="w-full h-full rounded-[40px] border-4 border-white shadow-2xl bg-white object-cover">
+          <img id="u-avatar" src="${user.avatar + (user.avatar.includes('?') ? '&' : '?') + 'v=' + Date.now()}" class="w-full h-full rounded-[40px] border-4 border-white shadow-2xl bg-white object-cover">
           <div class="absolute inset-0 bg-black/40 rounded-[40px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-white text-2xl"><i class="ri-camera-lens-line"></i></div>
         </div>
         <input type="file" id="avatar-input" class="hidden" accept="image/*" onchange="uploadAvatar(this)">

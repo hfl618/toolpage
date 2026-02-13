@@ -89,6 +89,7 @@
             const area = document.getElementById('userArea');
             if(d.success && d.user) {
                 const user = d.user;
+                const avatarUrl = user.avatar ? (user.avatar + (user.avatar.includes('?') ? '&' : '?') + 'v=' + Date.now()) : ('https://api.dicebear.com/7.x/avataaars/svg?seed=' + user.username);
                 const profileLabel = currentLang === 'zh' ? '个人中心' : 'Profile';
                 const logoutLabel = currentLang === 'zh' ? '退出登录' : 'Logout';
                 const fromParam = window.location.pathname.split('/')[1] || '';
@@ -97,7 +98,7 @@
                 area.innerHTML = `
                     <div class="relative">
                         <div class="flex items-center gap-2 p-1.5 pr-4 rounded-full bg-white border border-gray-100 shadow-sm cursor-pointer hover:bg-slate-50 transition-all" onclick="if(!event.target.closest('#userMenu')) location.href='${profileUrl}'">
-                            <img src="${user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + user.username}" class="w-8 h-8 rounded-full object-cover">
+                            <img src="${avatarUrl}" class="w-8 h-8 rounded-full object-cover">
                             <span class="text-xs font-bold text-slate-700 hidden md:inline">${user.username}</span>
                             <div class="p-1 hover:bg-slate-100 rounded-md" onclick="event.stopPropagation(); toggleUserMenu()">
                                 <i class="ri-arrow-down-s-line text-slate-400"></i>
