@@ -79,15 +79,15 @@ def create_app():
 
     @app.after_request
     def after_request_hook(response):
-        # 1. 自动记录日志
-        if request.method in ['POST', 'PUT', 'DELETE'] or request.path == '/inventory/':
-            uid = request.headers.get('X-User-Id')
-            if uid:
-                from tools.database import d1
-                try:
-                    d1.execute("INSERT INTO usage_logs (user_id, path, status) VALUES (?, ?, ?)", 
-                               [uid, request.path, response.status_code])
-                except: pass
+        # 1. 自动记录日志 (暂时注释，规避 D1 同步阻塞导致 504)
+        # if request.method in ['POST', 'PUT', 'DELETE'] or request.path == '/inventory/':
+        #     uid = request.headers.get('X-User-Id')
+        #     if uid:
+        #         from tools.database import d1
+        #         try:
+        #             d1.execute("INSERT INTO usage_logs (user_id, path, status) VALUES (?, ?, ?)", 
+        #                        [uid, request.path, response.status_code])
+        #         except: pass
         
         # 2. 全局注入 Bug 反馈组件 (支持 i18n)
         if response.content_type and "text/html" in response.content_type:

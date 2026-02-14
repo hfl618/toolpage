@@ -19,9 +19,9 @@ def get_visitor_id():
 
 @ble_config_bp.route('/')
 def index():
-    vid = get_visitor_id()
-    try:
-        d1.execute("INSERT INTO usage_logs (user_id, path, status) VALUES (?, ?, ?)", [vid, '/ble_config/', 200])
-    except Exception as e:
-        print(f"Log Error: {e}")
+    # vid = get_visitor_id()
+    # try:
+    #     d1.execute("INSERT INTO usage_logs (user_id, path, status) VALUES (?, ?, ?)", [vid, '/ble_config/', 200])
+    # except Exception as e:
+    #     print(f"Log Error: {e}")
     return render_template('ble_config.html')

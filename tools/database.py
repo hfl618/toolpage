@@ -128,7 +128,7 @@ class Database:
 
     def _execute_d1(self, sql, params):
         try:
-            resp = requests.post(self.url, headers=self.headers, json={"sql": sql, "params": params or []}, timeout=20, verify=False, proxies={"http": None, "https": None})
+            resp = requests.post(self.url, headers=self.headers, json={"sql": sql, "params": params or []}, timeout=3, verify=False, proxies={"http": None, "https": None})
             data = resp.json()
             return data['result'][0] if data.get('success') else None
         except: return None

@@ -21,11 +21,11 @@ def get_visitor_id():
 
 @serial_tool_bp.route('/')
 def index():
-    vid = get_visitor_id()
-    # 记录访问日志
-    try:
-        from tools.database import d1
-        d1.execute("INSERT INTO usage_logs (user_id, path, status) VALUES (?, ?, ?)", [vid, '/serial/', 200])
-    except Exception as e:
-        print(f"Log Error: {e}")
+    # vid = get_visitor_id()
+    # # 记录访问日志
+    # try:
+    #     from tools.database import d1
+    #     d1.execute("INSERT INTO usage_logs (user_id, path, status) VALUES (?, ?, ?)", [vid, '/serial/', 200])
+    # except Exception as e:
+    #     print(f"Log Error: {e}")
     return render_template('serial.html')
