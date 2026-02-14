@@ -18,6 +18,7 @@ def get_help_doc():
         module = parts[0]
         if module == 'projects': module = 'project_hub'
         if module == 'serial': module = 'serial_tool'
+        if module == 'ble_config': module = 'ble_config'
         if module in ['auth', 'login', 'profile']: module = 'user'
         if module == 'support': module = 'support'
     

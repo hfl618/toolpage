@@ -1,7 +1,8 @@
 /**
- * Serial Studio Pro v3.9 - Terminal Parity Edition
+ * Serial Studio Pro v3.9 - Global Stability Patch
  */
 
+// 1. 全局状态
 let port, reader, writer;
 let keepReading = false;
 let rxCount = 0;
@@ -9,10 +10,10 @@ let txHistory = [];
 let historyIndex = -1;
 let isTerminalHovered = false;
 let lastLogTime = 0;
-let lastEntryElement = null;
-let lineBuffer = ""; 
+let lineBuffer = "";
 let demoTimer = null;
 
+// 配置数据
 let macros = [];
 let macroTimers = {};
 let autoReplies = [];
@@ -23,12 +24,14 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
 const utf8Decoder = new TextDecoder('utf-8');
 const gbkDecoder = new TextDecoder('gbk');
 
+// 2. 初始化
 document.addEventListener('DOMContentLoaded', () => {
     const term = document.getElementById('terminal');
     if (term) {
         term.addEventListener('mouseenter', () => { isTerminalHovered = true; });
         term.addEventListener('mouseleave', () => { isTerminalHovered = false; });
     }
+    
     document.getElementById('txInput')?.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowUp') {
             e.preventDefault();
@@ -47,7 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    loadPersistedData(); renderMacros(); renderAutoReplies(); renderHighlightRules();
+
+    loadPersistedData();
+    renderMacros();
+    renderAutoReplies();
+    initHighlighter();
 });
 
 function loadPersistedData() {
@@ -59,7 +66,49 @@ function loadPersistedData() {
     if (!macros.length) macros = [{ label: 'HELP', cmd: 'help', interval: 0, isHex: false }];
 }
 
-// 核心流渲染 (修复排版多余换行)
+// 3. UI 交互逻辑 (必须全局可见)
+
+async function toggleConnection() {
+    const btn = document.getElementById('connectBtn');
+    const dot = document.getElementById('statusDot');
+    if (port) {
+        keepReading = false;
+        try { if(reader) await reader.cancel(); port = null; } catch(e){}
+        if(btn) { 
+            btn.innerHTML = currentLang === 'zh' ? '<i class="ri-plug-line"></i> 开启连接' : '<i class="ri-plug-line"></i> Open Connection'; 
+            btn.classList.remove('btn-connect-active'); 
+        }
+        if(dot) dot.classList.remove('connected');
+        return;
+    }
+    try {
+        if (!navigator.serial) return alert(currentLang === 'zh' ? "浏览器不支持 Web Serial API" : "Web Serial API not supported");
+        port = await navigator.serial.requestPort();
+        const baud = parseInt(document.getElementById('baudRate').value) || 115200;
+        await port.open({ baudRate: baud });
+        if(btn) { 
+            btn.innerHTML = currentLang === 'zh' ? '<i class="ri-plug-fill"></i> 断开连接' : '<i class="ri-plug-fill"></i> Disconnect'; 
+            btn.classList.add('btn-connect-active'); 
+        }
+        if(dot) dot.classList.add('connected');
+        appendLogStream("System", `Connected: ${baud}\n`);
+        keepReading = true; readLoop();
+    } catch (e) { 
+        if (e.name === 'NetworkError') alert(currentLang === 'zh' ? "连接失败：串口可能已被占用（如 idf.py monitor）。请先关闭占用进程。" : "Connection failed: Port might be busy.");
+        else alert(e.message); 
+    }
+}
+
+function resetTerminal() { clearLog(); seriesData = {}; renderChart(); appendLogStream("System", "View Reset\n"); }
+function toggleChart() { const container = document.getElementById('chartContainer'); const isShow = document.getElementById('showChart')?.checked; if(container) container.classList.toggle('hidden', !isShow); if(isShow) renderChart(); }
+function toggleTimeMode() { const el = document.getElementById('tsMode'); if(el) el.value = el.value === 'abs' ? 'delta' : 'abs'; }
+function clearLog() { const term = document.getElementById('terminal'); if(term) term.innerHTML = ""; rxCount = 0; document.getElementById('rxCounter').innerText = "0"; lineBuffer = ""; }
+function showAutoReplyEditor() { document.getElementById('autoReplyEditor')?.classList.remove('hidden'); }
+function hideAutoReplyEditor() { document.getElementById('autoReplyEditor')?.classList.add('hidden'); }
+function showMacroEditor() { document.getElementById('macroEditor')?.classList.remove('hidden'); }
+function hideMacroEditor() { document.getElementById('macroEditor')?.classList.add('hidden'); }
+
+// 4. 数据处理流
 function appendLogStream(type, text, isHexMode = false, isSim = false) {
     const term = document.getElementById('terminal');
     if(!term || !text) return;
@@ -77,13 +126,8 @@ function appendLogStream(type, text, isHexMode = false, isSim = false) {
         const div = document.createElement('div');
         div.className = 'log-entry';
         div.dataset.type = type;
-        
-        const simHtml = isSim ? `<span class="badge-sim">SIM</span>` : '';
         const colorClass = (type === 'TX') ? 'tx-msg' : (type === 'Auto' ? 'auto-msg' : (type === 'System' ? 'sys-msg' : 'rx-msg'));
-        
-        // 关键点：将 innerHTML 连成一行写，避免 pre-wrap 捕捉到代码里的换行符
-        div.innerHTML = `<span class="timestamp" onclick="toggleTimeMode()">[${timeStr}]</span>${simHtml}<span class="opacity-50 mr-1 font-bold text-[10px]">${type}:</span><span class="content-body ${isHexMode ? 'rx-hex' : colorClass}">${text}</span>`;
-        
+        div.innerHTML = `<span class="timestamp" onclick="toggleTimeMode()">[${timeStr}]</span>${isSim?'<span class="badge-sim">SIM</span>':''}<span class="opacity-50 mr-1 font-bold text-[10px]">${type}:</span><span class="content-body ${isHexMode?'rx-hex':colorClass}">${text}</span>`;
         term.appendChild(div);
         lastEntryElement = div;
     } else {
@@ -91,12 +135,8 @@ function appendLogStream(type, text, isHexMode = false, isSim = false) {
         if (body) body.textContent += text;
     }
 
-    if (text.includes('\n')) {
-        lastEntryElement.dataset.finalized = "true";
-    }
-
+    if (text.includes('\n')) lastEntryElement.dataset.finalized = "true";
     if (term.children.length > 1000) term.removeChild(term.firstChild);
-    
     if (document.getElementById('autoScroll')?.checked && !isTerminalHovered) {
         requestAnimationFrame(() => { term.scrollTop = term.scrollHeight; });
     }
@@ -141,51 +181,11 @@ function appendLogRGB(data, isSim) {
     lastEntryElement = null;
 }
 
-async function toggleConnection() {
-    const btn = document.getElementById('connectBtn');
-    if (port) {
-        keepReading = false;
-        try { if(reader) await reader.cancel(); port = null; } catch(e){}
-        if(btn) { btn.innerHTML = '开启连接'; btn.classList.remove('btn-connect-active'); }
-        document.getElementById('statusDot')?.classList.remove('connected');
-        return;
-    }
-    try {
-        port = await navigator.serial.requestPort();
-        const baud = parseInt(document.getElementById('baudRate').value) || 115200;
-        await port.open({ baudRate: baud });
-        if(btn) { btn.innerHTML = '断开连接'; btn.classList.add('btn-connect-active'); }
-        document.getElementById('statusDot')?.classList.add('connected');
-        appendLogStream("System", `Connected: ${baud}\n`);
-        keepReading = true; readLoop();
-    } catch (err) {
-        let msg = "连接失败: " + err.message;
-        if (err.name === 'NetworkError') msg = "连接失败：串口可能已被其它程序占用（如 idf.py monitor）。请先关闭它们再试。";
-        alert(msg);
-    }
-}
-
-async function readLoop() {
-    while (port?.readable && keepReading) {
-        reader = port.readable.getReader();
-        try { while (true) { const { value, done } = await reader.read(); if (done) break; if (value) processData(value); } } catch (e) {} finally { reader.releaseLock(); }
-    }
-}
-
-function clearLog() {
-    const term = document.getElementById('terminal'); if(term) term.innerHTML = "";
-    rxCount = 0; document.getElementById('rxCounter').innerText = "0";
-    lastEntryElement = null; lineBuffer = "";
-}
-
-function resetTerminal() { clearLog(); seriesData = {}; renderChart(); appendLogStream("System", "View Reset\n"); }
-function toggleTimeMode() { const el = document.getElementById('tsMode'); if(el) el.value = el.value === 'abs' ? 'delta' : 'abs'; }
-function toggleChart() { const container = document.getElementById('chartContainer'); const isShow = document.getElementById('showChart')?.checked; if(container) container.classList.toggle('hidden', !isShow); if(isShow) renderChart(); }
-
+// 5. 仿真
 function toggleDemoMode() {
     const isDemo = document.getElementById('demoMode')?.checked;
     if (isDemo) {
-        appendLogStream("System", "SIM Mode ON\n", false, true);
+        appendLogStream("System", "SIM Mode Started\n", false, true);
         document.getElementById('statusDot')?.classList.add('connected');
         demoTimer = setInterval(() => {
             const mode = Math.random();
@@ -194,21 +194,25 @@ function toggleDemoMode() {
         }, 1000);
     } else {
         clearInterval(demoTimer); document.getElementById('statusDot')?.classList.remove('connected');
-        appendLogStream("System", "SIM Mode OFF\n");
+        appendLogStream("System", "SIM Mode Stopped\n");
     }
 }
 
+// 6. 宏与自动化
 function renderMacros() {
     const grid = document.getElementById('macroGrid'); if(!grid) return;
     grid.innerHTML = macros.map((m, i) => `
         <div class="relative group">
-            <button class="btn-macro-item ${macroTimers[i]?'polling':''}" onclick="handleMacroClick(${i})">
+            <button class="btn-macro-item ${macroTimers[i]?'polling':''} pr-16" onclick="handleMacroClick(${i})">
                 <div class="truncate">${m.label}</div>
-                ${macroTimers[i]?'<span class="absolute top-1 right-1 flex h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse"></span>':''}
+                ${macroTimers[i]?'<span class="absolute top-2 left-2 flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>':''}
             </button>
-            <div class="macro-actions"><div class="action-circle" onclick="event.stopPropagation(); editMacro(${i})"><i class="ri-edit-line"></i></div><div class="action-circle delete" onclick="event.stopPropagation(); deleteMacro(${i})"><i class="ri-close-line"></i></div></div>
+            <div class="macro-actions">
+                <div class="action-circle" title="Edit" onclick="event.stopPropagation(); editMacro(${i})"><i class="ri-edit-line"></i></div>
+                <div class="action-circle delete" title="Delete" onclick="event.stopPropagation(); deleteMacro(${i})"><i class="ri-close-line"></i></div>
+            </div>
         </div>
-    `).join('') + `<button class="btn-macro-item border-dashed border-2 border-slate-200 text-slate-300" onclick="editMacro(-1)"><i class="ri-add-line text-lg"></i></button>`;
+    `).join('') + `<button class="btn-macro-item border-dashed border-2 border-slate-200 text-slate-300 flex items-center justify-center" onclick="editMacro(-1)"><i class="ri-add-line text-lg"></i></button>`;
 }
 
 function handleMacroClick(i) {
@@ -219,8 +223,6 @@ function handleMacroClick(i) {
     } else { sendText(m.cmd, m.isHex); }
 }
 
-function showMacroEditor() { document.getElementById('macroEditor')?.classList.remove('hidden'); }
-function hideMacroEditor() { document.getElementById('macroEditor')?.classList.add('hidden'); }
 function editMacro(i) {
     showMacroEditor();
     if (i === -1) {
@@ -253,8 +255,6 @@ function renderAutoReplies() {
         <div class="dynamic-item text-[10px] group"><div class="text-slate-400 font-black uppercase">If: <span class="text-slate-700">${r.match}</span></div><div class="text-blue-500 font-black uppercase">Re: <span class="text-blue-600">${r.reply}</span></div><div class="macro-actions"><div class="action-circle delete" onclick="removeAutoReply(${i})"><i class="ri-close-line"></i></div></div></div>
     `).join('');
 }
-function showAutoReplyEditor() { document.getElementById('autoReplyEditor')?.classList.remove('hidden'); }
-function hideAutoReplyEditor() { document.getElementById('autoReplyEditor')?.classList.add('hidden'); }
 function saveAutoReply() {
     const match = document.getElementById('autoMatchInput').value.trim();
     const reply = document.getElementById('autoReplyInput').value.trim();
@@ -271,6 +271,11 @@ function checkAutoReply(text) {
     autoReplies.forEach(rule => { if (text.includes(rule.match)) sendText(rule.reply); });
 }
 
+function initHighlighter() {
+    const saved = localStorage.getItem('serial_highlights');
+    if (saved) try { highlightRules = JSON.parse(saved); } catch(e){}
+    renderHighlightRules();
+}
 function renderHighlightRules() {
     const container = document.getElementById('highlightRules'); if(!container) return;
     container.innerHTML = highlightRules.map((r, i) => `
@@ -285,12 +290,7 @@ function addHighlightRule() {
 }
 function removeHighlight(i) { highlightRules.splice(i, 1); localStorage.setItem('serial_highlights', JSON.stringify(highlightRules)); renderHighlightRules(); }
 
-function filterLogs() {
-    const term = document.getElementById('terminal'); const query = document.getElementById('logSearch')?.value.toLowerCase().trim();
-    if(!term) return;
-    Array.from(term.children).forEach(row => { row.style.display = (!query || row.textContent.toLowerCase().includes(query)) ? '' : 'none'; });
-}
-
+// 7. 发送
 async function sendFromInput() {
     const input = document.getElementById('txInput'); if(!input || !input.value) return;
     const text = input.value;
@@ -322,6 +322,7 @@ async function sendText(data, isHex = false) {
     } catch (e) { console.error(e); } finally { writer.releaseLock(); }
 }
 
+// 8. 辅助
 function processWaveform(text) {
     if (!document.getElementById('showChart')?.checked) return;
     const kvRegex = /([a-zA-Z_]+):(-?\d+\.?\d*)/g;
@@ -334,7 +335,6 @@ function processWaveform(text) {
     }
     if (found) renderChart();
 }
-
 function renderChart() {
     const canvas = document.getElementById('waveformCanvas'); if (!canvas || canvas.offsetParent === null) return;
     const ctx = canvas.getContext('2d'); const rect = canvas.getBoundingClientRect();
@@ -356,7 +356,12 @@ function renderChart() {
         ctx.fillText(`${key}: ${data[data.length-1].toFixed(1)}`, 10, 15 + kIdx * 12);
     });
 }
-
+function resetChart() { seriesData = {}; renderChart(); }
+function filterLogs() {
+    const term = document.getElementById('terminal'); const query = document.getElementById('logSearch')?.value.toLowerCase().trim();
+    if(!term) return;
+    Array.from(term.children).forEach(row => { row.style.display = (!query || row.textContent.toLowerCase().includes(query)) ? '' : 'none'; });
+}
 function exportMacros() {
     const blob = new Blob([JSON.stringify({macros, autoReplies})], {type:'application/json'});
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `config.json`; a.click();
@@ -381,4 +386,9 @@ function downloadLog() {
     const blob = new Blob([Array.from(term.children).map(el => el.textContent).join('\n')], {type:'text/plain'});
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `log.txt`; a.click();
 }
-function resetChart() { seriesData = {}; renderChart(); }
+async function readLoop() {
+    while (port?.readable && keepReading) {
+        reader = port.readable.getReader();
+        try { while (true) { const { value, done } = await reader.read(); if (done) break; if (value) processData(value); } } catch (e) {} finally { reader.releaseLock(); }
+    }
+}

@@ -37,6 +37,9 @@ def create_app():
     from tools.serial_tool.routes import serial_tool_bp
     app.register_blueprint(serial_tool_bp, url_prefix='/serial')
 
+    from tools.ble_config.routes import ble_config_bp
+    app.register_blueprint(ble_config_bp, url_prefix='/ble_config')
+
     from tools.support.routes import support_bp
     app.register_blueprint(support_bp, url_prefix='/support')
 
@@ -59,6 +62,7 @@ def create_app():
            request.path == '/health' or request.path == '/proxy_img' or \
            request.path.startswith('/lvgl_image') or \
            request.path.startswith('/serial') or \
+           request.path.startswith('/ble_config') or \
            request.path.startswith('/support') or \
            request.path.startswith('/static') or request.path.endswith('.html'):
             return
