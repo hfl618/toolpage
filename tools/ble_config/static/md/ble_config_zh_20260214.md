@@ -1,41 +1,75 @@
-# WebBLE 设备配网工具 (Pro)
+# WebBLE 设备配网工具实战指南
 
-本工具利用浏览器原生的 **Web Bluetooth API**，通过加密的蓝牙通道直接对嵌入式设备（如 ESP32）进行多组 Wi-Fi 账号下发及硬件指令控制。
+本工具通过 Web Bluetooth API 实现 PC/手机浏览器与硬件的直连配网。无需安装 App，即可安全、极速地同步网络配置。
 
-## 核心特性
+---
 
-- **多账号同步**: 支持一次性下发最多 3 组 Wi-Fi 账号，设备可根据信号强度自动切换。
-- **数据压缩协议**: 采用缩写键名的 JSON 格式，最大程度减小 BLE MTU 传输压力。
-- **专业级 UI**: 采用与 Serial Studio 一致的侧边栏控制布局，适配 PC 与移动端。
-- **离线安全**: 所有配网数据直接传输至硬件，不经过任何云端服务器，保障隐私安全。
+## 一、 环境准备
 
-## 数据传输格式 (JSON)
+### 1.1 浏览器要求
+- **Android / Windows / macOS**: 请使用 **Google Chrome** 或 **Microsoft Edge**。
+- **iOS (iPhone/iPad)**: 系统原生 Safari 不支持蓝牙。请从 App Store 下载 **Bluefy** 或 **WebBLE** 浏览器使用。
 
-下发 Wi-Fi 列表时，网页端会通过特征值发送如下格式的字符串：
+### 1.2 安全要求
+Web Bluetooth API 强制要求安全环境。本工具必须在 **HTTPS** 域名下或本地 **localhost** 环境运行。
+
+---
+
+## 二、 使用方法 (操作步骤)
+
+### 第 1 步：准备硬件
+确保您的 ESP32 等硬件已开启蓝牙广播，并配置了正确的 Service UUID (`12345678-1234-5678-1234-56789abcdef0`)。
+
+### 第 2 步：搜索并连接
+1. 点击页面右侧的 **“搜索并连接设备”** 按钮。
+2. 在浏览器弹出的系统对话框中，选择对应的硬件名称。
+3. **状态观察**: 
+   - 按钮变为红色“断开连接”。
+   - 顶部状态灯变为 **绿色呼吸状态**。
+   - 界面左侧的配置区和高级功能区自动解锁。
+
+### 第 3 步：配置 Wi-Fi 列表
+1. 在 **“首选连接网络”** 中输入您最常用的 Wi-Fi 名称和密码。
+2. 如需备份，点击标题栏右侧的 **“添加备用”**。本工具支持最多 **3 组** 账号同步。
+3. **信号策略**: 硬件收到多组配置后，会自动扫描环境并连接信号最强的一组。
+
+### 第 4 步：同步并生效
+点击底部的 **“下发配置到设备”**。
+- 成功后按钮会显示绿色的勾选标记。
+- 设备接收到 JSON 报文后，通常会自动重启并尝试联网。
+
+---
+
+## 三、 数据协议规范 (JSON Over BLE)
+
+网页端发送至 BLE 特征值的报文格式：
 
 ```json
 {
   "cmd": "SAVE_LIST",
   "list": [
     {"s": "Home_WiFi", "p": "12345678"},
-    {"s": "Office_WiFi", "p": "87654321"},
-    {"s": "Guest_WiFi", "p": "password"}
+    {"s": "Office_5G", "p": "work_password"}
   ]
 }
 ```
-- **cmd**: 指令类型，`SAVE_LIST` 表示保存 Wi-Fi 列表，`CMD_REBOOT` 表示重启等。
-- **s**: SSID 的缩写，最大 32 字节。
-- **p**: Password 的缩写，最大 64 字节。
+- **cmd**: `SAVE_LIST` (保存列表), `CMD_REBOOT` (重启), `CMD_FACTORY` (重置)。
+- **s**: SSID（网络名称）。
+- **p**: Password（密码）。
 
 ---
 
-## ESP32 端对接实现 (C 语言)
+## 四、 ESP32 端代码实现 (C 语言)
 
-### 1. 数据结构定义
-在 `wifi_service.h` 中定义配网数据库结构：
+建议使用 **ESP-IDF** 框架配合 **cJSON** 库实现。
 
+### 4.1 存储结构定义
 ```c
+#include "nvs_flash.h"
+
 #define MAX_WIFI_PROFILES 3
+#define NVS_NAMESPACE "storage"
+#define NVS_KEY_WIFI "wifi_db"
 
 typedef struct {
     char ssid[32];
@@ -48,11 +82,10 @@ typedef struct {
 } wifi_db_t;
 ```
 
-### 2. JSON 解析逻辑 (使用 cJSON)
-在 BLE 接收回调函数中解析收到的数据：
-
+### 4.2 核心处理逻辑
 ```c
 #include "cJSON.h"
+#include "esp_log.h"
 
 void handle_ble_data(const char* json_str) {
     cJSON *root = cJSON_Parse(json_str);
@@ -61,31 +94,38 @@ void handle_ble_data(const char* json_str) {
     cJSON *cmd = cJSON_GetObjectItem(root, "cmd");
     if (cmd && strcmp(cmd->valuestring, "SAVE_LIST") == 0) {
         cJSON *list = cJSON_GetObjectItem(root, "list");
-        wifi_db_t new_db = {0};
-        new_db.count = cJSON_GetArraySize(list);
+        if (cJSON_IsArray(list)) {
+            wifi_db_t new_db = {0};
+            new_db.count = cJSON_GetArraySize(list);
+            if (new_db.count > MAX_WIFI_PROFILES) new_db.count = MAX_WIFI_PROFILES;
 
-        for (int i = 0; i < new_db.count && i < MAX_WIFI_PROFILES; i++) {
-            cJSON *item = cJSON_GetArrayItem(list, i);
-            cJSON *s = cJSON_GetObjectItem(item, "s");
-            cJSON *p = cJSON_GetObjectItem(item, "p");
-            
-            if (s) strncpy(new_db.profiles[i].ssid, s->valuestring, 32);
-            if (p) strncpy(new_db.profiles[i].password, p->valuestring, 64);
+            for (int i = 0; i < new_db.count; i++) {
+                cJSON *item = cJSON_GetArrayItem(list, i);
+                cJSON *s = cJSON_GetObjectItem(item, "s");
+                cJSON *p = cJSON_GetObjectItem(item, "p");
+                if (s) strncpy(new_db.profiles[i].ssid, s->valuestring, 31);
+                if (p) strncpy(new_db.profiles[i].password, p->valuestring, 63);
+            }
+
+            // 存入 NVS 永久保存
+            nvs_handle_t handle;
+            if (nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle) == ESP_OK) {
+                nvs_set_blob(handle, NVS_KEY_WIFI, &new_db, sizeof(wifi_db_t));
+                nvs_commit(handle);
+                nvs_close(handle);
+            }
+            esp_restart(); // 应用新配网
         }
-
-        // 写入 NVS 永久保存
-        save_to_nvs(&new_db);
-        // 重启或重新扫描 Wi-Fi
-        esp_restart(); 
     }
     cJSON_Delete(root);
 }
 ```
 
-## 兼容性与安全
+---
 
-1. **协议要求**: BLE 必须开启 MTU 交换（MTU >= 256 字节以容纳完整 JSON）。
-2. **浏览器**: 
-   - Android/Chrome, Edge。
-   - iOS 需使用 **Bluefy** 或 **WebBLE** 浏览器。
-3. **环境**: 必须在 **HTTPS** 或 **localhost** 下运行。
+## 五、 常见问题 (FAQ)
+
+- **Q: 为什么点击“下发”后硬件无反应？**
+  - A: 请检查 BLE MTU 是否协商成功（建议 256 或 512）。如果 MTU 过小（如默认 23 字节），JSON 数据会被截断导致解析失败。
+- **Q: 蓝牙连接后自动断开？**
+  - A: 请检查硬件端的连接超时设置，或确认是否有其他设备正在争抢连接。

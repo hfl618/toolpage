@@ -1,6 +1,6 @@
 {% extends "support/layout.html" %}
 
-{% block title %}设备蓝牙配网 Pro{% endblock %}
+{% block title %}设备配网 Pro{% endblock %}
 {% block app_icon %}<i class="ri-bluetooth-connect-line"></i>{% endblock %}
 {% block app_name %}<span class="i18n" data-zh="设备配网" data-en="BLE Config">设备配网</span>{% endblock %}
 
@@ -175,7 +175,7 @@
                 <div id="bleStatusText" class="text-2xl font-black text-slate-900 i18n mb-1" data-zh="未连接" data-en="Disconnected">未连接</div>
                 <div id="deviceName" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Device Offline</div>
                 
-                <button id="btnConnect" class="btn-pro btn-pro-accent" onclick="toggleBLE()">
+                <button id="btnConnect" class="btn-pro btn-pro-accent">
                     <i class="ri-bluetooth-line"></i> <span id="btnConnectText" class="i18n" data-zh="搜索并连接设备" data-en="Search & Connect">搜索并连接设备</span>
                 </button>
             </div>
@@ -200,9 +200,9 @@
                         <i class="ri-cloud-windy-line text-purple-500 text-xl"></i>
                         <span class="text-[11px] font-black text-slate-600 i18n" data-zh="OTA" data-en="OTA">OTA</span>
                     </div>
-                    <div class="feature-btn" onclick="sendCommand('CMD_TEST_AUDIO')">
-                        <i class="ri-volume-up-line text-green-500 text-xl"></i>
-                        <span class="text-[11px] font-black text-slate-600 i18n" data-zh="测试" data-en="Test">测试</span>
+                    <div class="feature-btn" onclick="sendCommand('PING')">
+                        <i class="ri-signal-tower-line text-green-500 text-xl"></i>
+                        <span class="text-[11px] font-black text-slate-600 i18n" data-zh="连接测试" data-en="Test PING">连接测试</span>
                     </div>
                 </div>
             </div>
@@ -219,12 +219,14 @@
 
 {% block extra_js %}
 <script>
+    // 1. 全局配置与状态
     const BLE_SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"; 
     const BLE_CHAR_UUID    = "abcdef01-1234-5678-1234-56789abcdef0";
 
     let bleDevice = null;
     let bleCharacteristic = null;
 
+    // 2. 元素引用
     const dot = document.getElementById('bleStatusDot');
     const statusText = document.getElementById('bleStatusText');
     const btnConnectText = document.getElementById('btnConnectText');
@@ -232,21 +234,69 @@
     const btnSend = document.getElementById('btnSend');
     const extFeatures = document.getElementById('extFeatures');
 
-    function onLangChange() {
-        document.querySelectorAll('.i18n-ph').forEach(el => {
-            const ph = el.getAttribute('data-' + currentLang + '-ph');
-            if(ph) el.placeholder = ph;
-        });
+    // 3. 核心功能函数
+    async function toggleBLE() {
+        console.log("toggleBLE Triggered");
         
-        // 动态更新网页标题，确保纯文本且无残留标签
-        const pageTitle = currentLang === 'zh' ? "设备配网 Pro" : "BLE Config Pro";
-        document.title = `${pageTitle} | 618002.xyz`;
-        
+        if (!navigator.bluetooth) {
+            alert(currentLang === 'zh' ? '【错误】您的浏览器不支持蓝牙' : 'Error: Browser not support BLE');
+            return;
+        }
+
+        if (bleDevice && bleDevice.gatt.connected) {
+            console.log("Disconnecting...");
+            bleDevice.gatt.disconnect();
+            return;
+        }
+
+        try {
+            console.log("Requesting Device...");
+            statusText.innerText = currentLang === 'zh' ? "搜索中..." : "Searching...";
+            
+            bleDevice = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: [BLE_SERVICE_UUID]
+            });
+
+            console.log("Device selected:", bleDevice.name);
+            bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+            document.getElementById('deviceName').innerText = bleDevice.name || "ESP32-DEVICE";
+            
+            console.log("Connecting to GATT...");
+            const server = await bleDevice.gatt.connect();
+            
+            console.log("Getting Service...");
+            const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+            
+            console.log("Getting Characteristic...");
+            bleCharacteristic = await service.getCharacteristic(BLE_CHAR_UUID);
+
+            console.log("Connected Successfully!");
+            dot.classList.add('connected');
+            updateStatusUI();
+        } catch (error) {
+            if (error.name !== 'NotFoundError') {
+                console.error("Full BLE Error:", error);
+                showToast(currentLang === 'zh' ? "连接失败: UUID 不匹配或硬件未响应" : "Connect Failed: UUID Mismatch", "error");
+            }
+            updateStatusUI();
+        }
+    }
+
+    function onDisconnected() {
+        console.log("BLE Disconnected");
+        dot.classList.remove('connected');
+        document.getElementById('deviceName').innerText = "Device Offline";
+        bleDevice = null;
+        bleCharacteristic = null;
         updateStatusUI();
     }
 
+    // 4. UI 辅助函数
     function updateStatusUI() {
         const isConnected = bleDevice && bleDevice.gatt.connected;
+        console.log("Updating UI, Connected:", isConnected);
+        
         if (!isConnected) {
             statusText.innerText = currentLang === 'zh' ? "未连接" : "Disconnected";
             btnConnectText.innerText = currentLang === 'zh' ? "搜索并连接设备" : "Search & Connect";
@@ -266,44 +316,22 @@
         }
     }
 
-    async function toggleBLE() {
-        if (!navigator.bluetooth) return alert('Browser not support BLE');
-        if (bleDevice && bleDevice.gatt.connected) {
-            bleDevice.gatt.disconnect();
-            return;
-        }
-
-        try {
-            statusText.innerText = currentLang === 'zh' ? "连接中..." : "Connecting...";
-            bleDevice = await navigator.bluetooth.requestDevice({
-                filters: [{ services: [BLE_SERVICE_UUID] }]
-            });
-
-            bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
-            document.getElementById('deviceName').innerText = bleDevice.name || "ESP32-DEVICE";
-            
-            const server = await bleDevice.gatt.connect();
-            const service = await server.getPrimaryService(BLE_SERVICE_UUID);
-            bleCharacteristic = await service.getCharacteristic(BLE_CHAR_UUID);
-
-            dot.classList.add('connected');
-            updateStatusUI();
-        } catch (error) {
-            // 仅在非用户取消的情况下记录错误
-            if (error.name !== 'NotFoundError') {
-                console.error("BLE Error:", error);
-            }
-            updateStatusUI();
-        }
-    }
-
-    function onDisconnected() {
-        dot.classList.remove('connected');
-        document.getElementById('deviceName').innerText = "Device Offline";
-        bleDevice = null;
+    function onLangChange() {
+        console.log("Language Changed to:", currentLang);
+        // 更新 placeholder
+        document.querySelectorAll('.i18n-ph').forEach(el => {
+            const ph = el.getAttribute('data-' + currentLang + '-ph');
+            if(ph) el.placeholder = ph;
+        });
+        
+        // 更新标题
+        const pageTitle = currentLang === 'zh' ? "设备配网 Pro" : "BLE Config Pro";
+        document.title = `${pageTitle} | 618002.xyz`;
+        
         updateStatusUI();
     }
 
+    // 5. 业务逻辑函数
     function addWiFiRow() {
         const container = document.getElementById('wifiListContainer');
         const rows = document.querySelectorAll('.wifi-row');
@@ -344,7 +372,8 @@
             const pwd = row.querySelector('.pwd-input').value.trim();
             if (ssid) wifiList.push({ s: ssid, p: pwd });
         });
-        if (wifiList.length === 0) return;
+        if (wifiList.length === 0) return alert(currentLang==='zh'?'请填入Wi-Fi':'Please enter WiFi');
+        
         await writeToDevice(JSON.stringify({ cmd: "SAVE_LIST", list: wifiList }));
     }
 
@@ -353,19 +382,48 @@
     }
 
     async function writeToDevice(payload) {
-        if (!bleCharacteristic) return;
+        if (!bleCharacteristic) {
+            showToast(currentLang === 'zh' ? "蓝牙未就绪" : "BLE Not Ready", "error");
+            return;
+        }
+        
         const oldHTML = btnSend.innerHTML;
+        const data = new TextEncoder().encode(payload);
+        console.log("--- BLE SEND START ---");
+        console.log("Raw Payload:", payload);
+        console.log("Byte Length:", data.length);
+        
         btnSend.innerHTML = '<i class="ri-loader-4-line animate-spin"></i>';
+        btnSend.disabled = true;
+
         try {
-            await bleCharacteristic.writeValue(new TextEncoder().encode(payload));
-            btnSend.innerHTML = '<i class="ri-check-line text-green-500"></i>';
-            setTimeout(() => { btnSend.innerHTML = oldHTML; }, 1500);
+            // 执行真正的写入操作
+            await bleCharacteristic.writeValue(data);
+            
+            console.log("GATT Write SUCCESS: ACK Received");
+            console.log("--- BLE SEND END ---");
+
+            btnSend.innerHTML = '<i class="ri-check-line"></i>';
+            showToast(currentLang === 'zh' ? `已发送 ${data.length} 字节` : `Sent ${data.length} bytes`, "success");
+            
+            setTimeout(() => {
+                btnSend.innerHTML = oldHTML;
+                btnSend.disabled = false;
+            }, 2000);
         } catch (error) {
-            alert(error.message);
+            console.error("Write Error:", error);
+            showToast((currentLang === 'zh' ? "下发失败: " : "Write Error: ") + error.message, "error");
             btnSend.innerHTML = oldHTML;
+            btnSend.disabled = false;
         }
     }
 
-    setTimeout(onLangChange, 100);
+    // 6. 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        if (btnConnect) {
+            btnConnect.addEventListener('click', toggleBLE);
+        }
+        setTimeout(onLangChange, 100);
+    });
 </script>
 {% endblock %}
