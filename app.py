@@ -7,6 +7,11 @@ from flask import Flask, send_from_directory, redirect, jsonify, request, g, url
 # 加载本地 .env 文件 (仅在本地开发时生效，不影响云端)
 load_dotenv()
 
+# --- 强制清理代理环境变量，防止干扰 ---
+import os
+for var in ['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY']:
+    os.environ.pop(var, None)
+
 # 强制日志立即输出，不缓存
 sys.stdout.reconfigure(line_buffering=True)
 
@@ -176,7 +181,7 @@ def create_app():
         parts = filename.split('/')
         if len(parts) >= 3 and parts[1] == 'static':
             module_name = parts[0]
-            if module_name in ['lvgl_image', 'inventory', 'projects', 'support', 'serial_tool']:
+            if module_name in ['lvgl_image', 'inventory', 'projects', 'support', 'serial_tool', 'ble_config']:
                 blueprint_dir = os.path.join('tools', module_name, 'static')
                 static_file = '/'.join(parts[2:])
                 full_path = os.path.join(blueprint_dir, static_file)

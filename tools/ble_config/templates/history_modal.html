@@ -1,0 +1,164 @@
+<!-- 统一固件历史记录弹窗 -->
+<div id="history-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[1000] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-[40px] w-full max-w-3xl overflow-hidden shadow-2xl animate-[scaleIn_0.3s]">
+        <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg">
+                    <i class="ri-history-line text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-black text-slate-900 leading-none">固件版本库 / Version Library</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Full audit log and deployment control</p>
+                </div>
+            </div>
+            <button onclick="closeHistory()" class="w-10 h-10 rounded-full hover:bg-slate-200 transition-colors flex items-center justify-center text-slate-400">
+                <i class="ri-close-line text-2xl"></i>
+            </button>
+        </div>
+
+        <div class="max-h-[60vh] overflow-y-auto">
+            <table class="w-full border-collapse text-left">
+                <thead class="sticky top-0 bg-white z-10 shadow-sm">
+                    <tr class="text-[10px] font-black text-slate-400 uppercase border-b border-slate-50">
+                        <th class="px-8 py-4">固件信息 Name / Date</th>
+                        <th class="px-8 py-4 text-center">状态 Status</th>
+                        <th class="px-8 py-4">分区 Tag</th>
+                        <th class="px-8 py-4">版本 Ver</th>
+                        <th class="px-8 py-4 text-right">控制 Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="modal-history-body" class="divide-y divide-slate-50 text-sm font-medium text-slate-600">
+                    <!-- 动态渲染 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+            <span class="text-[10px] font-black text-slate-400 uppercase" id="history-count">Count: 0</span>
+            <button onclick="closeHistory()" class="btn-pro bg-white border border-slate-200 text-slate-600">关闭窗口</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .badge-status { padding: 4px 10px; border-radius: 8px; font-size: 9px; font-black: 900; text-transform: uppercase; }
+    .badge-status-on { background: #dcfce7; color: #15803d; }
+    .badge-status-off { background: #f1f5f9; color: #94a3b8; }
+</style>
+
+<script>
+    let canEdit = false;
+    let currentModalUid = '';
+
+    async function openHistory(uid, isOwner) {
+        canEdit = isOwner;
+        currentModalUid = uid;
+        document.getElementById('history-modal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        refreshModalList();
+    }
+
+    async function refreshModalList() {
+        if(!currentModalUid) return;
+        const res = await fetch(`/ble_config/ota/history?uid=${currentModalUid}&_t=${Date.now()}`);
+        const history = await res.json();
+        renderModalHistory(history);
+    }
+
+    function closeHistory() {
+        document.getElementById('history-modal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    function renderModalHistory(list) {
+        const body = document.getElementById('modal-history-body');
+        document.getElementById('history-count').textContent = `Stored: ${list.length} versions`;
+        
+        if(!list || list.length === 0) {
+            body.innerHTML = '<tr><td colspan="5" class="px-8 py-20 text-center text-slate-300 italic text-xs">No records in library</td></tr>';
+            return;
+        }
+
+        body.innerHTML = list.map((item, index) => `
+            <tr class="hover:bg-slate-50/50 transition-colors ${item.active ? 'bg-blue-50/20' : ''}">
+                <td class="px-8 py-4">
+                    <div class="flex flex-col">
+                        <span class="font-black text-slate-800">${item.name || 'Unnamed'}</span>
+                        <div class="flex flex-col gap-0.5 mt-1">
+                            <span class="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">Created: ${item.date}</span>
+                            ${item.active_date ? `<span class="text-[8px] text-blue-500 font-black uppercase tracking-tighter italic">Deployed: ${item.active_date}</span>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td class="px-8 py-4 text-center">
+                    <span class="badge-status ${item.active ? 'badge-status-on' : 'badge-status-off'}">
+                        ${item.active ? '在线 Online' : '离线 Offline'}
+                    </span>
+                </td>
+                <td class="px-8 py-4">
+                    <span class="px-2 py-1 rounded-md bg-white text-[10px] font-black uppercase text-slate-500 border border-slate-200">${item.target}</span>
+                </td>
+                <td class="px-8 py-4 font-mono font-bold text-blue-600">v${item.version}</td>
+                <td class="px-8 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                        <!-- 查看详情按钮 (通用) -->
+                        <button onclick="viewDetailsByIndex(${index})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 hover:text-blue-500 transition-all flex items-center justify-center" title="查看更新日志">
+                            <i class="ri-file-list-3-line"></i>
+                        </button>
+                        
+                        ${canEdit ? `
+                            <!-- 管理员操作: 上线/下线 + 删除 -->
+                            <button onclick="toggleActive(${index}, '${item.active ? 'offline' : 'online'}')" class="w-8 h-8 rounded-lg ${item.active ? 'bg-amber-50 text-amber-500' : 'bg-blue-50 text-blue-500'} transition-all flex items-center justify-center" title="${item.active ? '下线' : '上线'}">
+                                <i class="${item.active ? 'ri-cloud-off-line' : 'ri-upload-cloud-2-line'}"></i>
+                            </button>
+                            <button onclick="deleteHistoryByIndex(${index})" class="w-8 h-8 rounded-lg bg-slate-50 text-slate-300 hover:text-red-500 transition-all flex items-center justify-center" title="彻底删除">
+                                <i class="ri-delete-bin-line"></i>
+                            </button>
+                        ` : `
+                            <!-- 访客操作: 仅下载 -->
+                            <a href="${item.url}" target="_blank" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100 transition-all flex items-center justify-center" title="下载固件">
+                                <i class="ri-download-2-line"></i>
+                            </a>
+                        `}
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function toggleActive(index, action) {
+        const res = await fetch('/ble_config/ota/set_active', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ index, action })
+        });
+        const result = await res.json();
+        if(result.success) {
+            refreshModalList();
+            if(window.loadBoard) loadBoard();
+            if(window.checkUpdates) checkUpdates();
+        }
+    }
+
+    async function deleteHistoryByIndex(index) {
+        if(!confirm('【警告】彻底删除将从历史记录中移除该条目，并物理删除云端文件！确定继续吗？')) return;
+        const res = await fetch('/ble_config/ota/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ index })
+        });
+        const result = await res.json();
+        if(result.success) {
+            refreshModalList();
+            if(window.loadBoard) loadBoard();
+        }
+    }
+
+    async function viewDetailsByIndex(index) {
+        const res = await fetch(`/ble_config/ota/history?uid=${currentModalUid}&_t=${Date.now()}`);
+        const data = await res.json();
+        const item = data[index];
+        alert(`【固件详情】\n\n名称: ${item.name || '未命名'}\n版本: v${item.version}\n分区: ${item.target}\n日期: ${item.date}\n\n更新日志:\n${item.changelog || '无说明'}`);
+    }
+</script>

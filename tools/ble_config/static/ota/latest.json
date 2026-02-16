@@ -1,0 +1,6 @@
+{
+  "version": "1.0.0",
+  "url": "/ble_config/static/ota/firmware_v1.0.0.bin",
+  "changelog": "Initial version",
+  "force_update": false
+}

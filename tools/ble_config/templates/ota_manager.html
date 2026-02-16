@@ -1,0 +1,225 @@
+{% extends "support/layout.html" %}
+
+{% block title %}OTA 控制中心 Pro{% endblock %}
+{% block app_icon %}<i class="ri-dashboard-3-line"></i>{% endblock %}
+{% block app_name %}OTA 控制中心{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root { --mac-bg: #f8fafc; --accent: #007aff; }
+    body { background-color: var(--mac-bg); color: #1e293b; }
+    .zone-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
+    .card-pro { background: white; border: 1px solid #e2e8f0; border-radius: 28px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); transition: 0.3s; position: relative; }
+    .card-pro:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05); }
+    .card-header-pro { padding: 24px; background: #fbfcfd; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+    .input-pro { background: #f1f5f9; border: 2px solid transparent; border-radius: 16px; padding: 12px 16px; font-weight: 600; font-size: 13px; transition: 0.2s; width: 100%; outline: none; }
+    .input-pro:focus { background: white; border-color: var(--accent); }
+    .btn-pro { padding: 14px 24px; border-radius: 16px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.2s; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .badge-ver { background: #007aff10; color: var(--accent); padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-end justify-between mb-10 px-2">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-[20px] bg-slate-900 text-white flex items-center justify-center shadow-lg">
+                <i class="ri-cpu-line text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                    <span id="workspace-name">固件工作空间</span>
+                    <span id="read-only-badge" class="hidden text-[10px] bg-amber-100 text-amber-600 px-2 py-1 rounded-md">只读模式</span>
+                </h1>
+                <p class="text-slate-400 font-bold mt-1 uppercase text-[10px] tracking-widest flex items-center gap-2">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    <span id="workspace-id">ID: #---</span>
+                </p>
+            </div>
+        </div>
+        <div class="flex gap-3" id="admin-actions">
+            <button onclick="triggerOpenHistory()" class="btn-pro bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm">
+                <i class="ri-history-line"></i> 查看历史
+            </button>
+            <button onclick="showNewZoneModal()" class="btn-pro bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm">
+                <i class="ri-add-circle-line"></i> 新增分区
+            </button>
+            <a href="/ble_config/ota" class="btn-pro bg-slate-900 text-white hover:bg-slate-800">
+                <i class="ri-eye-line"></i> 用户页
+            </a>
+        </div>
+    </div>
+
+    <!-- 动态分区列表 -->
+    <div id="zone-container" class="zone-grid"></div>
+
+    <!-- 底部专属链接 -->
+    <div class="mt-12 p-8 bg-blue-600 rounded-[32px] text-white shadow-2xl shadow-blue-200 relative overflow-hidden">
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+                <h4 class="text-xl font-black mb-1">专属设备同步接口</h4>
+                <p class="text-blue-100 text-sm font-medium">烧录到硬件端，实现多分区智能检测更新</p>
+            </div>
+            <div class="bg-blue-700/50 backdrop-blur-md px-6 py-4 rounded-2xl border border-blue-400/30 flex items-center gap-4 min-w-[300px]">
+                <code id="endpoint-url" class="font-mono text-sm break-all">Checking...</code>
+                <i class="ri-file-copy-line text-xl cursor-pointer hover:text-blue-200" onclick="copyUrl()"></i>
+            </div>
+        </div>
+        <i class="ri-rfid-line absolute -right-4 -bottom-4 text-9xl text-blue-500/20 rotate-12"></i>
+    </div>
+</div>
+
+{% include "history_modal.html" %}
+
+<!-- 新增分区模态框 -->
+<div id="new-zone-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
+        <h3 class="text-xl font-black mb-2">创建新发布分区</h3>
+        <p class="text-sm text-slate-400 mb-6">分区名将作为 ESP32 识别的 key (如: ui, voice)</p>
+        <input type="text" id="new-zone-name" placeholder="分区名称 (英文)" class="input-pro mb-4">
+        <div class="flex gap-2">
+            <button onclick="hideNewZoneModal()" class="btn-pro flex-1 bg-slate-100 text-slate-600">取消</button>
+            <button onclick="confirmNewZone()" class="btn-pro flex-1 bg-blue-600 text-white">确认创建</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let rawData = {};
+
+    async function loadBoard() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlUid = urlParams.get('uid');
+        let apiPath = urlUid ? `/ble_config/ota/info?uid=${urlUid}` : '/ble_config/ota/info';
+        // 正确拼接时间戳参数
+        apiPath += (apiPath.includes('?') ? '&' : '?') + `_t=${Date.now()}`;
+
+        try {
+            const res = await fetch(apiPath);
+            if(res.status === 401) { window.location.href='/login?next=/ble_config/ota/admin'; return; }
+            rawData = await res.json();
+            
+            document.getElementById('workspace-id').textContent = `Space ID: #${rawData.uid}`;
+            if (!rawData.can_edit) {
+                document.getElementById('read-only-badge').classList.remove('hidden');
+                document.getElementById('admin-actions').classList.add('hidden');
+            }
+            document.getElementById('endpoint-url').textContent = `${window.location.origin}/ble_config/ota/info?uid=${rawData.uid}`;
+            
+            renderZones();
+        } catch (e) {
+            console.error('Load Board Error:', e);
+        }
+    }
+
+    function renderZones() {
+        const container = document.getElementById('zone-container');
+        container.innerHTML = '';
+        const zones = Object.keys(rawData).filter(k => !['uid', 'status', 'last_publish', 'can_edit', 'workspace'].includes(k));
+        
+        if(zones.length === 0) {
+            container.innerHTML = `<div class="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[40px] text-slate-400 font-bold">暂无分区数据</div>`;
+            return;
+        }
+
+        zones.forEach(name => {
+            const data = rawData[name];
+            const card = document.createElement('div');
+            card.className = 'card-pro group';
+            card.innerHTML = `
+                <div class="card-header-pro group-hover:bg-blue-50/30 transition-colors">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-black text-blue-400 uppercase tracking-tighter mb-1">Partition: ${name}</span>
+                        <span class="text-xl font-black text-slate-800">${data.name || name}</span>
+                    </div>
+                    <span class="badge-ver">v${data.version || '0.0.0'}</span>
+                </div>
+                <div class="p-6 space-y-4">
+                    ${rawData.can_edit ? `
+                    <form onsubmit="handleUpload(event, '${name}')" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" name="name" placeholder="显示名称" required class="input-pro" value="${data.name || ''}">
+                            <input type="text" name="version" placeholder="版本号" required class="input-pro">
+                        </div>
+                        <input type="file" name="file" accept=".bin" required class="input-pro">
+                        <textarea name="changelog" placeholder="更新日志..." class="input-pro h-20"></textarea>
+                        <button type="submit" class="btn-pro w-full bg-slate-900 text-white hover:bg-blue-600 transition-all shadow-lg">发布更新</button>
+                    </form>
+                    <div class="pt-2 flex justify-end">
+                        <button onclick="deleteZone('${name}')" class="text-[9px] font-bold text-slate-300 hover:text-red-500 transition-colors">移除分区</button>
+                    </div>
+                    ` : `
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2">更新日志</p>
+                        <p class="text-xs text-slate-600 font-medium">${data.changelog || '无说明'}</p>
+                    </div>
+                    <a href="${data.url}" class="btn-pro w-full bg-blue-600 text-white hover:bg-blue-700">下载固件</a>
+                    `}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    async function handleUpload(e, target) {
+        e.preventDefault();
+        const btn = e.target.querySelector('button');
+        const oldText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = '正在上传...';
+
+        const formData = new FormData(e.target);
+        formData.append('target', target);
+
+        try {
+            const res = await fetch('/ble_config/ota/upload', { method: 'POST', body: formData });
+            const result = await res.json();
+            if(result.success) {
+                alert('🚀 发布成功！');
+                loadBoard();
+            } else {
+                alert('❌ 失败: ' + result.error);
+            }
+        } catch (err) { alert('🌐 网络错误'); }
+        finally { btn.disabled = false; btn.innerText = oldText; }
+    }
+
+    function showNewZoneModal() { document.getElementById('new-zone-modal').style.display='flex'; }
+    function hideNewZoneModal() { document.getElementById('new-zone-modal').style.display='none'; }
+    
+    function confirmNewZone() {
+        const name = document.getElementById('new-zone-name').value.trim().toLowerCase();
+        if(name && !rawData[name]) { 
+            rawData[name] = {version:'0.0.0', name: name.toUpperCase()}; 
+            renderZones(); 
+            hideNewZoneModal(); 
+        } else { alert('无效或已存在'); }
+    }
+
+    function copyUrl() {
+        const url = document.getElementById('endpoint-url').textContent;
+        if(url.includes('Checking')) return;
+        navigator.clipboard.writeText(url).then(() => alert('API 链接已复制'));
+    }
+
+    async function deleteZone(name) {
+        if(!confirm(`确定要彻底移除 "${name}" 分区及其索引吗？`)) return;
+        try {
+            const res = await fetch('/ble_config/ota/delete_partition', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target: name })
+            });
+            const result = await res.json();
+            if(result.success) { delete rawData[name]; renderZones(); }
+        } catch (e) { alert('网络错误'); }
+    }
+
+    function triggerOpenHistory() {
+        if(rawData.uid) openHistory(rawData.uid, rawData.can_edit);
+    }
+
+    document.addEventListener('DOMContentLoaded', loadBoard);
+</script>
+{% endblock %}
