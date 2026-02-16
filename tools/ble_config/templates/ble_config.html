@@ -97,6 +97,10 @@
                         <i class="ri-instance-line text-blue-400 text-xs"></i><span id="ota-space-id" class="text-[11px] font-black uppercase tracking-widest">Space #---</span><i class="ri-arrow-up-down-line text-slate-500 text-[10px]"></i>
                     </div>
                 </div>
+                <!-- 新增：实验室调试入口 -->
+                <button onclick="openDebugFlash()" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-400 hover:bg-orange-500 hover:text-white transition-all flex items-center justify-center shadow-sm" title="本地测试 / Local Lab">
+                    <i class="ri-flask-line"></i>
+                </button>
             </div>
         </div>
         <div id="ota-partition-list" class="p-6 max-h-[30vh] overflow-y-auto space-y-1"></div>
@@ -209,10 +213,32 @@
 
     function triggerHistoryInModal() { if(userUid) openHistory(userUid, false); }
 
+    // 补全：本地实验室测试逻辑
+    function openDebugFlash() {
+        const localUrl = prompt("【开发者实验室】请输入临时测试 URL (HTTP):", "http://172.20.10.5:8000/hello_world.bin");
+        if (!localUrl) return;
+        
+        if (!bleCharacteristic) { alert('错误：蓝牙未连接'); return; }
+
+        // --- 完美伪装：与 pushUpdateToDevice 格式完全一致 ---
+        const cmd = JSON.stringify({ 
+            cmd: "OTA_START", 
+            target: "app",      // 伪装成正式的 app 分区
+            url: localUrl, 
+            ver: "1.0.2",      // 使用正常的数值版本号
+            str: "A"           // 采用相同的方案 A 策略标识
+        });
+
+        otaLog(`实验室：执行下发测试...`, "blue");
+        writeToDevice(cmd).then(() => {
+            otaLog(`指令已发出 (Format: Slim)`, "success");
+        });
+    }
+
     async function pushUpdateToDevice(partition) {
         if (!bleCharacteristic) { otaLog("未连接设备", "error"); return; }
-        otaLog(`准备 [${partition}] 极简 OTA 指令...`, "info");
         const info = lastOtaData[partition];
+        // --- 恢复扁平结构 ---
         const cmd = JSON.stringify({ 
             cmd: "OTA_START", 
             target: partition, 
@@ -220,19 +246,28 @@
             ver: info.version, 
             str: "A" 
         });
-        try { await writeToDevice(cmd); otaLog("指令已发送，等待单片机执行...", "blue"); } catch (e) { otaLog("下发失败", "error"); }
+        try { await writeToDevice(cmd); otaLog("指令已发送，等待响应...", "blue"); } catch (e) { otaLog("下发失败", "error"); }
     }
 
-    async function handleMcuDownload(partition) {
-        if (!bleCharacteristic) { otaLog("未连接设备", "error"); return; }
-        const info = lastOtaData[partition];
+    // --- 独立功能：实验室临时下发测试 ---
+    function openDebugFlash() {
+        const localUrl = prompt("【开发者实验室】输入测试 URL:", "http://172.20.10.5:8000/hello_world.bin");
+        if (!localUrl) return;
+        if (!bleCharacteristic) { alert('错误：蓝牙未连接'); return; }
+
+        // --- 核心：格式与 pushUpdateToDevice 保持 100% 一致 ---
         const cmd = JSON.stringify({ 
-            cmd: "FILE_DOWNLOAD", 
-            target: partition, 
-            url: info.url,
-            ver: info.version
+            cmd: "OTA_START", 
+            target: "app", 
+            url: localUrl, 
+            ver: "1.0.1", 
+            str: "A" 
         });
-        try { await writeToDevice(cmd); } catch (e) { otaLog("指令异常", "error"); }
+
+        otaLog(`实验室：执行本地链路下发测试...`, "blue");
+        writeToDevice(cmd).then(() => {
+            otaLog(`调试指令已发出: ${localUrl}`, "success");
+        });
     }
 
     async function toggleBLE() {

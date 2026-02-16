@@ -83,11 +83,15 @@ def upload_to_r2(file_obj, folder, prefix="file", fixed_name=None, app_name="uns
 def delete_from_r2(url):
     global _s3_client
     if _s3_client is None: _s3_client = get_s3_client()
-    if not _s3_client or not url or Config.R2_PUBLIC_URL not in url:
-        return
+    if not _s3_client or not url: return
+    
     try:
-        key = url.replace(f"{Config.R2_PUBLIC_URL}/", "")
-        _s3_client.delete_object(Bucket=Config.R2_BUCKET, Key=key)
+        # 兼容处理：无论 URL 是 pub-xxx.r2.dev 还是 hhhtool.cc.cd
+        # 只要提取 /ota/ 之后的部分即可拿到 Key
+        if "/ota/" in url:
+            key = "ota/" + url.split("/ota/")[1]
+            _s3_client.delete_object(Bucket=Config.R2_BUCKET, Key=key)
+            print(f"🗑️ [R2] Deleted: {key}")
     except Exception as e:
         print(f"删除 R2 失败: {e}")
 
