@@ -21,7 +21,6 @@
 {% block content %}
 <div class="max-w-md mx-auto py-6">
     <div class="card-pro">
-        <!-- 头部状态 -->
         <div class="text-center mb-10">
             <div id="status-box" class="w-20 h-20 bg-blue-50 text-blue-500 rounded-[28px] flex items-center justify-center mx-auto mb-6 shadow-sm transition-all">
                 <i id="main-icon" class="ri-cloud-line text-4xl"></i>
@@ -34,26 +33,23 @@
                         <span id="viewing-space" class="text-[11px] font-black uppercase tracking-widest">Space #---</span>
                         <i class="ri-arrow-up-down-line text-slate-500 text-[10px]"></i>
                     </div>
-                    <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">点击切换空间 / Click to Switch</div>
                 </div>
             </div>
         </div>
 
-        <!-- 分区列表 -->
         <div id="partition-list" class="mb-10 space-y-1"></div>
 
-        <!-- 操作区 -->
         <div class="space-y-4">
             <button onclick="checkUpdates()" id="btn-action" class="btn-update w-full flex items-center justify-center gap-2">
                 <i class="ri-refresh-line"></i> 检查更新
             </button>
-            <button onclick="openHistory(userUid, false)" class="w-full text-xs font-bold text-slate-400 hover:text-blue-500 uppercase tracking-widest transition-colors">
-                <i class="ri-history-line"></i> 查看完整版本历史
+            <button onclick="openHistory(userUid, false)" class="w-full text-xs font-bold text-slate-400 hover:text-blue-500 uppercase tracking-widest transition-colors py-2">
+                <i class="ri-history-line"></i> 查看详细版本历史
             </button>
         </div>
 
         <div class="mt-10 pt-6 border-t border-slate-50 text-center">
-            <a href="/ble_config/ota/admin" class="text-[10px] text-slate-300 hover:text-blue-400 font-black uppercase tracking-tighter">Admin Console</a>
+            <a href="/ble_config/ota/admin" class="text-[10px] text-slate-300 hover:text-blue-400 font-black uppercase tracking-tighter">Developer Admin Console</a>
         </div>
     </div>
 </div>
@@ -62,20 +58,16 @@
 
 <script>
     let userUid = '';
-    // 核心预留：将来从设备读取的版本号映射
-    let deviceVersions = {
-        "app": "1.0.0",
-        "ui": "1.0.0"
-    };
+    let deviceVersions = { "app": "1.0.0" };
 
     async function checkUpdates() {
         const btn = document.getElementById('btn-action');
         btn.disabled = true;
-        btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> 正在检测...';
+        btn.innerHTML = '<i class="ri-loader-4-line animate-spin text-sm"></i> 正在连接云端...';
 
         const urlParams = new URLSearchParams(window.location.search);
         const uid = urlParams.get('uid');
-        const apiPath = (uid ? `/ble_config/ota/info?uid=${uid}` : '/ble_config/ota/info');
+        const apiPath = `/ble_config/ota/info` + (uid ? `?uid=${uid}` : '');
         const finalUrl = apiPath + (apiPath.includes('?') ? '&' : '?') + `_t=${Date.now()}`;
         
         try {
@@ -101,8 +93,8 @@
         list.innerHTML = '';
         Object.keys(data).filter(k => !['uid', 'status', 'last_publish', 'can_edit', 'workspace'].includes(k)).forEach(name => {
             const info = data[name];
-            const deviceVer = deviceVersions[name] || "0.0.0";
-            const hasUpdate = isNewerVersion(info.version, deviceVer);
+            const localVer = deviceVersions[name] || "0.0.0";
+            const hasUpdate = isNewerVersion(info.version, localVer);
 
             const row = document.createElement('div');
             row.className = 'partition-row flex items-center justify-between animate-[fadeIn_0.3s]';
@@ -112,16 +104,10 @@
                         <span class="text-xs font-black text-slate-800 uppercase tracking-tight">${info.name || name}</span>
                         ${hasUpdate ? '<span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>' : ''}
                     </div>
-                    <span class="text-[9px] text-slate-400 font-bold">Dev: v${deviceVer} | Cloud: v${info.version}</span>
+                    <span class="text-[9px] text-slate-400 font-bold">Cloud: v${info.version}</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    ${hasUpdate ? `
-                        <button onclick="pushUpdateToDevice('${name}', '${info.url}')" class="bg-blue-600 text-white text-[10px] font-black px-3 py-1.5 rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
-                            更新
-                        </button>
-                    ` : `
-                        <span class="text-[9px] font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg">最新</span>
-                    `}
+                <div class="flex items-center gap-3">
+                    <span class="status-badge badge-latest">Online</span>
                     <a href="${info.url}" target="_blank" class="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:text-blue-500 flex items-center justify-center transition-all">
                         <i class="ri-download-2-line"></i>
                     </a>
@@ -141,12 +127,8 @@
         return false;
     }
 
-    function pushUpdateToDevice(partition, url) {
-        alert(`【智能更新】\n系统已准备好下发更新指令到设备。\n\n目标分区: ${partition}\n最新版本 URL: ${url}\n\n指令发送逻辑已预留，可在 pushUpdateToDevice 函数中接入蓝牙发送代码。`);
-    }
-
     function switchSpace() {
-        const targetId = prompt('请输入要访问的空间 ID (UID):', userUid);
+        const targetId = prompt('请输入访问 ID:', userUid);
         if (targetId && targetId !== userUid) {
             window.location.href = `/ble_config/ota?uid=${targetId}`;
         }

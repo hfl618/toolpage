@@ -6,442 +6,310 @@
 
 {% block extra_css %}
 <style>
-    :root {
-        --mac-bg: #f8fafc;
-        --accent: #007aff;
-        --success: #34c759;
-        --danger: #ff3b30;
-    }
-
+    :root { --mac-bg: #f8fafc; --accent: #007aff; --success: #34c759; --danger: #ff3b30; }
     body { background-color: var(--mac-bg); }
-    
-    /* 适配标准布局 */
-    main.max-w-7xl { 
-        margin-top: 40px !important;
-        padding-bottom: 60px !important;
-    }
-
-    /* 通用卡片样式 - 与项目一致 */
-    .card-pro { 
-        background: white; 
-        border: 1px solid #e2e8f0; 
-        border-radius: 20px; 
-        overflow: hidden; 
-        display: flex; 
-        flex-direction: column; 
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01);
-        height: fit-content;
-    }
-    .card-header-pro { 
-        padding: 16px 24px; 
-        background: #f8fafc; 
-        border-bottom: 1px solid #f1f5f9; 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-    }
-    .card-title-pro { 
-        font-size: 0.75rem; 
-        font-weight: 900; 
-        text-transform: uppercase; 
-        letter-spacing: 1.2px; 
-        color: #94a3b8; 
-        margin: 0; 
-    }
-
-    /* 输入框样式 */
-    .input-pro { 
-        background: #f1f5f9; 
-        border: 2px solid transparent; 
-        border-radius: 12px; 
-        padding: 12px 16px; 
-        font-weight: 600; 
-        font-size: 14px; 
-        transition: 0.2s; 
-        width: 100%; 
-        color: #1e293b; 
-        outline: none; 
-    }
+    main.max-w-7xl { margin-top: 40px !important; padding-bottom: 60px !important; }
+    .card-pro { background: white; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); height: fit-content; }
+    .card-header-pro { padding: 16px 24px; background: #f8fafc; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+    .card-title-pro { font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1.2px; color: #94a3b8; margin: 0; }
+    .input-pro { background: #f1f5f9; border: 2px solid transparent; border-radius: 12px; padding: 12px 16px; font-weight: 600; font-size: 14px; transition: 0.2s; width: 100%; color: #1e293b; outline: none; }
     .input-pro:focus { background: white; border-color: var(--accent); }
-
-    /* 按钮样式 - 增强稳定性 */
-    .btn-pro { 
-        width: 100%;
-        min-height: 48px;
-        padding: 12px 24px; 
-        border-radius: 14px; 
-        font-weight: 800; 
-        font-size: 14px; 
-        border: none; 
-        cursor: pointer; 
-        transition: all 0.2s ease; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        gap: 10px; 
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    }
+    .btn-pro { width: 100%; min-height: 48px; padding: 12px 24px; border-radius: 14px; font-weight: 800; font-size: 14px; border: none; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
     .btn-pro-dark { background: #0f172a; color: white; }
-    .btn-pro-dark:hover { background: #1e293b; transform: translateY(-1px); }
     .btn-pro-accent { background: #007aff; color: white; }
-    .btn-pro-accent:hover { background: #0062cc; transform: translateY(-1px); }
     .btn-pro-danger { background: #ff3b30; color: white; }
-    .btn-pro-danger:hover { background: #e03127; transform: translateY(-1px); }
-
-    /* 状态指示 */
     .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; position: relative; }
     .status-dot.connected { background: var(--success); box-shadow: 0 0 12px var(--success); }
     .status-dot.connected::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--success); animation: pulse 2s infinite; }
     @keyframes pulse { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(2); opacity: 0; } }
-
     .wifi-row { position: relative; padding: 24px; background: #fbfcfd; border-radius: 16px; border: 1px solid #f1f5f9; transition: all 0.3s; }
-    .wifi-row:hover { border-color: var(--accent); background: white; transform: translateY(-2px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.05); }
-
     .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .feature-btn { background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 16px; padding: 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; transition: 0.2s; cursor: pointer; }
     .feature-btn:hover { background: white; border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    
-    .empty-state { border: 2px dashed #e2e8f0; border-radius: 16px; padding: 32px; text-align: center; color: #94a3b8; font-weight: 700; font-size: 13px; }
-
-    /* 隐藏默认装饰 */
     main > div.mt-12 { display: none !important; }
+    #ota-console::-webkit-scrollbar { width: 4px; }
+    #ota-console::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-    
-    <!-- 左侧：Wi-Fi 配置列表 (占 8 列) -->
     <div class="lg:col-span-8 space-y-6">
         <div class="card-pro">
             <div class="card-header-pro">
-                <div class="flex items-center gap-3">
-                    <i class="ri-wifi-line text-blue-500 text-lg"></i>
-                    <span class="card-title-pro i18n" data-zh="Wi-Fi 账号池 (最大 3 组)" data-en="Wi-Fi Account Pool (Max 3)">Wi-Fi 账号池 (最大 3 组)</span>
-                </div>
-                <button id="btnAddRow" onclick="addWiFiRow()" class="btn-pro btn-pro-accent" style="width: auto; min-height: unset; padding: 4px 12px; font-size: 11px; height: 30px;">
-                    <i class="ri-add-line"></i> <span class="i18n" data-zh="添加备用" data-en="Add Backup">添加备用</span>
-                </button>
+                <div class="flex items-center gap-3"><i class="ri-wifi-line text-blue-500 text-lg"></i><span class="card-title-pro i18n" data-zh="Wi-Fi 账号池 (最大 3 组)" data-en="Wi-Fi Pool">Wi-Fi 账号池 (最大 3 组)</span></div>
+                <button id="btnAddRow" onclick="addWiFiRow()" class="btn-pro btn-pro-accent" style="width:auto; min-height:unset; padding:4px 12px; font-size:11px; height:30px;"><i class="ri-add-line"></i> 添加备用</button>
             </div>
-            
             <div id="wifiListContainer" class="p-6 space-y-4">
-                <!-- 默认第一行 -->
                 <div class="wifi-row border-l-4 border-blue-500">
                     <div class="flex flex-col gap-4">
-                        <div class="flex justify-between items-center">
-                            <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest i18n" data-zh="首选连接网络" data-en="Primary Connection">首选连接网络</span>
-                            <i class="ri-star-fill text-amber-400"></i>
-                        </div>
+                        <div class="flex justify-between items-center"><span class="text-[10px] font-black text-blue-600 uppercase tracking-widest i18n" data-zh="首选连接网络" data-en="Primary">首选连接网络</span><i class="ri-star-fill text-amber-400"></i></div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" class="input-pro ssid-input i18n-ph" data-zh-ph="Wi-Fi 名称 (SSID)" data-en-ph="Wi-Fi SSID" placeholder="Wi-Fi 名称 (SSID)">
-                            <input type="password" class="input-pro pwd-input i18n-ph" data-zh-ph="Wi-Fi 密码" data-en-ph="Wi-Fi Password" placeholder="Wi-Fi 密码">
+                            <input type="text" class="input-pro ssid-input i18n-ph" data-zh-ph="Wi-Fi 名称" data-en-ph="SSID" placeholder="Wi-Fi 名称">
+                            <input type="password" class="input-pro pwd-input i18n-ph" data-zh-ph="Wi-Fi 密码" data-en-ph="Password" placeholder="Wi-Fi 密码">
                         </div>
                     </div>
                 </div>
             </div>
-
             <div class="p-6 bg-slate-50/50 border-t border-slate-100">
-                <button id="btnSend" class="btn-pro btn-pro-dark w-full shadow-lg !py-4 text-base disabled:opacity-50 disabled:cursor-not-allowed" onclick="collectAndSend()" disabled>
-                    <i class="ri-send-plane-fill"></i> <span class="i18n" data-zh="下发配置到设备" data-en="Provision Device">下发配置到设备</span>
-                </button>
+                <button id="btnSend" class="btn-pro btn-pro-dark w-full shadow-lg !py-4 text-base disabled:opacity-50" onclick="collectAndSend()" disabled><i class="ri-send-plane-fill"></i> 下发配置到设备</button>
             </div>
         </div>
-
         <div class="p-6 bg-white border border-blue-100 rounded-[24px] flex items-start gap-4 shadow-sm">
-            <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-500 flex-shrink-0">
-                <i class="ri-information-line text-xl"></i>
-            </div>
-            <div>
-                <h4 class="text-sm font-black text-slate-800 mb-1 i18n" data-zh="配网说明" data-en="Instructions">配网说明</h4>
-                <p class="text-xs text-slate-500 font-medium leading-relaxed i18n" 
-                   data-zh="设备会优先尝试连接列表中的首选网络。如果失败，将依次轮询备用列表中的账号。支持信号强度优先排序算法。" 
-                   data-en="Device will prioritize the primary network. If connection fails, it will rotate through backup accounts based on signal strength.">
-                   设备会优先尝试连接列表中的首选网络。如果失败，将依次轮询备用列表中的账号。支持信号强度优先排序算法。
-                </p>
-            </div>
+            <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-500 flex-shrink-0"><i class="ri-information-line text-xl"></i></div>
+            <div><h4 class="text-sm font-black text-slate-800 mb-1 i18n" data-zh="配网说明" data-en="Info">配网说明</h4><p class="text-xs text-slate-500 font-medium leading-relaxed i18n" data-zh="设备会优先尝试连接列表中的首选网络。如果失败，将依次轮询备用列表中的账号。支持信号强度优先排序算法。" data-en="Device will prioritize primary network. Rotates through backups.">设备会优先尝试连接列表中的首选网络。如果失败，将依次轮询备用列表中的账号。支持信号强度优先排序算法。</p></div>
         </div>
     </div>
 
-    <!-- 右侧：状态与控制 (占 4 列) -->
     <div class="lg:col-span-4 space-y-6">
-        
-        <!-- 设备连接状态 -->
         <div class="card-pro">
-            <div class="card-header-pro">
-                <span class="card-title-pro i18n" data-zh="连接状态" data-en="Connection">连接状态</span>
-                <div id="bleStatusDot" class="status-dot"></div>
-            </div>
+            <div class="card-header-pro"><span class="card-title-pro i18n" data-zh="连接状态" data-en="Status">连接状态</span><div id="bleStatusDot" class="status-dot"></div></div>
             <div class="p-8 text-center">
-                <div id="bleStatusText" class="text-2xl font-black text-slate-900 i18n mb-1" data-zh="未连接" data-en="Disconnected">未连接</div>
+                <div id="bleStatusText" class="text-2xl font-black text-slate-900 i18n mb-1" data-zh="未连接" data-en="Offline">未连接</div>
                 <div id="deviceName" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Device Offline</div>
-                
-                <button id="btnConnect" class="btn-pro btn-pro-accent">
-                    <i class="ri-bluetooth-line"></i> <span id="btnConnectText" class="i18n" data-zh="搜索并连接设备" data-en="Search & Connect">搜索并连接设备</span>
-                </button>
+                <button id="btnConnect" class="btn-pro btn-pro-accent"><i class="ri-bluetooth-line"></i> <span id="btnConnectText">搜索并连接设备</span></button>
             </div>
         </div>
-
-        <!-- 硬件指令区 -->
         <div class="card-pro" id="extFeatures" style="opacity: 0.5; pointer-events: none;">
-            <div class="card-header-pro">
-                <span class="card-title-pro i18n" data-zh="硬件指令" data-en="Hardware Control">硬件指令</span>
-            </div>
+            <div class="card-header-pro"><span class="card-title-pro i18n" data-zh="硬件指令" data-en="Control">硬件指令</span></div>
             <div class="p-6">
                 <div class="feature-grid">
-                    <div class="feature-btn" onclick="sendCommand('CMD_REBOOT')">
-                        <i class="ri-restart-line text-orange-500 text-xl"></i>
-                        <span class="text-[11px] font-black text-slate-600 i18n" data-zh="重启" data-en="Reboot">重启</span>
-                    </div>
-                    <div class="feature-btn" onclick="sendCommand('CMD_FACTORY')">
-                        <i class="ri-history-line text-red-500 text-xl"></i>
-                        <span class="text-[11px] font-black text-slate-600 i18n" data-zh="重置" data-en="Reset">重置</span>
-                    </div>
-                    <div class="feature-btn" onclick="location.href='/ble_config/ota'">
-                        <i class="ri-cloud-windy-line text-purple-500 text-xl"></i>
-                        <span class="text-[11px] font-black text-slate-600 i18n" data-zh="OTA" data-en="OTA">OTA</span>
-                    </div>
-                    <div class="feature-btn" onclick="sendCommand('PING')">
-                        <i class="ri-signal-tower-line text-green-500 text-xl"></i>
-                        <span class="text-[11px] font-black text-slate-600 i18n" data-zh="连接测试" data-en="Test PING">连接测试</span>
+                    <div class="feature-btn" onclick="sendCommand('CMD_REBOOT')"><i class="ri-restart-line text-orange-500 text-xl"></i><span class="text-[11px] font-black text-slate-600">重启</span></div>
+                    <div class="feature-btn" onclick="sendCommand('CMD_FACTORY')"><i class="ri-history-line text-red-500 text-xl"></i><span class="text-[11px] font-black text-slate-600">重置</span></div>
+                    <div class="feature-btn !opacity-100 !pointer-events-auto" onclick="openOtaModal()"><i class="ri-cloud-windy-line text-purple-500 text-xl"></i><span class="text-[11px] font-black text-slate-600">OTA</span></div>
+                    <div class="feature-btn" onclick="sendCommand('PING')"><i class="ri-signal-tower-line text-green-500 text-xl"></i><span class="text-[11px] font-black text-slate-600">连接测试</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center justify-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-tighter"><i class="ri-lock-2-line"></i> <span>AES-128 End-to-End Encryption</span></div>
+    </div>
+</div>
+
+<!-- OTA 弹窗 -->
+<div id="ota-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[1000] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-[40px] w-full max-w-md overflow-hidden shadow-2xl animate-[scaleIn_0.3s]">
+        <div class="p-8 text-center border-b border-slate-50">
+            <div class="w-16 h-16 bg-slate-900 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl"><i class="ri-refresh-line text-3xl animate-pulse"></i></div>
+            <h3 class="text-xl font-black text-slate-900 tracking-tight">系统更新中心</h3>
+            <div class="mt-3 flex items-center justify-center">
+                <div class="group relative cursor-pointer" onclick="switchOtaSpace()">
+                    <div class="flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-xl shadow-lg border border-slate-800 hover:bg-blue-600 transition-all">
+                        <i class="ri-instance-line text-blue-400 text-xs"></i><span id="ota-space-id" class="text-[11px] font-black uppercase tracking-widest">Space #---</span><i class="ri-arrow-up-down-line text-slate-500 text-[10px]"></i>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- 安全标签 -->
-        <div class="flex items-center justify-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-tighter">
-            <i class="ri-lock-2-line"></i> <span>AES-128 End-to-End Encryption</span>
+        <div id="ota-partition-list" class="p-6 max-h-[30vh] overflow-y-auto space-y-1"></div>
+        <div class="mx-6 mb-4 p-4 bg-slate-900 rounded-2xl border border-slate-800 shadow-inner">
+            <div class="flex items-center gap-2 mb-2"><div class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div><span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Live Monitor</span></div>
+            <div id="ota-console" class="font-mono text-[11px] h-24 overflow-y-auto space-y-1.5 text-slate-300 leading-relaxed">
+                <div class="text-blue-400 font-bold tracking-tight">> Initializing secure channel...</div>
+            </div>
         </div>
+        <div class="p-8 bg-slate-50 space-y-3">
+            <div class="flex gap-3">
+                <button onclick="closeOtaModal()" class="flex-1 py-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black text-sm hover:bg-slate-100">返回</button>
+                <button onclick="checkOtaUpdates()" class="flex-1 py-4 rounded-2xl bg-blue-600 text-white font-black text-sm shadow-lg shadow-blue-200 hover:bg-blue-700">检测并比对</button>
+            </div>
+            <button onclick="triggerHistoryInModal()" class="w-full text-[10px] font-bold text-slate-400 hover:text-blue-500 uppercase tracking-widest transition-colors py-2"><i class="ri-history-line"></i> 查看详细版本历史</button>
+        </div>
+        <div class="pb-6 text-center"><a href="/ble_config/ota/admin" class="text-[9px] text-slate-300 hover:text-blue-400 font-black uppercase tracking-tighter transition-colors">Developer Admin Console</a></div>
     </div>
-
 </div>
+{% include "history_modal.html" %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // 1. 全局配置与状态
-    const BLE_SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"; 
-    const BLE_CHAR_UUID    = "abcdef01-1234-5678-1234-56789abcdef0";
+    const BLE_SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0", BLE_CHAR_UUID = "abcdef01-1234-5678-1234-56789abcdef0";
+    let bleDevice = null, bleCharacteristic = null, userUid = '', lastOtaData = {}, deviceVersions = {};
 
-    let bleDevice = null;
-    let bleCharacteristic = null;
+    const dot = document.getElementById('bleStatusDot'), statusText = document.getElementById('bleStatusText'), btnConnectText = document.getElementById('btnConnectText'), btnConnect = document.getElementById('btnConnect'), btnSend = document.getElementById('btnSend'), extFeatures = document.getElementById('extFeatures');
 
-    // 2. 元素引用
-    const dot = document.getElementById('bleStatusDot');
-    const statusText = document.getElementById('bleStatusText');
-    const btnConnectText = document.getElementById('btnConnectText');
-    const btnConnect = document.getElementById('btnConnect');
-    const btnSend = document.getElementById('btnSend');
-    const extFeatures = document.getElementById('extFeatures');
+    async function setupNotifications(char) {
+        try { otaLog("正在开启设备回传监听...", "info"); await char.startNotifications();
+            char.addEventListener('characteristicvaluechanged', (event) => {
+                const rawData = new TextDecoder().decode(event.target.value); console.log("📥 MCU Data:", rawData);
+                try {
+                    const json = JSON.parse(rawData);
+                    if (json.type === "version" || json.app || json.ui) {
+                        deviceVersions = { ...deviceVersions, ...json };
+                        const appVer = json.app || json.version || '-.-.-';
+                        otaLog(`MCU 版本回传: v${appVer}`, "mcu");
+                        if(document.getElementById('ota-modal').style.display==='flex') renderOtaList(lastOtaData);
+                    } else if (json.status && json.status.toLowerCase() === "ok") {
+                        otaLog(`MCU 确认：${json.msg || '收到指令，准备更新'}`, "success");
+                        setTimeout(closeOtaModal, 3000);
+                    } else if (json.msg || json.status) { otaLog(`MCU 状态: ${json.msg || json.status}`, "mcu"); }
+                } catch (e) { if(rawData.trim()) otaLog(`MCU 原始信息: ${rawData}`, "mcu"); }
+            }); otaLog("设备监听已就绪", "success");
+        } catch (err) { console.error(err); otaLog("监听开启失败", "error"); }
+    }
 
-    // 3. 核心功能函数
-    async function toggleBLE() {
-        console.log("toggleBLE Triggered");
-        
-        if (!navigator.bluetooth) {
-            alert(currentLang === 'zh' ? '【错误】您的浏览器不支持蓝牙' : 'Error: Browser not support BLE');
-            return;
-        }
+    function otaLog(msg, type = 'info') {
+        const consoleEl = document.getElementById('ota-console'), colors = { 'info': 'text-slate-400', 'blue': 'text-blue-400', 'success': 'text-emerald-400', 'error': 'text-red-400', 'mcu': 'text-amber-400' };
+        const time = new Date().toLocaleTimeString().split(' ')[0], line = document.createElement('div');
+        line.className = `${colors[type]} tracking-tighter`;
+        line.innerHTML = `<span class="opacity-30 mr-1">[${time}]</span> ${msg}`;
+        consoleEl.appendChild(line); consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
 
-        if (bleDevice && bleDevice.gatt.connected) {
-            console.log("Disconnecting...");
-            bleDevice.gatt.disconnect();
-            return;
-        }
+    function openOtaModal() { document.getElementById('ota-modal').style.display = 'flex'; document.body.style.overflow = 'hidden'; otaLog("准备执行检测与比对...", "blue"); checkOtaUpdates(); }
+    function closeOtaModal() { document.getElementById('ota-modal').style.display = 'none'; document.body.style.overflow = 'auto'; }
 
+    async function checkOtaUpdates() {
+        const list = document.getElementById('ota-partition-list'); list.innerHTML = '<div class="py-10 text-center"><i class="ri-loader-4-line animate-spin text-2xl text-blue-500"></i></div>';
+        otaLog("正在同步云端镜像...", "info");
         try {
-            console.log("Requesting Device...");
-            statusText.innerText = currentLang === 'zh' ? "搜索中..." : "Searching...";
-            
-            bleDevice = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
-                optionalServices: [BLE_SERVICE_UUID]
-            });
+            if (bleCharacteristic) { otaLog("向 MCU 请求当前版本...", "info"); await writeToDevice(JSON.stringify({cmd: "GET_VER"})); }
+            const urlParams = new URLSearchParams(window.location.search), uidParam = urlParams.get('uid');
+            const apiPath = `/ble_config/ota/info` + (uidParam ? `?uid=${uidParam}` : '');
+            const finalUrl = apiPath + (apiPath.includes('?') ? '&' : '?') + `_t=${Date.now()}`;
+            const res = await fetch(finalUrl); const data = await res.json();
+            lastOtaData = data; userUid = data.uid;
+            document.getElementById('ota-space-id').textContent = `Space #${userUid}`;
+            otaLog(`云端同步成功 (ID: ${userUid})`, "success");
+            if(data.status !== "empty" && Object.keys(data).length > 4) renderOtaList(data);
+            else list.innerHTML = '<div class="py-10 text-center text-slate-400 text-[10px] font-black uppercase">No Cloud Data</div>';
+        } catch (e) { otaLog("检测失败: " + e.message, "error"); }
+    }
 
-            console.log("Device selected:", bleDevice.name);
-            bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
-            document.getElementById('deviceName').innerText = bleDevice.name || "ESP32-DEVICE";
-            
-            console.log("Connecting to GATT...");
-            const server = await bleDevice.gatt.connect();
-            
-            console.log("Getting Service:", BLE_SERVICE_UUID);
-            const service = await server.getPrimaryService(BLE_SERVICE_UUID);
-            
-            console.log("Searching for Characteristic:", BLE_CHAR_UUID);
-            try {
-                bleCharacteristic = await service.getCharacteristic(BLE_CHAR_UUID);
-            } catch (cErr) {
-                console.warn("UUID match failed. Discovering all available characteristics...");
-                const characteristics = await service.getCharacteristics();
-                characteristics.forEach(c => console.log("Device exposes Characteristic UUID:", c.uuid));
-                throw new Error(currentLang === 'zh' ? "特征值不匹配。请查看控制台打印的 'Characteristic UUID'" : "UUID Mismatch. Check console.");
-            }
+    function renderOtaList(data) {
+        const list = document.getElementById('ota-partition-list'); list.innerHTML = '';
+        Object.keys(data).filter(k => !['uid', 'status', 'last_publish', 'can_edit', 'workspace'].includes(k)).forEach(name => {
+            const info = data[name], localVer = deviceVersions[name] || "-.-.-";
+            const hasUpdate = localVer !== "-.-.-" ? isNewerVersion(info.version, localVer) : true;
+            const row = document.createElement('div');
+            row.className = 'flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 mb-2 transition-all hover:bg-white hover:shadow-sm';
+            row.innerHTML = `<div class="flex flex-col"><div class="flex items-center gap-2 mb-0.5"><span class="text-xs font-black text-slate-800 uppercase tracking-tighter">${info.name || name}</span>
+                <i class="ri-information-line text-[10px] text-slate-300 hover:text-blue-500 cursor-pointer" onclick="otaLog('【${info.name||name}】日志: ${info.changelog||'无描述'}', 'info')"></i>
+                ${(hasUpdate && localVer !== "-.-.-") ? '<span class="flex h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse"></span>' : ''}</div>
+                <div class="flex items-center gap-2 text-[9px] font-bold"><span class="${localVer==='-.-.-'?'text-slate-300':'text-slate-400'} uppercase">MCU: v${localVer}</span><span class="text-slate-200">|</span><span class="text-blue-500 uppercase">Cloud: v${info.version}</span></div></div>
+                <div class="flex items-center gap-2"><button onclick="handleMcuDownload('${name}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 hover:text-blue-500 flex items-center justify-center"><i class="ri-download-2-line text-sm"></i></button>
+                ${hasUpdate ? `<button onclick="pushUpdateToDevice('${name}')" class="bg-blue-600 text-white text-[10px] font-black px-3 py-1.5 rounded-xl shadow-lg active:scale-95 transition-all">立即更新</button>` : `<div class="flex items-center gap-1 text-emerald-500 px-2 py-1 bg-emerald-50 rounded-lg"><i class="ri-checkbox-circle-fill text-[10px]"></i><span class="text-[9px] font-black uppercase">Latest</span></div>`}</div>`;
+            list.appendChild(row);
+        });
+    }
 
-            console.log("Connected Successfully! bleCharacteristic is ready.");
-            dot.classList.add('connected');
-            updateStatusUI();
-        } catch (error) {
-            if (error.name !== 'NotFoundError') {
-                console.error("Connection Error:", error);
-                showToast(error.message, "error");
-            }
-            bleCharacteristic = null;
-            updateStatusUI();
+    function isNewerVersion(c, d) {
+        const ca = c.split('.').map(Number), da = d.split('.').map(Number);
+        for (let i = 0; i < Math.max(ca.length, da.length); i++) {
+            if ((ca[i] || 0) > (da[i] || 0)) return true;
+            if ((ca[i] || 0) < (da[i] || 0)) return false;
+        } return false;
+    }
+
+    function switchOtaSpace() {
+        const targetId = prompt('请输入要访问的 ID:', userUid);
+        if (targetId && targetId !== userUid) {
+            const url = new URL(window.location.href); url.searchParams.set('uid', targetId);
+            window.history.pushState({}, '', url); checkOtaUpdates();
         }
     }
 
-    function onDisconnected() {
-        console.log("BLE Disconnected");
-        dot.classList.remove('connected');
-        document.getElementById('deviceName').innerText = "Device Offline";
-        bleDevice = null;
-        bleCharacteristic = null;
-        updateStatusUI();
+    function triggerHistoryInModal() { if(userUid) openHistory(userUid, false); }
+
+    async function pushUpdateToDevice(partition) {
+        if (!bleCharacteristic) { otaLog("未连接设备", "error"); return; }
+        otaLog(`准备 [${partition}] 极简 OTA 指令...`, "info");
+        const info = lastOtaData[partition];
+        const cmd = JSON.stringify({ 
+            cmd: "OTA_START", 
+            target: partition, 
+            url: info.url, 
+            ver: info.version, 
+            str: "A" 
+        });
+        try { await writeToDevice(cmd); otaLog("指令已发送，等待单片机执行...", "blue"); } catch (e) { otaLog("下发失败", "error"); }
     }
 
-    // 4. UI 辅助函数
+    async function handleMcuDownload(partition) {
+        if (!bleCharacteristic) { otaLog("未连接设备", "error"); return; }
+        const info = lastOtaData[partition];
+        const cmd = JSON.stringify({ 
+            cmd: "FILE_DOWNLOAD", 
+            target: partition, 
+            url: info.url,
+            ver: info.version
+        });
+        try { await writeToDevice(cmd); } catch (e) { otaLog("指令异常", "error"); }
+    }
+
+    async function toggleBLE() {
+        if (!navigator.bluetooth) { alert('浏览器不支持蓝牙'); return; }
+        if (bleDevice && bleDevice.gatt.connected) { bleDevice.gatt.disconnect(); return; }
+        try {
+            statusText.innerText = "搜索中...";
+            bleDevice = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [BLE_SERVICE_UUID] });
+            bleDevice.addEventListener('gattserverdisconnected', () => {
+                dot.classList.remove('connected'); bleDevice = null; bleCharacteristic = null; updateStatusUI(); otaLog("蓝牙连接已断开", "error");
+            });
+            document.getElementById('deviceName').innerText = bleDevice.name || "ESP32-DEVICE";
+            const server = await bleDevice.gatt.connect(), service = await server.getPrimaryService(BLE_SERVICE_UUID);
+            bleCharacteristic = await service.getCharacteristic(BLE_CHAR_UUID);
+            await setupNotifications(bleCharacteristic);
+            dot.classList.add('connected'); updateStatusUI(); otaLog("链路安全建立", "success");
+        } catch (error) { if (error.name !== 'NotFoundError') showToast(error.message, "error"); bleCharacteristic = null; updateStatusUI(); }
+    }
+
     function updateStatusUI() {
         const isReady = bleDevice && bleDevice.gatt.connected && bleCharacteristic;
-        console.log("UI Update - Connection Ready:", isReady);
-        
-        if (!isReady) {
-            statusText.innerText = currentLang === 'zh' ? "未连接" : "Disconnected";
-            btnConnectText.innerText = currentLang === 'zh' ? "搜索并连接设备" : "Search & Connect";
-            btnConnect.classList.remove('btn-pro-danger');
-            btnConnect.classList.add('btn-pro-accent');
-            btnSend.disabled = true;
-            btnSend.style.opacity = '0.5';
-            extFeatures.style.opacity = '0.5';
-            extFeatures.style.pointerEvents = 'none';
-        } else {
-            statusText.innerText = currentLang === 'zh' ? "已连接" : "Connected";
-            btnConnectText.innerText = currentLang === 'zh' ? "断开蓝牙连接" : "Disconnect";
-            btnConnect.classList.remove('btn-pro-accent');
-            btnConnect.classList.add('btn-pro-danger');
-            btnSend.disabled = false;
-            btnSend.style.opacity = '1';
-            extFeatures.style.opacity = '1';
-            extFeatures.style.pointerEvents = 'auto';
-        }
+        statusText.innerText = isReady ? "已连接" : "未连接";
+        btnConnectText.innerText = isReady ? "断开连接" : "搜索并连接设备";
+        btnConnect.className = isReady ? 'btn-pro btn-pro-danger' : 'btn-pro btn-pro-accent';
+        btnSend.disabled = !isReady; btnSend.style.opacity = isReady ? '1' : '0.5';
+        extFeatures.style.opacity = isReady ? '1' : '0.5'; extFeatures.style.pointerEvents = isReady ? 'auto' : 'none';
     }
 
     function onLangChange() {
-        console.log("Language Changed to:", currentLang);
-        // 更新 placeholder
         document.querySelectorAll('.i18n-ph').forEach(el => {
-            const ph = el.getAttribute('data-' + currentLang + '-ph');
-            if(ph) el.placeholder = ph;
+            const ph = el.getAttribute('data-' + currentLang + '-ph'); if(ph) el.placeholder = ph;
         });
-        
-        // 更新标题
-        const pageTitle = currentLang === 'zh' ? "设备配网 Pro" : "BLE Config Pro";
-        document.title = `${pageTitle} | 618002.xyz`;
-        
+        document.title = (currentLang === 'zh' ? "设备配网 Pro" : "BLE Config Pro") + " | 618002.xyz";
         updateStatusUI();
     }
 
-    // 5. 业务逻辑函数
     function addWiFiRow() {
-        const container = document.getElementById('wifiListContainer');
-        const rows = document.querySelectorAll('.wifi-row');
-        if (rows.length >= 3) return;
-
-        const row = document.createElement('div');
-        row.className = "wifi-row animate-[fadeIn_0.3s]";
-        const ssidPH = currentLang === 'zh' ? '备用网络名称' : 'Backup SSID';
-        const pwdPH = currentLang === 'zh' ? '密码' : 'Password';
-        const labelText = currentLang === 'zh' ? '备用网络' : 'Backup Network';
-
-        row.innerHTML = `
-            <button onclick="removeWiFiRow(this)" class="absolute right-4 top-4 text-slate-300 hover:text-red-500 transition-colors">
-                <i class="ri-close-circle-fill text-xl"></i>
-            </button>
-            <div class="flex flex-col gap-4">
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">${labelText}</span>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" class="input-pro ssid-input" placeholder="${ssidPH}">
-                    <input type="password" class="input-pro pwd-input" placeholder="${pwdPH}">
-                </div>
-            </div>
-        `;
-        container.appendChild(row);
-        if (document.querySelectorAll('.wifi-row').length >= 3) document.getElementById('btnAddRow').style.display = 'none';
-    }
-
-    function removeWiFiRow(btn) {
-        btn.closest('.wifi-row').remove();
-        document.getElementById('btnAddRow').style.display = 'flex';
+        const container = document.getElementById('wifiListContainer'); if (document.querySelectorAll('.wifi-row').length >= 3) return;
+        const row = document.createElement('div'); row.className = "wifi-row animate-[fadeIn_0.3s]";
+        row.innerHTML = `<button onclick="this.closest('.wifi-row').remove();document.getElementById('btnAddRow').style.display='flex';" class="absolute right-4 top-4 text-slate-300 hover:text-red-500"><i class="ri-close-circle-fill text-xl"></i></button>
+            <div class="flex flex-col gap-4"><span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">备用网络</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4"><input type="text" class="input-pro ssid-input" placeholder="SSID"><input type="password" class="input-pro pwd-input" placeholder="Password"></div></div>`;
+        container.appendChild(row); if (document.querySelectorAll('.wifi-row').length >= 3) document.getElementById('btnAddRow').style.display = 'none';
     }
 
     async function collectAndSend() {
-        const rows = document.querySelectorAll('.wifi-row');
-        const wifiList = [];
-        rows.forEach(row => {
-            const ssid = row.querySelector('.ssid-input').value.trim();
-            const pwd = row.querySelector('.pwd-input').value.trim();
-            if (ssid) wifiList.push({ s: ssid, p: pwd });
-        });
-        if (wifiList.length === 0) return alert(currentLang==='zh'?'请填入Wi-Fi':'Please enter WiFi');
-        
-        await writeToDevice(JSON.stringify({ cmd: "SAVE_LIST", list: wifiList }));
+        const rows = document.querySelectorAll('.wifi-row'), wifiList = [];
+        rows.forEach(row => { const s = row.querySelector('.ssid-input').value.trim(), p = row.querySelector('.pwd-input').value.trim(); if (s) wifiList.push({ s, p }); });
+        if (wifiList.length === 0) return alert('请填入Wi-Fi');
+        const oldHTML = btnSend.innerHTML; btnSend.innerHTML = '<i class="ri-loader-4-line animate-spin"></i>'; btnSend.disabled = true;
+        try { await writeToDevice(JSON.stringify({ cmd: "SAVE_LIST", list: wifiList })); btnSend.innerHTML = '<i class="ri-check-line"></i>'; setTimeout(() => { btnSend.innerHTML = oldHTML; btnSend.disabled = false; }, 2000); } catch (e) { btnSend.innerHTML = oldHTML; btnSend.disabled = false; }
     }
 
-    async function sendCommand(cmdStr) {
-        await writeToDevice(JSON.stringify({ cmd: cmdStr }));
-    }
+    async function sendCommand(cmdStr) { await writeToDevice(JSON.stringify({ cmd: cmdStr })); }
 
     async function writeToDevice(payload) {
-        if (!bleCharacteristic) {
-            showToast(currentLang === 'zh' ? "蓝牙未就绪" : "BLE Not Ready", "error");
-            return;
-        }
-        
-        const oldHTML = btnSend.innerHTML;
+        if (!bleCharacteristic) return;
         const data = new TextEncoder().encode(payload);
-        console.log("--- BLE SEND START ---");
-        console.log("Payload:", payload);
-        console.log("Length:", data.length);
-        
-        btnSend.innerHTML = '<i class="ri-loader-4-line animate-spin"></i>';
-        btnSend.disabled = true;
-
         try {
-            // 尝试使用现代 API：写入并等待响应
-            if (typeof bleCharacteristic.writeValueWithResponse === 'function') {
-                await bleCharacteristic.writeValueWithResponse(data);
-            } else {
-                await bleCharacteristic.writeValue(data);
-            }
-            
-            console.log("GATT Write SUCCESS");
-            btnSend.innerHTML = '<i class="ri-check-line"></i>';
-            showToast(currentLang === 'zh' ? `同步成功 (${data.length}B)` : `Synced (${data.length}B)`, "success");
-            
-            setTimeout(() => {
-                btnSend.innerHTML = oldHTML;
-                btnSend.disabled = false;
-            }, 2000);
+            if (typeof bleCharacteristic.writeValueWithResponse === 'function') await bleCharacteristic.writeValueWithResponse(data);
+            else await bleCharacteristic.writeValue(data);
+            if(window.showToast) showToast("指令已下发", "success");
         } catch (error) {
-            console.error("GATT Write Error:", error);
-            let msg = error.message;
-            if (data.length > 20) {
-                msg += " (Possible MTU issue)";
+            if (error.message.includes('disconnected') || error.message.includes('NetworkError')) {
+                otaLog("指令已送达 (链路按预期断开)", "success");
+                if(window.showToast) showToast("指令已发送", "success");
+                return;
             }
-            showToast((currentLang === 'zh' ? "下发失败: " : "Error: ") + msg, "error");
-            btnSend.innerHTML = oldHTML;
-            btnSend.disabled = false;
-            // 失败后通常链路已不稳，建议手动断开重连
+            let msg = error.message; if (data.length > 20) msg += " (MTU 预警)";
+            otaLog("下发失败: " + msg, "error");
+            if(window.showToast) showToast("下发失败", "error"); throw error;
         }
-        console.log("--- BLE SEND END ---");
     }
 
-    // 6. 初始化
     document.addEventListener('DOMContentLoaded', () => {
-        if (btnConnect) {
-            btnConnect.addEventListener('click', toggleBLE);
-        }
-        setTimeout(onLangChange, 100);
+        if (btnConnect) btnConnect.addEventListener('click', toggleBLE);
+        setTimeout(() => { if(typeof onLangChange === 'function') onLangChange(); }, 100);
     });
 </script>
 {% endblock %}

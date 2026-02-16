@@ -23,20 +23,28 @@ def ota_admin():
 
 @ble_config_bp.route('/ota/info')
 def ota_info():
-    """获取 OTA 状态 (仅返回已上线的固件)"""
+    """获取 OTA 状态 (增强调试日志)"""
     uid = request.args.get('uid') or request.headers.get('X-User-Id')
     current_uid = request.headers.get('X-User-Id')
-    if not uid: return jsonify({"error": "Missing UID"}), 401
+    print(f"📡 [OTA Info] Query UID: {uid}, Current User: {current_uid}")
     
-    latest = get_json_from_r2(f"ota/{uid}/latest.json") or {}
+    if not uid: return jsonify({"error": "Missing UID"}), 401
     
     data = {
         "uid": uid,
         "workspace": f"Space #{uid}",
         "can_edit": str(uid) == str(current_uid),
-        "status": "active" if latest else "empty"
+        "status": "empty"
     }
-    data.update(latest)
+    
+    try:
+        latest = get_json_from_r2(f"ota/{uid}/latest.json")
+        if latest and isinstance(latest, dict):
+            data.update(latest)
+            data["status"] = "active"
+            print(f"✅ [OTA Info] Manifest loaded for UID {uid}")
+    except Exception as e:
+        print(f"❌ [OTA Info] R2 Read Error: {e}")
     
     resp = make_response(jsonify(data))
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'

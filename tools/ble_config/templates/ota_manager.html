@@ -16,6 +16,9 @@
     .input-pro:focus { background: white; border-color: var(--accent); }
     .btn-pro { padding: 14px 24px; border-radius: 16px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.2s; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .badge-ver { background: #007aff10; color: var(--accent); padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; }
+    .status-tag { font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+    .tag-live { background: #dcfce7; color: #15803d; }
+    .tag-offline { background: #f1f5f9; color: #94a3b8; }
 </style>
 {% endblock %}
 
@@ -45,8 +48,8 @@
             <button onclick="showNewZoneModal()" class="btn-pro bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm">
                 <i class="ri-add-circle-line"></i> 新增分区
             </button>
-            <a href="/ble_config/ota" class="btn-pro bg-slate-900 text-white hover:bg-slate-800">
-                <i class="ri-eye-line"></i> 用户页
+            <a href="/ble_config/" class="btn-pro bg-slate-900 text-white hover:bg-slate-800">
+                <i class="ri-bluetooth-line"></i> 返回配网
             </a>
         </div>
     </div>
@@ -87,50 +90,63 @@
 
 <script>
     let rawData = {};
+    let fullPartitions = new Set(); // 记录所有已知分区名
 
     async function loadBoard() {
         const urlParams = new URLSearchParams(window.location.search);
         const urlUid = urlParams.get('uid');
         let apiPath = urlUid ? `/ble_config/ota/info?uid=${urlUid}` : '/ble_config/ota/info';
-        // 正确拼接时间戳参数
-        apiPath += (apiPath.includes('?') ? '&' : '?') + `_t=${Date.now()}`;
+        // 修正拼接逻辑
+        const finalUrl = apiPath + (apiPath.includes('?') ? '&' : '?') + `_t=${Date.now()}`;
 
         try {
-            const res = await fetch(apiPath);
+            const res = await fetch(finalUrl);
             if(res.status === 401) { window.location.href='/login?next=/ble_config/ota/admin'; return; }
             rawData = await res.json();
             
             document.getElementById('workspace-id').textContent = `Space ID: #${rawData.uid}`;
+            document.getElementById('endpoint-url').textContent = `${window.location.origin}/ble_config/ota/info?uid=${rawData.uid}`;
+            
+            // 补强逻辑：从历史记录中补全分区列表，防止“下架即失踪”
+            const historyRes = await fetch(`/ble_config/ota/history?uid=${rawData.uid}&_t=${Date.now()}`);
+            const history = await historyRes.json();
+            
+            fullPartitions.clear();
+            // 先加入 history 里的所有分区
+            history.forEach(h => fullPartitions.add(h.target));
+            // 再加入 latest 里的所有分区
+            Object.keys(rawData).filter(k => !['uid', 'status', 'last_publish', 'can_edit', 'workspace'].includes(k)).forEach(k => fullPartitions.add(k));
+
             if (!rawData.can_edit) {
                 document.getElementById('read-only-badge').classList.remove('hidden');
                 document.getElementById('admin-actions').classList.add('hidden');
             }
-            document.getElementById('endpoint-url').textContent = `${window.location.origin}/ble_config/ota/info?uid=${rawData.uid}`;
             
             renderZones();
-        } catch (e) {
-            console.error('Load Board Error:', e);
-        }
+        } catch (e) { console.error(e); }
     }
 
     function renderZones() {
         const container = document.getElementById('zone-container');
         container.innerHTML = '';
-        const zones = Object.keys(rawData).filter(k => !['uid', 'status', 'last_publish', 'can_edit', 'workspace'].includes(k));
         
-        if(zones.length === 0) {
-            container.innerHTML = `<div class="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[40px] text-slate-400 font-bold">暂无分区数据</div>`;
+        if(fullPartitions.size === 0) {
+            container.innerHTML = `<div class="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[40px] text-slate-400 font-bold">暂无分区数据，点击上方按钮创建</div>`;
             return;
         }
 
-        zones.forEach(name => {
-            const data = rawData[name];
+        fullPartitions.forEach(name => {
+            const data = rawData[name] || { version: '0.0.0', name: name.toUpperCase(), offline: true };
+            const isLive = !data.offline;
             const card = document.createElement('div');
             card.className = 'card-pro group';
             card.innerHTML = `
                 <div class="card-header-pro group-hover:bg-blue-50/30 transition-colors">
                     <div class="flex flex-col">
-                        <span class="text-[10px] font-black text-blue-400 uppercase tracking-tighter mb-1">Partition: ${name}</span>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[10px] font-black text-blue-400 uppercase tracking-tighter">Partition: ${name}</span>
+                            <span class="status-tag ${isLive ? 'tag-live' : 'tag-offline'}">${isLive ? 'Live' : 'Offline'}</span>
+                        </div>
                         <span class="text-xl font-black text-slate-800">${data.name || name}</span>
                     </div>
                     <span class="badge-ver">v${data.version || '0.0.0'}</span>
@@ -143,18 +159,19 @@
                             <input type="text" name="version" placeholder="版本号" required class="input-pro">
                         </div>
                         <input type="file" name="file" accept=".bin" required class="input-pro">
-                        <textarea name="changelog" placeholder="更新日志..." class="input-pro h-20"></textarea>
-                        <button type="submit" class="btn-pro w-full bg-slate-900 text-white hover:bg-blue-600 transition-all shadow-lg">发布更新</button>
+                        <textarea name="changelog" placeholder="新版本日志..." class="input-pro h-20"></textarea>
+                        <button type="submit" class="btn-pro w-full bg-slate-900 text-white hover:bg-blue-600 transition-all">发布并存入历史</button>
                     </form>
-                    <div class="pt-2 flex justify-end">
-                        <button onclick="deleteZone('${name}')" class="text-[9px] font-bold text-slate-300 hover:text-red-500 transition-colors">移除分区</button>
+                    <div class="pt-2 flex justify-between items-center">
+                        <button onclick="openHistory('${rawData.uid}', true)" class="text-[9px] font-bold text-blue-500 hover:underline">管理版本状态</button>
+                        <button onclick="deleteZone('${name}')" class="text-[9px] font-bold text-slate-300 hover:text-red-500">清空索引</button>
                     </div>
                     ` : `
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2">更新日志</p>
-                        <p class="text-xs text-slate-600 font-medium">${data.changelog || '无说明'}</p>
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 min-h-[80px]">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2">当前在线日志</p>
+                        <p class="text-xs text-slate-600 font-medium">${data.changelog || '该分区目前处于离线状态'}</p>
                     </div>
-                    <a href="${data.url}" class="btn-pro w-full bg-blue-600 text-white hover:bg-blue-700">下载固件</a>
+                    ${isLive ? `<a href="${data.url}" class="btn-pro w-full bg-blue-600 text-white hover:bg-blue-700">下载固件</a>` : ''}
                     `}
                 </div>
             `;
@@ -165,60 +182,38 @@
     async function handleUpload(e, target) {
         e.preventDefault();
         const btn = e.target.querySelector('button');
-        const oldText = btn.innerText;
-        btn.disabled = true;
-        btn.innerText = '正在上传...';
-
+        const oldText = btn.innerText; btn.disabled = true; btn.innerText = '正在上传...';
         const formData = new FormData(e.target);
         formData.append('target', target);
-
         try {
             const res = await fetch('/ble_config/ota/upload', { method: 'POST', body: formData });
             const result = await res.json();
-            if(result.success) {
-                alert('🚀 发布成功！');
-                loadBoard();
-            } else {
-                alert('❌ 失败: ' + result.error);
-            }
+            if(result.success) { alert('🚀 上传成功！已存入历史库，请在“查看历史”中手动上线该版本。'); loadBoard(); }
+            else { alert('❌ 失败: ' + result.error); }
         } catch (err) { alert('🌐 网络错误'); }
         finally { btn.disabled = false; btn.innerText = oldText; }
     }
 
     function showNewZoneModal() { document.getElementById('new-zone-modal').style.display='flex'; }
     function hideNewZoneModal() { document.getElementById('new-zone-modal').style.display='none'; }
-    
     function confirmNewZone() {
         const name = document.getElementById('new-zone-name').value.trim().toLowerCase();
-        if(name && !rawData[name]) { 
-            rawData[name] = {version:'0.0.0', name: name.toUpperCase()}; 
-            renderZones(); 
-            hideNewZoneModal(); 
-        } else { alert('无效或已存在'); }
+        if(name) { fullPartitions.add(name); renderZones(); hideNewZoneModal(); }
     }
-
-    function copyUrl() {
-        const url = document.getElementById('endpoint-url').textContent;
-        if(url.includes('Checking')) return;
-        navigator.clipboard.writeText(url).then(() => alert('API 链接已复制'));
-    }
+    function copyUrl() { const url = document.getElementById('endpoint-url').textContent; navigator.clipboard.writeText(url).then(() => alert('API 链接已复制')); }
 
     async function deleteZone(name) {
-        if(!confirm(`确定要彻底移除 "${name}" 分区及其索引吗？`)) return;
+        if(!confirm(`确定要从云端索引(Latest)中下架 "${name}" 吗？这不会删除历史记录。`)) return;
         try {
             const res = await fetch('/ble_config/ota/delete_partition', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ target: name })
             });
-            const result = await res.json();
-            if(result.success) { delete rawData[name]; renderZones(); }
-        } catch (e) { alert('网络错误'); }
+            if((await res.json()).success) { loadBoard(); }
+        } catch (e) { alert('操作失败'); }
     }
 
-    function triggerOpenHistory() {
-        if(rawData.uid) openHistory(rawData.uid, rawData.can_edit);
-    }
+    function triggerOpenHistory() { if(rawData.uid) openHistory(rawData.uid, rawData.can_edit); }
 
     document.addEventListener('DOMContentLoaded', loadBoard);
 </script>
