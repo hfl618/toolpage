@@ -257,7 +257,11 @@
             </div>
 
             <div class="card-pro">
-                <div class="card-header-pro flex justify-between items-center"><span class="card-title-pro i18n" data-zh="高亮标记" data-en="Highlighter">Highlighter</span><button onclick="addHighlightRule()" class="text-indigo-500"><i class="ri-palette-line"></i></button></div>
+                <div class="card-header-pro flex justify-between items-center"><span class="card-title-pro i18n" data-zh="高亮标记" data-en="Highlighter">Highlighter</span>
+                    <div class="flex gap-2">
+                        <button onclick="addHighlightRule()" class="text-indigo-500 hover:scale-110 transition-transform" title="Add Keyword"><i class="ri-add-circle-fill text-lg"></i></button>
+                    </div>
+                </div>
                 <div id="highlightRules" class="p-4 space-y-2"></div>
             </div>
 

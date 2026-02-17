@@ -1,23 +1,49 @@
 /**
- * Cloudflare Worker - 618002.xyz 智能网关系统 (v8.1 修复版)
+ * Cloudflare Worker - 618002.xyz 智能网关系统 (v8.3 商业化增强版)
  * 修复内容：
- * 1. 解决 /logout 路径下的 Response.redirect 只读导致 500 错误的问题。
- * 2. 增强 parseUserFromCookie 的容错性，防止非法 Cookie 导致 Crash。
- * 3. 保持所有原有 Bug 反馈及多图上传功能。
+ * 1. 完整保留原有所有功能（Bug反馈、网关校验、用户解析）。
+ * 2. 集成“方正简约”风格赞助商组件。
+ * 3. 支持多语言 (zh/en) 自动适配。
  */
 
 const BACKEND_URL = "https://artificial-cordie-toolpage-e43d265d.koyeb.app";
 
-// --- 1. 核心应用配置 ---
+// --- 1. 核心应用配置 (保持不变) ---
 const APP_TOOLS = [
   { id:'stock', title_zh:'元器件管理', title_en:'Inventory Management', desc_zh:'库存、BOM、扫码一体化', desc_en:'Stock, BOM, QR integrated', lDesc_zh:'全方位数字化仓储解决方案。支持扫码入库、BOM智能解析、多级库位管理。', lDesc_en:'Full digital warehouse solution.', icon:'ri-cpu-fill', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-indigo-600', comments:['BOM解析准确','效率很高'], url:'/inventory/' },
-  { id:'serial', title_zh:'云端串口调试', title_en:'Serial Terminal', desc_zh:'Web Serial API 直连', desc_en:'Hardware debug via web', lDesc_zh:'基于 Web Serial API 的专业串口调试工具。支持 2M 高速波特率、HEX 收发及指令宏。', lDesc_en:'Professional web-based serial terminal.', icon:'ri-terminal-line', cat:'dev', color:'bg-gradient-to-br from-indigo-500 to-purple-600', comments:['无需安装驱动','高速稳定'], url:'/serial/' },
   { id:'lvgl', title_zh:'LVGL 图像处理', title_en:'LVGL Image Tool', desc_zh:'嵌入式素材转换', desc_en:'Embedded Asset Converter', lDesc_zh:'专为 LVGL 设计的图像资产处理工具。支持高质量缩放、抖动处理及 Alpha 预乘。', lDesc_en:'Professional image converter for LVGL.', icon:'ri-image-edit-fill', cat:'dev', color:'bg-gradient-to-br from-emerald-500 to-teal-600', comments:['转换速度极快','RGB565A8 效果很棒'], url:'/lvgl_image/' },
   { id:'ai', title_zh:'AI 识别中心', title_en:'AI Analysis', desc_zh:'视觉模型物料分析', desc_en:'Visual Model Analysis', lDesc_zh:'基于尖端深度学习模型，支持物料视觉识别、文本信息提取及自动纠错。', lDesc_en:'Advanced AI visual analysis.', icon:'ri-eye-fill', cat:'ai', color:'bg-gradient-to-br from-purple-500 to-pink-600', comments:['识别速度惊人','OCR 准确率很高'], url:'/ai_tools' },
+  { id:'ble', title_zh:'设备蓝牙配网', title_en:'BLE Configurator', desc_zh:'Web Bluetooth API 配网', desc_en:'Provision IoT via BLE', lDesc_zh:'基于 Web Bluetooth API 的极简配网工具。支持 Wi-Fi 下发、OTA 升级及设备管理，适配移动端。', lDesc_en:'Minimalist provisioning tool via Web Bluetooth.', icon:'ri-bluetooth-connect-line', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-cyan-500', comments:['配网非常快','苹果风 UI 很棒'], url:'/ble_config/' },
+  { id:'serial', title_zh:'云端串口调试', title_en:'Serial Terminal', desc_zh:'Web Serial API 直连', desc_en:'Hardware debug via web', lDesc_zh:'基于 Web Serial API 的专业串口调试工具。支持 2M 高速波特率、HEX 收发及指令宏。', lDesc_en:'Professional web-based serial terminal.', icon:'ri-terminal-line', cat:'dev', color:'bg-gradient-to-br from-indigo-500 to-purple-600', comments:['无需安装驱动','高速稳定'], url:'/serial/' },
   { id:'admin', title_zh:'系统控制台', title_en:'Admin Panel', desc_zh:'权限与全局日志审计', desc_en:'Auth & Audit logs', lDesc_zh:'管理员专用指挥中心。实时监控系统流量，配置用户权限。', lDesc_en:'Dedicated admin console.', icon:'ri-terminal-box-fill', cat:'dev', color:'bg-gradient-to-br from-slate-700 to-slate-900', comments:['日志审计很详细'], url:'/admin' }
 ];
 
-// --- 2. Bug 反馈组件 (含帮助文档) ---
+// --- 1.1 赞助商配置 (新增) ---
+const SPONSORS = [
+  {
+    id: "jlc-pcb",
+    title_zh: "嘉立创 PCB 打样", title_en: "JLCPCB Prototype",
+    desc_zh: "全球领先 PCB 制造，24h 极速发货。", desc_en: "World's leading PCB service, 24h turnaround.",
+    image: "https://img.icons8.com/color/96/circuit.png",
+    link: "https://jlcpcb.com/"
+  },
+  {
+    id: "deepseek-api",
+    title_zh: "DeepSeek AI 赋能", title_en: "Powered by DeepSeek",
+    desc_zh: "国产最强 AI 大模型，极速推理体验。", desc_en: "Most powerful AI model for fast inference.",
+    image: "https://img.icons8.com/fluency/96/artificial-intelligence.png",
+    link: "https://deepseek.com/"
+  },
+  {
+    id: "cloudflare-r2",
+    title_zh: "R2 云端静态存储", title_en: "Cloudflare R2",
+    desc_zh: "0 访问费用，极速 CDN 全球分发。", desc_en: "Zero egress fees, global CDN distribution.",
+    image: "https://img.icons8.com/color/96/cloudflare.png",
+    link: "https://www.cloudflare.com/"
+  }
+];
+
+// --- 2. Bug 反馈组件 (保持原样) ---
 const BUG_WIDGET = 
 '<!-- Help Button -->' +
 '<div id="help-trigger" onclick="toggleHelpModal()" style="position:fixed; right:24px; bottom:100px; width:48px; height:48px; background:white; border:1px solid #e2e8f0; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1); border-radius:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:9999; transition:all 0.3s;" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'scale(1)\'">' +
@@ -161,7 +187,7 @@ export default {
   }
 };
 
-// --- 辅助函数 (增强型) ---
+// --- 辅助函数 ---
 
 function parseUserFromCookie(cookieHeader) {
   if (!cookieHeader) return null;
@@ -171,7 +197,6 @@ function parseUserFromCookie(cookieHeader) {
   if (!token || token.split('.').length < 3) return null;
 
   try {
-    // 增加 base64 的鲁棒性替换
     const base64Payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
     const jsonPayload = decodeURIComponent(atob(base64Payload).split('').map(c => 
         '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
@@ -181,7 +206,6 @@ function parseUserFromCookie(cookieHeader) {
     const seed = payload.username || payload.uid || '1';
     let avatar = payload.avatar;
     
-    // 如果是完整 URL，增加时间戳强制刷新
     if (avatar && typeof avatar === 'string' && avatar.startsWith('http')) {
         const sep = avatar.indexOf('?') !== -1 ? '&' : '?';
         avatar = avatar + sep + 'v=' + Date.now();
@@ -218,20 +242,56 @@ async function proxyToBackend(request, backendUrl, env) {
   }
   if (env && env.GATEWAY_SECRET) newHeaders.set("X-Gateway-Secret", env.GATEWAY_SECRET);
   
-  // 保持流式读取以支持大文件上传
   const body = (request.method !== 'GET' && request.method !== 'HEAD') ? await request.arrayBuffer() : null;
   return fetch(new Request(targetUrl, { method: request.method, headers: newHeaders, body: body, redirect: 'follow' }));
 }
 
-// =================================================================
-// 页面渲染函数 (保持原有样式不变)
-// =================================================================
+// --- 广告渲染函数 (新增) ---
+function renderSponsors() {
+    return `
+    <div style="margin-top: 16px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+            ${SPONSORS.map(s => `
+                <a href="${s.link}" target="_blank" style="text-decoration:none; display:block; group">
+                    <div style="display:flex; align-items:center; gap:12px; border:1px solid #f1f5f9; padding:12px; background:white; transition:all 0.2s;" onmouseover="this.style.borderColor='#e2e8f0'" onmouseout="this.style.borderColor='#f1f5f9'">
+                        <div style="width:40px; height:40px; border:1px solid #f8fafc; background:#f8fafc; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+                            <img src="${s.image}" style="width:28px; height:28px; object-contain; opacity:0.7;">
+                        </div>
+                        <div style="overflow:hidden;">
+                            <div class="i18n-title" data-zh="${s.title_zh}" data-en="${s.title_en}" style="font-size:11px; font-weight:bold; color:#334155; margin-bottom:2px;">${s.title_zh}</div>
+                            <div class="i18n-desc" data-zh="${s.desc_zh}" data-en="${s.desc_en}" style="font-size:10px; color:#94a3b8; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${s.desc_zh}</div>
+                        </div>
+                    </div>
+                </a>
+            `).join('')}
+        </div>
+        <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f8fafc; padding-top:8px;">
+            <span style="font-size:9px; color:#cbd5e1; font-weight:bold; letter-spacing:1px;">© 2026 618002.XYZ</span>
+            <div style="display:flex; gap:12px;">
+                <a href="/support" style="font-size:9px; color:#cbd5e1; text-decoration:none; font-weight:bold;">SUPPORT</a>
+                <span style="color:#f1f5f9; font-size:9px;">|</span>
+                <a href="/docs" style="font-size:9px; color:#cbd5e1; text-decoration:none; font-weight:bold;">ADS</a>
+            </div>
+        </div>
+    </div>
+    <script>
+        // 自动适配 Worker 内置主页的多语言
+        function syncSponsorLang() {
+            const lang = localStorage.getItem('lang') || 'zh';
+            document.querySelectorAll('.i18n-title').forEach(el => el.innerText = el.getAttribute('data-' + lang));
+            document.querySelectorAll('.i18n-desc').forEach(el => el.innerText = el.getAttribute('data-' + lang));
+        }
+        setTimeout(syncSponsorLang, 100);
+    </script>
+    `;
+}
+
+// --- 页面渲染函数 ---
 
 function renderIndex(user) {
     const toolsJson = JSON.stringify(APP_TOOLS);
     let userHtml = '';
     if (user) {
-        // 直接使用 parseUserFromCookie 处理好的头像 URL
         const avatarUrl = user.avatar;
         userHtml = 
         '<div class="flex items-center gap-2 p-1.5 pr-4 rounded-full bg-white border border-gray-100 shadow-sm cursor-pointer hover:bg-slate-50 transition-all" onclick="toggleUserMenu()">' +
@@ -288,7 +348,7 @@ function renderIndex(user) {
     </div>
   </nav>
 
-  <main class="max-w-7xl mx-auto px-6 pt-36 pb-20">
+  <main class="max-w-7xl mx-auto px-6 pt-36 pb-8">
     <div class="flex flex-col md:flex-row justify-between items-end gap-6 mb-16">
       <div>
         <h1 class="text-5xl font-black text-slate-900 tracking-tighter mb-4 i18n" data-zh="应用矩阵" data-en="Apps Matrix">应用矩阵</h1>
@@ -296,12 +356,16 @@ function renderIndex(user) {
       </div>
       <div class="flex gap-2 p-1.5 bg-white rounded-2xl border border-gray-100 shadow-sm" id="filters">
         <button onclick="filter('all')" id="btn-all" class="px-5 py-2.5 rounded-xl text-xs font-black bg-slate-900 text-white shadow-md transition-all i18n" data-zh="全部" data-en="All">全部</button>
-        <button onclick="filter('dev')" id="btn-dev" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all i18n" data-zh="管理" data-en="Admin">管理</button>
+        <button onclick="filter('dev')" id="btn-dev" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all i18n" data-zh="开发工具" data-en="Admin">管理</button>
         <button onclick="filter('ai')" id="btn-ai" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all i18n" data-zh="人工智能" data-en="AI">人工智能</button>
       </div>
     </div>
     <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"></div>
     <div id="empty" class="hidden text-center py-32"><div class="text-7xl mb-4">🔍</div><p class="text-slate-400 font-black">No results found.</p></div>
+
+    <!-- 🚀 赞助商区域缝合点 -->
+    ${renderSponsors()}
+
   </main>
 
   <div id="modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
@@ -339,6 +403,8 @@ function renderIndex(user) {
             const txt = el.getAttribute('data-' + lang);
             if(txt) el.innerText = txt;
         });
+        // 同步广告位语言
+        if(typeof syncSponsorLang === 'function') syncSponsorLang();
         apply();
     }
 
