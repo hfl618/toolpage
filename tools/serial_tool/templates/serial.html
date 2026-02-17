@@ -1,8 +1,13 @@
 {% extends "support/layout.html" %}
 
-{% block title %}云端串口调试 Pro{% endblock %}
+{% block title %}Web Serial API 串口调试工具 - 免安装浏览器串口助手 | 618002.xyz{% endblock %}
 {% block app_icon %}S{% endblock %}
 {% block app_name %}<span class="i18n" data-zh="串口调试" data-en="Serial Studio">串口调试</span>{% endblock %}
+
+{% block extra_head %}
+<meta name="description" content="基于 Web Serial API 的免安装浏览器串口调试工具。支持跨平台 HEX/文本收发、波特率自定义及自动化回复，是嵌入式工程师的理想助手。">
+<meta name="keywords" content="Web Serial API, 串口调试工具, 浏览器串口助手, 在线串口助手, 单片机调试, ESP32, STM32">
+{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -201,6 +206,12 @@
             </div>
         </div>
 
+        <!-- SEO Text (Visible to Crawlers, Minimal impact on layout) -->
+        <section style="height: 1px; overflow: hidden; opacity: 0.01; font-size: 8px; padding: 0 20px;">
+            这款Web Serial API 串口调试工具是一款免安装浏览器串口助手。基于原生 Web 技术，实现跨平台驱动自由。
+            This Web Serial API Tool is a driverless online terminal. It enables cross-platform hardware connection directly via your browser.
+        </section>
+
         <!-- 极致紧凑的广告位 -->
         <div class="mt-1">
             {% with placement='footer_grid', page_id='serial', limit=3 %}
@@ -256,16 +267,17 @@
                 <div id="autoReplyList" class="p-4 space-y-2 overflow-y-auto" style="max-height: 250px;"></div>
             </div>
 
-            <div class="card-pro">
+            <div class="card-pro flex-1 min-h-0">
                 <div class="card-header-pro flex justify-between items-center"><span class="card-title-pro i18n" data-zh="高亮标记" data-en="Highlighter">Highlighter</span>
                     <div class="flex gap-2">
                         <button onclick="addHighlightRule()" class="text-indigo-500 hover:scale-110 transition-transform" title="Add Keyword"><i class="ri-add-circle-fill text-lg"></i></button>
                     </div>
                 </div>
-                <div id="highlightRules" class="p-4 space-y-2"></div>
+                <!-- 列表区域：设置滚动与弹性 -->
+                <div id="highlightRules" class="p-4 space-y-2 overflow-y-auto flex-1"></div>
             </div>
 
-            <div class="mt-auto space-y-3">
+            <div class="mt-auto space-y-3 flex-shrink-0">
                 <button onclick="downloadLog()" class="btn-pro bg-white border border-slate-200 text-slate-600 w-full i18n" data-zh="导出日志" data-en="Export Log"><i class="ri-file-download-line"></i> 导出日志</button>
                 <div class="p-4 bg-blue-50 border border-blue-100 rounded-2xl"><p class="m-0 text-[9px] font-black text-blue-600 leading-relaxed uppercase tracking-widest"><i class="ri-shield-check-fill"></i> Local Security Enabled</p></div>
             </div>

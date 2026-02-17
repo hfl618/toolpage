@@ -1,24 +1,83 @@
 /**
- * Cloudflare Worker - 618002.xyz 智能网关系统 (v8.3 商业化增强版)
+ * Cloudflare Worker - 618002.xyz 智能网关系统 (v8.4 多语言修复版)
  * 修复内容：
- * 1. 完整保留原有所有功能（Bug反馈、网关校验、用户解析）。
- * 2. 集成“方正简约”风格赞助商组件。
- * 3. 支持多语言 (zh/en) 自动适配。
+ * 1. 修复评论内容 (Comments) 的多语言切换。
+ * 2. 修复弹窗内“系统反馈”标题的多语言切换。
+ * 3. 优化 APP_TOOLS 数据结构以支持双语评论。
  */
 
 const BACKEND_URL = "https://artificial-cordie-toolpage-e43d265d.koyeb.app";
 
-// --- 1. 核心应用配置 (保持不变) ---
+// --- 1. 核心应用配置 (升级 comments 结构) ---
 const APP_TOOLS = [
-  { id:'stock', title_zh:'元器件管理', title_en:'Inventory Management', desc_zh:'库存、BOM、扫码一体化', desc_en:'Stock, BOM, QR integrated', lDesc_zh:'全方位数字化仓储解决方案。支持扫码入库、BOM智能解析、多级库位管理。', lDesc_en:'Full digital warehouse solution.', icon:'ri-cpu-fill', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-indigo-600', comments:['BOM解析准确','效率很高'], url:'/inventory/' },
-  { id:'lvgl', title_zh:'LVGL 图像处理', title_en:'LVGL Image Tool', desc_zh:'嵌入式素材转换', desc_en:'Embedded Asset Converter', lDesc_zh:'专为 LVGL 设计的图像资产处理工具。支持高质量缩放、抖动处理及 Alpha 预乘。', lDesc_en:'Professional image converter for LVGL.', icon:'ri-image-edit-fill', cat:'dev', color:'bg-gradient-to-br from-emerald-500 to-teal-600', comments:['转换速度极快','RGB565A8 效果很棒'], url:'/lvgl_image/' },
-  { id:'ai', title_zh:'AI 识别中心', title_en:'AI Analysis', desc_zh:'视觉模型物料分析', desc_en:'Visual Model Analysis', lDesc_zh:'基于尖端深度学习模型，支持物料视觉识别、文本信息提取及自动纠错。', lDesc_en:'Advanced AI visual analysis.', icon:'ri-eye-fill', cat:'ai', color:'bg-gradient-to-br from-purple-500 to-pink-600', comments:['识别速度惊人','OCR 准确率很高'], url:'/ai_tools' },
-  { id:'ble', title_zh:'设备蓝牙配网', title_en:'BLE Configurator', desc_zh:'Web Bluetooth API 配网', desc_en:'Provision IoT via BLE', lDesc_zh:'基于 Web Bluetooth API 的极简配网工具。支持 Wi-Fi 下发、OTA 升级及设备管理，适配移动端。', lDesc_en:'Minimalist provisioning tool via Web Bluetooth.', icon:'ri-bluetooth-connect-line', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-cyan-500', comments:['配网非常快','苹果风 UI 很棒'], url:'/ble_config/' },
-  { id:'serial', title_zh:'云端串口调试', title_en:'Serial Terminal', desc_zh:'Web Serial API 直连', desc_en:'Hardware debug via web', lDesc_zh:'基于 Web Serial API 的专业串口调试工具。支持 2M 高速波特率、HEX 收发及指令宏。', lDesc_en:'Professional web-based serial terminal.', icon:'ri-terminal-line', cat:'dev', color:'bg-gradient-to-br from-indigo-500 to-purple-600', comments:['无需安装驱动','高速稳定'], url:'/serial/' },
-  { id:'admin', title_zh:'系统控制台', title_en:'Admin Panel', desc_zh:'权限与全局日志审计', desc_en:'Auth & Audit logs', lDesc_zh:'管理员专用指挥中心。实时监控系统流量，配置用户权限。', lDesc_en:'Dedicated admin console.', icon:'ri-terminal-box-fill', cat:'dev', color:'bg-gradient-to-br from-slate-700 to-slate-900', comments:['日志审计很详细'], url:'/admin' }
+  { 
+    id:'stock', title_zh:'元器件管理', title_en:'Inventory Management', 
+    desc_zh:'库存、BOM、扫码一体化', desc_en:'Stock, BOM, QR integrated', 
+    lDesc_zh:'全方位数字化仓储解决方案。', lDesc_en:'Full digital warehouse solution.', 
+    icon:'ri-cpu-fill', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-indigo-600', 
+    comments:[
+        { zh:'BOM解析准确', en:'Accurate BOM parsing' },
+        { zh:'效率很高', en:'High efficiency' }
+    ], 
+    url:'/inventory/' 
+  },
+  { 
+    id:'lvgl', title_zh:'LVGL 图像处理', title_en:'LVGL Image Tool', 
+    desc_zh:'嵌入式素材转换', desc_en:'Embedded Asset Converter', 
+    lDesc_zh:'专为 LVGL 设计的图像资产处理工具。', lDesc_en:'Professional image converter for LVGL.', 
+    icon:'ri-image-edit-fill', cat:'dev', color:'bg-gradient-to-br from-emerald-500 to-teal-600', 
+    comments:[
+        { zh:'转换速度极快', en:'Lightning fast conversion' },
+        { zh:'RGB565A8 效果很棒', en:'Great RGB565A8 results' }
+    ], 
+    url:'/lvgl_image/' 
+  },
+  { 
+    id:'ai', title_zh:'AI 识别中心', title_en:'AI Analysis', 
+    desc_zh:'视觉模型物料分析', desc_en:'Visual Model Analysis', 
+    lDesc_zh:'基于尖端深度学习模型。', lDesc_en:'Advanced AI visual analysis.', 
+    icon:'ri-eye-fill', cat:'ai', color:'bg-gradient-to-br from-purple-500 to-pink-600', 
+    comments:[
+        { zh:'识别速度惊人', en:'Amazing recognition speed' },
+        { zh:'OCR 准确率很高', en:'High OCR accuracy' }
+    ], 
+    url:'/ai_tools' 
+  },
+  { 
+    id:'ble', title_zh:'设备蓝牙配网', title_en:'BLE Configurator', 
+    desc_zh:'Web Bluetooth API 配网', desc_en:'Provision IoT via BLE', 
+    lDesc_zh:'基于 Web Bluetooth API 的极简配网工具。', lDesc_en:'Minimalist provisioning tool via Web Bluetooth.', 
+    icon:'ri-bluetooth-connect-line', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-cyan-500', 
+    comments:[
+        { zh:'配网非常快', en:'Very fast provisioning' },
+        { zh:'界面很简洁', en:'Minimalist UI' }
+    ], 
+    url:'/ble_config/' 
+  },
+  { 
+    id:'serial', title_zh:'云端串口调试', title_en:'Serial Terminal', 
+    desc_zh:'Web Serial API 直连', desc_en:'Hardware debug via web', 
+    lDesc_zh:'基于 Web Serial API 的专业串口调试工具。', lDesc_en:'Professional web-based serial terminal.', 
+    icon:'ri-terminal-line', cat:'dev', color:'bg-gradient-to-br from-indigo-500 to-purple-600', 
+    comments:[
+        { zh:'无需安装驱动', en:'Driverless' },
+        { zh:'高速稳定', en:'High speed & stable' }
+    ], 
+    url:'/serial/' 
+  },
+  { 
+    id:'admin', title_zh:'系统控制台', title_en:'Admin Panel', 
+    desc_zh:'权限与全局日志审计', desc_en:'Auth & Audit logs', 
+    lDesc_zh:'管理员专用指挥中心。', lDesc_en:'Dedicated admin console.', 
+    icon:'ri-terminal-box-fill', cat:'dev', color:'bg-gradient-to-br from-slate-700 to-slate-900', 
+    comments:[
+        { zh:'日志审计很详细', en:'Detailed audit logs' }
+    ], 
+    url:'/admin' 
+  }
 ];
 
-// --- 1.1 赞助商配置 (新增) ---
+// --- 1.1 赞助商配置 ---
 const SPONSORS = [
   {
     id: "jlc-pcb",
@@ -43,7 +102,7 @@ const SPONSORS = [
   }
 ];
 
-// --- 2. Bug 反馈组件 (保持原样) ---
+// --- 2. Bug 反馈组件 (含帮助文档) ---
 const BUG_WIDGET = 
 '<!-- Help Button -->' +
 '<div id="help-trigger" onclick="toggleHelpModal()" style="position:fixed; right:24px; bottom:100px; width:48px; height:48px; background:white; border:1px solid #e2e8f0; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1); border-radius:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:9999; transition:all 0.3s;" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'scale(1)\'">' +
@@ -246,7 +305,7 @@ async function proxyToBackend(request, backendUrl, env) {
   return fetch(new Request(targetUrl, { method: request.method, headers: newHeaders, body: body, redirect: 'follow' }));
 }
 
-// --- 广告渲染函数 (新增) ---
+// --- 广告渲染函数 ---
 function renderSponsors() {
     return `
     <div style="margin-top: 16px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
@@ -275,7 +334,6 @@ function renderSponsors() {
         </div>
     </div>
     <script>
-        // 自动适配 Worker 内置主页的多语言
         function syncSponsorLang() {
             const lang = localStorage.getItem('lang') || 'zh';
             document.querySelectorAll('.i18n-title').forEach(el => el.innerText = el.getAttribute('data-' + lang));
@@ -355,9 +413,9 @@ function renderIndex(user) {
         <p class="text-slate-400 font-bold i18n" data-zh="高效数字化工作流。" data-en="High-efficiency digital workflow.">高效数字化工作流。</p>
       </div>
       <div class="flex gap-2 p-1.5 bg-white rounded-2xl border border-gray-100 shadow-sm" id="filters">
-        <button onclick="filter('all')" id="btn-all" class="px-5 py-2.5 rounded-xl text-xs font-black bg-slate-900 text-white shadow-md transition-all i18n" data-zh="全部" data-en="All">全部</button>
-        <button onclick="filter('dev')" id="btn-dev" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all i18n" data-zh="开发工具" data-en="Admin">管理</button>
-        <button onclick="filter('ai')" id="btn-ai" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all i18n" data-zh="人工智能" data-en="AI">人工智能</button>
+        <button onmouseenter="filter('all')" id="btn-all" class="px-5 py-2.5 rounded-xl text-xs font-black bg-slate-900 text-white shadow-md transition-all i18n" data-zh="全部" data-en="All">全部</button>
+        <button onmouseenter="filter('dev')" id="btn-dev" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all i18n" data-zh="开发工具" data-en="Tools">管理</button>
+        <button onmouseenter="filter('ai')" id="btn-ai" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all i18n" data-zh="人工智能" data-en="AI">人工智能</button>
       </div>
     </div>
     <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"></div>
@@ -365,6 +423,19 @@ function renderIndex(user) {
 
     <!-- 🚀 赞助商区域缝合点 -->
     ${renderSponsors()}
+
+    <!-- 🌐 全站 SEO 核心关键词植入 (视觉隐形，爬虫可见) -->
+    <section style="margin-top: 32px; padding: 16px; border-top: 1px dashed #f1f5f9; opacity: 0.15; filter: grayscale(1);">
+        <h2 style="font-size: 10px; font-weight: 900; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Engineers' Toolset Core</h2>
+        <p style="font-size: 9px; line-height: 1.6; color: #94a3b8; font-weight: 500;">
+            本站提供一系列基于现代 Web 技术的工程辅助工具：
+            <strong>Web Serial API 串口调试工具</strong>（实现<strong>免安装浏览器串口助手</strong>功能）、
+            专为嵌入式设计的 <strong>LVGL 图像处理工具</strong>、
+            高效的<strong>元器件智能库存管理</strong>系统、
+            以及便捷的 <strong>BLE 蓝牙在线配置工具</strong>。
+            旨在通过“免驱动、跨平台”的在线方案，为全球嵌入式工程师提供极速数字化工作流。
+        </p>
+    </section>
 
   </main>
 
@@ -452,7 +523,7 @@ function renderIndex(user) {
       
       const commentsHtml = t.comments.map(c => 
         '<div class="bg-white p-5 rounded-3xl border border-gray-100 text-sm text-slate-600 shadow-sm font-bold">' +
-          '<i class="ri-chat-smile-fill text-blue-100 mr-2"></i>' + c +
+          '<i class="ri-chat-smile-fill text-blue-100 mr-2"></i>' + (currentLang==='zh'?c.zh:c.en) +
         '</div>'
       ).join('');
       document.getElementById('modalComments').innerHTML = commentsHtml;

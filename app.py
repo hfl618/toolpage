@@ -207,6 +207,32 @@ def create_app():
     @app.route('/health')
     def health(): return {"status": "healthy"}, 200
 
+    @app.route('/sitemap.xml')
+    def sitemap():
+        """自动生成站点地图，方便搜索引擎爬取"""
+        from flask import make_response
+        base_url = "https://618002.xyz"
+        # 定义所有工具路径
+        paths = [
+            "/",
+            "/serial/",
+            "/inventory/",
+            "/lvgl_image/",
+            "/ble_config/",
+            "/projects/",
+            "/support/"
+        ]
+        
+        xml = '<?xml version="1.0" encoding="UTF-8"?>'
+        xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        for path in paths:
+            xml += f'<url><loc>{base_url}{path}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>'
+        xml += '</urlset>'
+        
+        response = make_response(xml)
+        response.headers["Content-Type"] = "application/xml"
+        return response
+
     return app
 
 app = create_app()
