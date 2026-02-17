@@ -60,16 +60,16 @@
     </div>
   </nav>
 
-  <main class="max-w-7xl mx-auto px-6 pt-36 pb-20">
+  <main class="max-w-7xl mx-auto px-6 pt-36 pb-8">
     <div class="flex flex-col md:flex-row justify-between items-end gap-6 mb-16">
       <div>
         <h1 class="text-5xl font-black text-slate-900 tracking-tighter mb-4 i18n" data-zh="应用矩阵" data-en="Application Matrix">应用矩阵</h1>
         <p class="text-slate-400 font-bold i18n" data-zh="高效数字化工作流。欢迎回到 618002.xyz。" data-en="High-efficiency digital workflow. Welcome back to 618002.xyz.">高效数字化工作流。欢迎回到 618002.xyz。</p>
       </div>
       <div class="flex gap-2 p-1.5 bg-white rounded-2xl border border-gray-100 shadow-sm" id="filters">
-        <button onclick="filter('all')" id="btn-all" class="px-5 py-2.5 rounded-xl text-xs font-black bg-slate-900 text-white shadow-md transition-all i18n" data-zh="全部" data-en="All">全部</button>
-        <button onclick="filter('dev')" id="btn-dev" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all i18n" data-zh="管理" data-en="Admin">管理</button>
-        <button onclick="filter('ai')" id="btn-ai" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all i18n" data-zh="人工智能" data-en="AI Intelligence">人工智能</button>
+        <button onmouseenter="filter('all')" id="btn-all" class="px-5 py-2.5 rounded-xl text-xs font-black bg-slate-900 text-white shadow-md transition-all i18n" data-zh="全部" data-en="All">全部</button>
+        <button onmouseenter="filter('dev')" id="btn-dev" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all i18n" data-zh="开发工具" data-en="Tools">管理</button>
+        <button onmouseenter="filter('ai')" id="btn-ai" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all i18n" data-zh="人工智能" data-en="AI">人工智能</button>
       </div>
     </div>
 
@@ -77,7 +77,6 @@
     <div id="empty" class="hidden text-center py-32"><div class="text-7xl mb-4">🔍</div><p class="text-slate-400 font-black i18n" data-zh="没有找到任何匹配结果" data-en="No matching results found">没有找到任何匹配结果</p></div>
   </main>
 
-  <!-- 详情弹窗 -->
   <div id="modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity" onclick="closeModal()"></div>
     <div class="relative bg-white w-full max-w-4xl rounded-[40px] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-300">
@@ -100,25 +99,23 @@
   </div>
 
   <script>
-    // --- 🌐 多语言引擎 ---
-    let currentLang = localStorage.getItem('lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en');
+    let currentLang = localStorage.getItem('lang') || 'zh';
     function setLanguage(lang) {
         currentLang = lang;
         localStorage.setItem('lang', lang);
         document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('lang-' + lang).classList.add('active');
         document.querySelectorAll('.i18n').forEach(el => { el.innerText = el.getAttribute('data-' + lang); });
-        apply(); syncUser(); // 切换语言后刷新界面
+        apply(); syncUser();
     }
 
     const tools = [
-      { id:'stock', title_zh:'元器件管理', title_en:'Inventory Management', desc_zh:'库存、BOM、扫码一体化', desc_en:'Stock, BOM, QR integrated', lDesc_zh:'全方位数字化仓储解决方案。', lDesc_en:'Full digital warehouse solution.', icon:'ri-cpu-fill', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-indigo-600', comments:['BOM解析准确','效率很高'] , url:'/inventory/' },
-      { id:'serial', title_zh:'云端串口调试', title_en:'Serial Terminal', desc_zh:'Web Serial API 直连', desc_en:'Hardware debug via web', lDesc_zh:'基于 Web Serial API 的专业串口调试工具。支持 2M 高速波特率、HEX 收发及指令宏。', lDesc_en:'Professional web-based serial terminal.', icon:'ri-terminal-line', cat:'dev', color:'bg-gradient-to-br from-indigo-500 to-purple-600', comments:['无需安装驱动','高速稳定'], url:'/serial/' },
-      { id:'ble', title_zh:'设备蓝牙配网', title_en:'BLE Configurator', desc_zh:'Web Bluetooth API 配网', desc_en:'Provision IoT via BLE', lDesc_zh:'基于 Web Bluetooth API 的极简配网工具。支持多组 Wi-Fi 下发、硬件指令控制，适配移动端。', lDesc_en:'Minimalist provisioning tool via Web Bluetooth.', icon:'ri-bluetooth-connect-line', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-cyan-500', comments:['配网非常快','苹果风 UI 很棒'], url:'/ble_config/' },
-      
-      { id:'lvgl', title_zh:'LVGL 图像处理', title_en:'LVGL Image Tool', desc_zh:'嵌入式素材转换', desc_en:'Embedded Asset Converter', lDesc_zh:'专为 LVGL 嵌入式图形库设计的图像处理工具。', lDesc_en:'Professional image converter for LVGL.', icon:'ri-image-edit-fill', cat:'dev', color:'bg-gradient-to-br from-emerald-500 to-teal-600', comments:['RGB565A8 很好用'] , url:'/lvgl_image/' },
-      { id:'ai', title_zh:'AI 识别中心', title_en:'AI Analysis', desc_zh:'视觉模型物料分析', desc_en:'Visual Model Analysis', lDesc_zh:'基于最先进的视觉大语言模型。', lDesc_en:'Advanced AI visual analysis.', icon:'ri-eye-fill', cat:'ai', color:'bg-gradient-to-br from-purple-500 to-pink-600', comments:['OCR识别非常快'] , url:'/ai_tools' },
-      { id:'admin', title_zh:'系统控制台', title_en:'Admin Panel', desc_zh:'权限与全局日志审计', desc_en:'Auth & Audit logs', lDesc_zh:'管理员专用指挥中心。', lDesc_en:'Dedicated admin console.', icon:'ri-terminal-box-fill', cat:'dev', color:'bg-gradient-to-br from-slate-700 to-slate-900', comments:['日志记录详尽'] , url:'/admin' }
+      { id:'stock', title_zh:'元器件管理', title_en:'Inventory Management', desc_zh:'库存、BOM、扫码一体化', desc_en:'Stock, BOM, QR integrated', lDesc_zh:'全方位数字化仓储解决方案。', lDesc_en:'Full digital warehouse solution.', icon:'ri-cpu-fill', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-indigo-600', comments:[{zh:'BOM解析准确', en:'Accurate BOM parsing'},{zh:'效率很高', en:'High efficiency'}] , url:'/inventory/' },
+      { id:'serial', title_zh:'云端串口调试', title_en:'Serial Terminal', desc_zh:'Web Serial API 直连', desc_en:'Hardware debug via web', lDesc_zh:'基于 Web Serial API 的专业串口调试工具。', lDesc_en:'Professional web-based serial terminal.', icon:'ri-terminal-line', cat:'dev', color:'bg-gradient-to-br from-indigo-500 to-purple-600', comments:[{zh:'无需安装驱动', en:'Driverless'},{zh:'高速稳定', en:'High speed & stable'}] , url:'/serial/' },
+      { id:'ble', title_zh:'设备蓝牙配网', title_en:'BLE Configurator', desc_zh:'Web Bluetooth API 配网', desc_en:'Provision IoT via BLE', lDesc_zh:'基于 Web Bluetooth API 的极简配网工具。', lDesc_en:'Minimalist provisioning tool via Web Bluetooth.', icon:'ri-bluetooth-connect-line', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-cyan-500', comments:[{zh:'配网非常快', en:'Very fast provisioning'},{zh:'苹果风 UI 很棒', en:'Apple-style UI'}] , url:'/ble_config/' },
+      { id:'lvgl', title_zh:'LVGL 图像处理', title_en:'LVGL Image Tool', desc_zh:'嵌入式素材转换', desc_en:'Embedded Asset Converter', lDesc_zh:'专为 LVGL 设计的图像资产处理工具。', lDesc_en:'Professional image converter for LVGL.', icon:'ri-image-edit-fill', cat:'dev', color:'bg-gradient-to-br from-emerald-500 to-teal-600', comments:[{zh:'转换速度极快', en:'Fast conversion'}] , url:'/lvgl_image/' },
+      { id:'ai', title_zh:'AI 识别中心', title_en:'AI Analysis', desc_zh:'视觉模型物料分析', desc_en:'Visual Model Analysis', lDesc_zh:'基于尖端深度学习模型。', lDesc_en:'Advanced AI visual analysis.', icon:'ri-eye-fill', cat:'ai', color:'bg-gradient-to-br from-purple-500 to-pink-600', comments:[{zh:'OCR 准确率很高', en:'High OCR accuracy'}] , url:'/ai_tools' },
+      { id:'admin', title_zh:'系统控制台', title_en:'Admin Panel', desc_zh:'权限与全局日志审计', desc_en:'Auth & Audit logs', lDesc_zh:'管理员专用指挥中心。', lDesc_en:'Dedicated admin console.', icon:'ri-terminal-box-fill', cat:'dev', color:'bg-gradient-to-br from-slate-700 to-slate-900', comments:[{zh:'日志审计很详细', en:'Detailed audit logs'}] , url:'/admin' }
     ];
 
     function render(list) {
@@ -138,8 +135,7 @@
       currentCat = c;
       ['all','dev','ai'].forEach(id => {
         const btn = document.getElementById('btn-'+id); if(!btn) return;
-        if(id === c) btn.className = "px-5 py-2.5 rounded-xl text-xs font-black bg-slate-900 text-white shadow-md transition-all";
-        else btn.className = "px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all";
+        btn.className = id === c ? "px-5 py-2.5 rounded-xl text-xs font-black bg-slate-900 text-white shadow-md transition-all" : "px-5 py-2.5 rounded-xl text-xs font-black text-slate-400 hover:bg-gray-50 transition-all";
       });
       apply();
     }
@@ -147,10 +143,8 @@
     function apply() {
       const s = document.getElementById('globalSearch').value.toLowerCase();
       const f = tools.filter(t => {
-          const matchCat = (currentCat==='all' || t.cat===currentCat);
-          const title = currentLang==='zh'?t.title_zh:t.title_en;
-          const matchSearch = title.toLowerCase().includes(s);
-          return matchCat && matchSearch;
+          const title = (currentLang==='zh'?t.title_zh:t.title_en).toLowerCase();
+          return (currentCat==='all' || t.cat===currentCat) && title.includes(s);
       });
       render(f);
     }
@@ -166,7 +160,7 @@
       document.getElementById('launchBtn').onclick = () => location.href = t.url;
       document.getElementById('modalComments').innerHTML = t.comments.map(c => `
         <div class="bg-white p-5 rounded-3xl border border-gray-100 text-sm text-slate-600 shadow-sm font-bold">
-          <i class="ri-chat-smile-fill text-blue-100 mr-2"></i>${c}
+          <i class="ri-chat-smile-fill text-blue-100 mr-2"></i>${currentLang==='zh'?c.zh:c.en}
         </div>`).join('');
       document.getElementById('modal').classList.remove('hidden');
     }
@@ -178,31 +172,22 @@
         const d = await r.json();
         const area = document.getElementById('user-area');
         if(d.success && d.user) {
-          const user = d.user;
-          const profileLabel = currentLang==='zh'?'个人中心':'Profile';
-          const logoutLabel = currentLang==='zh'?'退出登录':'Logout';
-          area.innerHTML = `
-            <div class="flex items-center gap-2 p-1.5 pr-4 rounded-full bg-white border border-gray-100 shadow-sm cursor-pointer hover:bg-slate-50 transition-all" onclick="toggleUserMenu()">
-                <img src="${user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + user.username}" class="w-8 h-8 rounded-full object-cover">
-                <span class="text-sm font-bold text-slate-700 hidden md:inline">${user.username}</span>
-                <i class="ri-arrow-down-s-line text-slate-400"></i>
-            </div>
-            <div id="userMenu" class="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 opacity-0 invisible transition-all p-2 z-50 transform origin-top-right">
-                <div class="px-4 py-2 border-b border-gray-50 mb-1 text-[10px] font-black text-blue-500 uppercase tracking-widest">${user.role} MEMBER</div>
-                <a href="/profile" class="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition no-underline"><i class="ri-user-settings-fill"></i> ${profileLabel}</a>
-                <button onclick="location.href='/logout'" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition text-left border-0 bg-transparent"><i class="ri-logout-box-fill"></i> ${logoutLabel}</button>
-            </div>`;
+          area.innerHTML = `<div class="flex items-center gap-2 p-1.5 pr-4 rounded-full bg-white border border-gray-100 shadow-sm cursor-pointer hover:bg-slate-50 transition-all" onclick="toggleUserMenu()"><img src="${d.user.avatar}" class="w-8 h-8 rounded-full object-cover"><span class="text-sm font-bold text-slate-700 hidden md:inline">${d.user.username}</span><i class="ri-arrow-down-s-line text-slate-400"></i></div><div id="userMenu" class="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 opacity-0 invisible transition-all p-2 z-50 transform origin-top-right"><div class="px-4 py-2 border-b border-gray-50 mb-1 text-[10px] font-black text-blue-500 uppercase tracking-widest">${d.user.role.toUpperCase()} MEMBER</div><a href="/profile" class="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition no-underline"><i class="ri-user-settings-fill"></i> ${currentLang==='zh'?'个人中心':'Profile'}</a><button onclick="location.href='/logout'" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition text-left border-0 bg-transparent"><i class="ri-logout-box-fill"></i> ${currentLang==='zh'?'退出登录':'Logout'}</button></div>`;
         } else {
           area.innerHTML = `<a href="/login" class="px-6 py-2.5 btn-dark rounded-full text-sm font-bold shadow-lg">${currentLang==='zh'?'立即登录':'LOGIN'}</a>`;
         }
       } catch(e){}
     }
-    function toggleUserMenu() {
-        const m = document.getElementById('userMenu');
-        if(m) { m.classList.toggle('opacity-0'); m.classList.toggle('invisible'); }
-    }
-
+    function toggleUserMenu() { const m = document.getElementById('userMenu'); if(m) { m.classList.toggle('opacity-0'); m.classList.toggle('invisible'); } }
     setLanguage(currentLang);
   </script>
+
+  <!-- 🌐 全站多维 SEO 核心关键词植入 (视觉隐形，爬虫可见) -->
+  <section style="margin-top: 40px; padding: 24px; border-top: 1px solid #f1f5f9; opacity: 0.2; filter: grayscale(1);">
+      <h2 style="font-size: 11px; font-weight: 900; color: #64748b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">Global Engineering & Productivity Hub</h2>
+      <div style="font-size: 10px; line-height: 1.8; color: #94a3b8; font-weight: 500;">
+          <p><strong>618002.xyz</strong> 是一个面向开发者与创客的<strong>全能在线工具集</strong>。核心涵盖：<strong>Web Serial API 串口调试工具</strong>（解决<strong>单片机免驱动调试</strong>痛点）、<strong>元器件智能管理系统</strong>（支持<strong>BOM自动解析</strong>与<strong>二维码仓储管理</strong>）、<strong>LVGL 在线图像转换</strong>、以及 <strong>BLE 蓝牙在线配置助手</strong>。</p>
+      </div>
+  </section>
 </body>
 </html>

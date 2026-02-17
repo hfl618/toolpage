@@ -17,15 +17,6 @@ SPONSORS_CONFIG = [
         "color": "bg-gray-50"
     },
     {
-        "id": "banner-ad",
-        "type": "image", 
-        "placements": ["footer_grid"], 
-        "pages": ["all"],
-        "image": "https://api.dicebear.com/7.x/identicon/svg?seed=ad1", 
-        "link": "https://example.com/promo",
-        "color": "bg-gray-50"
-    },
-    {
         "id": "deepseek-api",
         "type": "text",
         "placements": ["footer_grid"], 
@@ -42,7 +33,7 @@ SPONSORS_CONFIG = [
         "id": "logic-analyzer",
         "type": "text",
         "placements": ["footer_grid"], 
-        "pages": ["serial"], # <--- 关键：只在串口页显示
+        "pages": ["serial"], 
         "title_zh": "专业逻辑分析仪",
         "title_en": "Logic Analyzer Pro",
         "desc_zh": "配合串口调试，精准抓取硬件协议波形。",
@@ -53,6 +44,7 @@ SPONSORS_CONFIG = [
     },
     {
         "id": "cloudflare-r2",
+        "type": "text",
         "placements": ["footer_grid", "sidebar"], 
         "pages": ["index", "inventory", "all"],
         "title_zh": "R2 云端静态存储",
@@ -67,12 +59,16 @@ SPONSORS_CONFIG = [
 
 def get_sponsors_logic(placement, page_id, limit=None):
     """
-    模块化获取赞助商函数
+    模块化获取赞助商函数（带容错保护）
     """
-    matched = [
-        s for s in SPONSORS_CONFIG 
-        if placement in s['placements'] and (page_id in s['pages'] or 'all' in s['pages'])
-    ]
+    matched = []
+    for s in SPONSORS_CONFIG:
+        # 使用 .get() 安全获取列表，防止 KeyError
+        placements = s.get('placements', [])
+        pages = s.get('pages', [])
+        
+        if placement in placements and (page_id in pages or 'all' in pages):
+            matched.append(s)
     
     # 随机打乱以确保公平展示
     random.shuffle(matched)

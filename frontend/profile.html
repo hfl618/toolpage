@@ -62,23 +62,23 @@
     </div>
 
     <div class="md:col-span-8">
-      <div id="tab-main" class="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+      <div id="tab-main" class="space-y-6">
         <div class="bento-card p-12 rounded-[40px]">
           <h3 class="font-black text-slate-900 mb-10 text-xl flex items-center gap-3"><i class="ri-bar-chart-2-fill text-blue-500"></i> 数据配额消耗</h3>
           <div class="space-y-10">
             <div>
-              <div class="flex justify-between text-xs font-black mb-3 text-slate-400 uppercase tracking-widest"><span>当前元器件存储空间</span><span id="val-storage" class="text-slate-900 font-black">0 / 500</span></div>
+              <div class="flex justify-between text-xs font-black mb-3 text-slate-400 uppercase tracking-widest"><span>元器件存储</span><span id="val-storage" class="text-slate-900 font-black">0 / 500</span></div>
               <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner"><div id="bar-storage" class="h-full bg-blue-500 w-0 transition-all duration-1000 shadow-lg shadow-blue-200"></div></div>
             </div>
             <div>
-              <div class="flex justify-between text-xs font-black mb-3 text-slate-400 uppercase tracking-widest"><span>今日接口请求限额</span><span id="val-api" class="text-slate-900 font-black">0 / 50</span></div>
+              <div class="flex justify-between text-xs font-black mb-3 text-slate-400 uppercase tracking-widest"><span>今日 API 限额</span><span id="val-api" class="text-slate-900 font-black">0 / 50</span></div>
               <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner"><div id="bar-api" class="h-full bg-indigo-500 w-0 transition-all duration-1000 shadow-lg shadow-indigo-200"></div></div>
             </div>
           </div>
         </div>
         <div class="bento-card p-12 rounded-[40px]">
           <div class="flex justify-between items-center mb-8">
-            <h3 class="font-black text-slate-900 text-xl tracking-tight">最近动态记录</h3>
+            <h3 class="font-black text-slate-900 text-xl tracking-tight">最近动态</h3>
             <div id="activity-pager" class="flex items-center gap-3 hidden">
                 <button onclick="changePage(-1)" class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition"><i class="ri-arrow-left-s-line"></i></button>
                 <span id="page-info" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">1 / 1</span>
@@ -89,75 +89,45 @@
         </div>
       </div>
 
-      <div id="tab-settings" class="hidden bento-card p-12 rounded-[40px] animate-in slide-in-from-bottom-4 duration-500">
+      <div id="tab-settings" class="hidden bento-card p-12 rounded-[40px]">
         <h3 class="font-black text-slate-900 mb-10 text-xl flex items-center gap-3"><i class="ri-lock-password-fill text-indigo-500"></i> 账号安全设置</h3>
         <div class="space-y-6 text-left">
           <div class="relative">
-              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">修改系统用户名</label>
-              <input type="text" id="new-username" placeholder="如果不需要修改请留空" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">修改用户名</label>
+              <input type="text" id="new-username" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm">
               <span id="userStatus" class="absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight"></span>
           </div>
-          <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">重置系统访问密码</label><input type="password" id="new-password" placeholder="留空则保持当前密码" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm"></div>
-          <button onclick="updateAccount()" id="saveBtn" class="w-full py-5 btn-dark rounded-2xl font-black shadow-2xl mt-4">确认并保存修改</button>
+          <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">重置密码</label><input type="password" id="new-password" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm"></div>
+          <button onclick="updateAccount()" id="saveBtn" class="w-full py-5 btn-dark rounded-2xl font-black shadow-2xl mt-4">确认修改</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    function smartBack() {
-        if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
-            history.back();
-        } else {
-            location.href = '/';
-        }
-    }
-
+    function smartBack() { if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) { history.back(); } else { location.href = '/'; } }
     function switchTab(t) {
       document.getElementById('tab-main').classList.toggle('hidden', t!=='main');
       document.getElementById('tab-settings').classList.toggle('hidden', t!=='settings');
-      document.getElementById('btn-tab-main').className = t==='main' ? 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black bg-slate-900 text-white rounded-2xl shadow-xl' : 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-slate-500 hover:bg-gray-50 rounded-2xl';
-      document.getElementById('btn-tab-settings').className = t==='settings' ? 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black bg-slate-900 text-white rounded-2xl shadow-xl' : 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-slate-500 hover:bg-gray-50 rounded-2xl';
+      document.getElementById('btn-tab-main').className = t==='main' ? 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black bg-slate-900 text-white rounded-2xl shadow-xl' : 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-slate-500 hover:bg-gray-50 rounded-2xl transition';
+      document.getElementById('btn-tab-settings').className = t==='settings' ? 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black bg-slate-900 text-white rounded-2xl shadow-xl' : 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-slate-500 hover:bg-gray-50 rounded-2xl transition';
     }
-
-    // 实时检测
     document.getElementById('new-username').addEventListener('input', async (e) => {
-        const val = e.target.value.trim();
-        const status = document.getElementById('userStatus');
-        if (!val) { status.innerText = ""; return; }
+        const val = e.target.value.trim(); const status = document.getElementById('userStatus'); if (!val) { status.innerText = ""; return; }
         try {
-            const r = await fetch(`/auth/check_username?username=${encodeURIComponent(val)}`);
-            const d = await r.json();
-            status.innerText = d.msg;
-            status.className = `absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight ${d.status === 'success' ? 'text-green-500' : 'text-red-400'}`;
+            const r = await fetch(`/auth/check_username?username=${encodeURIComponent(val)}`); const d = await r.json();
+            status.innerText = d.msg; status.className = `absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight ${d.status === 'success' ? 'text-green-500' : 'text-red-400'}`;
         } catch(e) {}
     });
-
-    let allActivities = [];
-    let currentPage = 1;
-    const pageSize = 5;
-
+    let allActivities = []; let currentPage = 1; const pageSize = 5;
     function renderActivities() {
-        const list = document.getElementById('activity-list');
-        const pager = document.getElementById('activity-pager');
-        const info = document.getElementById('page-info');
-        
-        if (!allActivities.length) {
-            list.innerHTML = '<p class="text-center text-slate-300 py-10">暂无动态记录</p>';
-            pager.classList.add('hidden');
-            return;
-        }
-
-        const totalPages = Math.ceil(allActivities.length / pageSize);
-        pager.classList.toggle('hidden', totalPages <= 1);
-        info.innerText = `${currentPage} / ${totalPages}`;
-
-        const start = (currentPage - 1) * pageSize;
-        const pageData = allActivities.slice(start, start + pageSize);
-
+        const list = document.getElementById('activity-list'); const pager = document.getElementById('activity-pager'); const info = document.getElementById('page-info');
+        if (!allActivities.length) { list.innerHTML = '<p class="text-center text-slate-300 py-10">暂无动态记录</p>'; pager.classList.add('hidden'); return; }
+        const totalPages = Math.ceil(allActivities.length / pageSize); pager.classList.toggle('hidden', totalPages <= 1); info.innerText = `${currentPage} / ${totalPages}`;
+        const start = (currentPage - 1) * pageSize; const pageData = allActivities.slice(start, start + pageSize);
         list.innerHTML = pageData.map(a => `
-            <div class="flex items-center gap-5 p-5 bg-gray-50/50 rounded-[28px] border border-transparent hover:border-gray-100 transition shadow-sm group cursor-default animate-in fade-in slide-in-from-right-2 duration-300">
-              <div class="w-12 h-12 ${a.bg} ${a.color} rounded-2xl flex items-center justify-center text-xl transition-transform group-hover:scale-110"><i class="${a.icon}"></i></div>
+            <div class="flex items-center gap-5 p-5 bg-gray-50/50 rounded-[28px] border border-transparent hover:border-gray-100 transition shadow-sm animate-in fade-in slide-in-from-right-2 duration-300">
+              <div class="w-12 h-12 ${a.bg} ${a.color} rounded-2xl flex items-center justify-center text-xl"><i class="${a.icon}"></i></div>
               <div class="flex-1">
                 <p class="text-sm font-black text-slate-700">${a.text}</p>
                 <div class="flex items-center gap-2 mt-1">
@@ -168,93 +138,39 @@
               </div>
             </div>`).join('');
     }
-
-    function changePage(delta) {
-        const totalPages = Math.ceil(allActivities.length / pageSize);
-        const newPage = currentPage + delta;
-        if (newPage >= 1 && newPage <= totalPages) {
-            currentPage = newPage;
-            renderActivities();
-        }
-    }
-
+    function changePage(delta) { const totalPages = Math.ceil(allActivities.length / pageSize); const newPage = currentPage + delta; if (newPage >= 1 && newPage <= totalPages) { currentPage = newPage; renderActivities(); } }
     async function sync() {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const fromVal = params.get('from') || '';
-        const r = await fetch(`/auth/profile_api?from=${encodeURIComponent(fromVal)}`);
-        const d = await r.json();
+        const r = await fetch(`/auth/profile_api`); const d = await r.json();
         if (d.success) {
           if(d.user) { 
               const avatarUrl = d.user.avatar ? (d.user.avatar + (d.user.avatar.includes('?') ? '&' : '?') + 'v=' + Date.now()) : ('https://api.dicebear.com/7.x/avataaars/svg?seed=' + d.user.username);
-              document.getElementById('u-name').innerText = d.user.username; 
-              document.getElementById('u-avatar').src = avatarUrl; 
-              document.getElementById('u-role-tag').innerText = d.user.role.toUpperCase() + ' MEMBER';
+              document.getElementById('u-name').innerText = d.user.username; document.getElementById('u-avatar').src = avatarUrl; document.getElementById('u-role-tag').innerText = d.user.role.toUpperCase() + ' MEMBER';
           }
-          const s = d.stats || {};
-          document.getElementById('stat-days').innerText = s.days || 1;
-          document.getElementById('stat-count').innerText = s.total_calls || 0;
-          
-          // 动态渲染配额
-          const quotaContainer = document.querySelector('#tab-main .bento-card div.space-y-10');
+          const s = d.stats || {}; document.getElementById('stat-days').innerText = s.days || 1; document.getElementById('stat-count').innerText = s.total_calls || 0;
+          const qContainer = document.querySelector('#tab-main .bento-card div.space-y-10');
           if(d.quotas && d.quotas.length > 0) {
-              if(d.is_single) {
-                  // 单个工具：显示大进度条
-                  quotaContainer.className = "space-y-10";
-                  quotaContainer.innerHTML = d.quotas.map(q => `
-                    <div>
-                      <div class="flex justify-between text-xs font-black mb-3 text-slate-400 uppercase tracking-widest">
-                        <span>${q.label}</span>
-                        <span class="text-slate-900 font-black">${q.used} / ${q.limit}</span>
-                      </div>
-                      <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner">
-                        <div class="h-full ${q.color} shadow-lg ${q.shadow} transition-all duration-1000" style="width: ${Math.min(100, (q.used/q.limit)*100)}%"></div>
-                      </div>
-                    </div>
-                  `).join('');
-              } else {
-                  // 多个工具：显示 3 列文字卡片
-                  quotaContainer.className = "grid grid-cols-1 sm:grid-cols-3 gap-6";
-                  quotaContainer.innerHTML = d.quotas.map(q => `
-                    <div class="bg-slate-50 p-6 rounded-3xl border border-gray-100 hover:bg-white hover:shadow-xl transition-all duration-300">
-                      <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">${q.label}</p>
-                      <p class="text-xl font-black text-slate-900">${q.used} <span class="text-slate-300 text-xs font-bold">/ ${q.limit}</span></p>
-                    </div>
-                  `).join('');
-              }
+              if(d.is_single) { qContainer.className = "space-y-10"; qContainer.innerHTML = d.quotas.map(q => `<div><div class="flex justify-between text-xs font-black mb-3 text-slate-400 uppercase tracking-widest"><span>${q.label}</span><span class="text-slate-900 font-black">${q.used} / ${q.limit}</span></div><div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner"><div class="h-full ${q.color} shadow-lg transition-all duration-1000" style="width: ${Math.min(100, (q.used/q.limit)*100)}%"></div></div></div>`).join(''); }
+              else { qContainer.className = "grid grid-cols-1 sm:grid-cols-3 gap-6"; qContainer.innerHTML = d.quotas.map(q => `<div class="bg-slate-50 p-6 rounded-3xl border border-gray-100 hover:bg-white hover:shadow-xl transition-all duration-300"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">${q.label}</p><p class="text-xl font-black text-slate-900">${q.used} <span class="text-slate-300 text-xs font-bold">/ ${q.limit}</span></p></div>`).join(''); }
           }
-
-          if(d.activities) {
-              allActivities = d.activities;
-              currentPage = 1;
-              renderActivities();
-          }
+          if(d.activities) { allActivities = d.activities; currentPage = 1; renderActivities(); }
         }
       } catch(e){}
     }
-
     async function uploadAvatar(i) {
-      if(!i.files[0]) return;
-      const f = new FormData(); f.append('file', i.files[0]);
-      showToast('正在上传并同步头像...');
+      if(!i.files[0]) return; const f = new FormData(); f.append('file', i.files[0]); showToast('正在上传头像...');
       try {
-        const r = await fetch('/auth/upload_avatar', {method:'POST', body:f});
-        const d = await r.json();
+        const r = await fetch('/auth/upload_avatar', {method:'POST', body:f}); const d = await r.json();
         if(d.success) { document.getElementById('u-avatar').src = d.url; showToast('头像更新成功'); }
-        else { showToast(d.error); }
-      } catch(e) { showToast('服务器上传异常'); }
+      } catch(e) { showToast('服务器异常'); }
     }
-
     async function updateAccount() {
-      const u = document.getElementById('new-username').value, p = document.getElementById('new-password').value;
-      if(!u && !p) return showToast('未检测到任何修改项');
-      const b = document.getElementById('saveBtn'); b.disabled = true; b.innerText = '提交修改中...';
+      const u = document.getElementById('new-username').value, p = document.getElementById('new-password').value; if(!u && !p) return showToast('未修改任何内容');
       try {
-        const r = await fetch('/auth/update_profile', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u, password:p})});
-        const d = await r.json();
-        if(d.success) { showToast('资料修改成功，请重新验证'); setTimeout(()=>location.href='/logout', 1500); }
-        else { showToast(d.error || '修改失败'); b.disabled = false; b.innerText = '确认保存修改'; }
-      } catch(e) { showToast('后端服务未响应'); b.disabled = false; b.innerText = '确认保存修改'; }
+        const r = await fetch('/auth/update_profile', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u, password:p})}); const d = await r.json();
+        if(d.success) { showToast('修改成功，即将重新登录'); setTimeout(()=>location.href='/logout', 1500); }
+        else showToast(d.error);
+      } catch(e) { showToast('请求失败'); }
     }
     sync();
   </script>

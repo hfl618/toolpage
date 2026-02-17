@@ -219,28 +219,36 @@ def create_app():
 
     @app.route('/sitemap.xml')
     def sitemap():
-        """自动生成站点地图，方便搜索引擎爬取"""
+        """自动生成站点地图"""
         from flask import make_response
         base_url = "https://618002.xyz"
-        # 定义所有工具路径
+        # 在这里按需添加路径
         paths = [
-            "/",
-            "/serial/",
-            "/inventory/",
-            "/lvgl_image/",
-            "/ble_config/",
-            "/projects/",
-            "/support/"
+            "/",               # 首页
+            "/serial/",        # 串口工具
+            "/inventory/",     # 元器件
+            "/lvgl_image/",    # LVGL
+            "/ble_config/",    # 蓝牙
+            "/kor/",           # 你提到的新路径
+            "/support/"        # 支持页面
         ]
-        
-        xml = '<?xml version="1.0" encoding="UTF-8"?>'
-        xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        xml = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
         for path in paths:
-            xml += f'<url><loc>{base_url}{path}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>'
+            # 首页权重设为 1.0，其他设为 0.8
+            priority = "1.0" if path == "/" else "0.8"
+            xml += f'<url><loc>{base_url}{path}</loc><changefreq>weekly</changefreq><priority>{priority}</priority></url>'
         xml += '</urlset>'
-        
         response = make_response(xml)
         response.headers["Content-Type"] = "application/xml"
+        return response
+
+    @app.route('/robots.txt')
+    def robots():
+        """引导爬虫访问 sitemap"""
+        from flask import make_response
+        content = "User-agent: *\nAllow: /\nSitemap: https://618002.xyz/sitemap.xml"
+        response = make_response(content)
+        response.headers["Content-Type"] = "text/plain"
         return response
 
     return app

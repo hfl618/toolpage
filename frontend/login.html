@@ -44,7 +44,6 @@
           <button type="submit" id="subBtn" class="w-full py-5 btn-dark rounded-3xl font-black text-lg shadow-2xl shadow-slate-200 mt-6">立即进入工作空间</button>
         </form>
     </div>
-    
     <p class="mt-12 text-xs font-black text-slate-300 uppercase tracking-widest">
         <span id="toggleMsg">还没有注册账户?</span> 
         <a href="#" onclick="toggleMode()" id="toggleBtn" class="text-blue-500 hover:underline">点击这里切换</a>
@@ -54,7 +53,6 @@
     let isLogin = true;
     const userInput = document.getElementById('username');
     const userStatus = document.getElementById('userStatus');
-
     userInput.addEventListener('input', async () => {
         if (isLogin) { userStatus.innerText = ""; return; }
         const val = userInput.value.trim();
@@ -66,15 +64,12 @@
             userStatus.className = `absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight ${d.status === 'success' ? 'text-green-500' : 'text-red-400'}`;
         } catch(e) {}
     });
-
     function toggleMode() {
-        isLogin = !isLogin;
-        userStatus.innerText = "";
+        isLogin = !isLogin; userStatus.innerText = "";
         document.getElementById('subBtn').innerText = isLogin ? '立即进入工作空间' : '立即创建新账号';
         document.getElementById('toggleMsg').innerText = isLogin ? '还没有注册账户?' : '已有账号?';
         document.getElementById('toggleBtn').innerText = isLogin ? '点击这里切换' : '返回登录验证';
     }
-
     document.getElementById('authForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const payload = { username: document.getElementById('username').value, password: document.getElementById('password').value };
@@ -82,13 +77,8 @@
       try {
         const r = await fetch(isLogin ? '/auth/login' : '/auth/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
         if(r.ok) location.href = '/'; 
-        else { 
-            const d = await r.json(); 
-            showToast(d.error || "认证失败，请重试"); 
-            btn.disabled = false; 
-            btn.innerText = isLogin?"立即进入工作空间":"立即创建新账号"; 
-        }
-      } catch(e) { showToast("连接服务器超时"); btn.disabled = false; }
+        else { const d = await r.json(); showToast(d.error || "认证失败"); btn.disabled = false; btn.innerText = isLogin?"立即进入工作空间":"立即创建新账号"; }
+      } catch(e) { showToast("服务器响应异常"); btn.disabled = false; }
     });
   </script>
 </body>
