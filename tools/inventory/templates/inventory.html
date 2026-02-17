@@ -194,5 +194,10 @@
 </script>
 <script src="{{ url_for('inventory.static', filename='js/inventory.js') }}?v={{ range(1,9999)|random }}"></script>
 
+<!-- 演示：统一赞助商底部组件 -->
+{% with placement='footer_grid', page_id='inventory', limit=3 %}
+    {% include 'support/unified_footer.html' %}
+{% endwith %}
+
 </body>
 </html>

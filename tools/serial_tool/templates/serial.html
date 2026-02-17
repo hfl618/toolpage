@@ -135,6 +135,9 @@
     .check-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; }
     .hl-error { background: #fee2e2; color: #dc2626; padding: 1px 4px; border-radius: 3px; }
     .hl-success { background: #dcfce7; color: #16a34a; padding: 1px 4px; border-radius: 3px; }
+    .hl-info { background: #e0f2fe; color: #0284c7; padding: 1px 4px; border-radius: 3px; }
+    .hl-warn { background: #ffedd5; color: #d97706; padding: 1px 4px; border-radius: 3px; }
+    .hl-extra { background: #f3e8ff; color: #9333ea; padding: 1px 4px; border-radius: 3px; }
 
     main > div.mt-12 { display: none !important; }
 </style>
@@ -167,7 +170,7 @@
                             <option value="utf-8">UTF-8</option><option value="gbk">GBK</option>
                         </select>
                         <div class="w-px h-3 bg-slate-300 mx-1"></div>
-                        <select id="tsMode" class="min-select" onchange="toggleTimeMode()">
+                        <select id="tsMode" class="min-select" onchange="toggleTimeMode(this.value)">
                             <option value="abs" class="i18n" data-zh="绝对时间" data-en="ABS TIME">ABS TIME</option>
                             <option value="delta" class="i18n" data-zh="相对增量" data-en="DELTA (Δ)">DELTA (Δ)</option>
                         </select>
@@ -187,15 +190,22 @@
             </div>
         </div>
 
-        <div class="card-pro p-4 shadow-sm">
+        <div class="card-pro py-2 px-4 shadow-sm">
             <div class="flex gap-4 items-center">
-                <input type="text" id="txInput" class="input-pro flex-1 font-mono i18n-ph" data-zh-ph="发送指令..." data-en-ph="Type command..." placeholder="发送指令..." onkeydown="if(event.key==='Enter') sendFromInput()">
+                <input type="text" id="txInput" class="input-pro flex-1 font-mono i18n-ph !py-1.5" data-zh-ph="发送指令..." data-en-ph="Type command..." placeholder="发送指令..." onkeydown="if(event.key==='Enter') sendFromInput()">
                 <select id="lineEnding" class="input-pro !w-auto !py-1.5">
                     <option value="\r\n">CRLF</option><option value="\n">LF</option><option value="">NONE</option>
                 </select>
                 <label class="check-label border-l pl-4 border-slate-100"><input type="checkbox" id="clearAfterSend" checked> <span class="i18n" data-zh="清空" data-en="Clear">清空</span></label>
-                <button class="btn-pro btn-pro-dark px-10 shadow-lg i18n" data-zh="发送数据" data-en="Send Data" onclick="sendFromInput()">发送数据</button>
+                <button class="btn-pro btn-pro-dark px-10 shadow-lg i18n !py-1.5" data-zh="发送数据" data-en="Send Data" onclick="sendFromInput()">发送数据</button>
             </div>
+        </div>
+
+        <!-- 极致紧凑的广告位 -->
+        <div class="mt-1">
+            {% with placement='footer_grid', page_id='serial', limit=3 %}
+                {% include 'support/unified_footer.html' %}
+            {% endwith %}
         </div>
     </section>
 
@@ -292,7 +302,7 @@
         // 特殊处理连接按钮的动态文本
         const btn = document.getElementById('connectBtn');
         if(btn) {
-            if(port) {
+            if(typeof port !== 'undefined' && port) {
                 btn.innerHTML = currentLang === 'zh' ? '<i class="ri-plug-fill"></i> 断开连接' : '<i class="ri-plug-fill"></i> Disconnect';
             } else {
                 btn.innerHTML = currentLang === 'zh' ? '<i class="ri-plug-line"></i> 开启连接' : '<i class="ri-plug-line"></i> Open Connection';

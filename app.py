@@ -48,6 +48,15 @@ def create_app():
     from tools.support.routes import support_bp
     app.register_blueprint(support_bp, url_prefix='/support')
 
+    # --- 1.1 注册全局模板函数 ---
+    @app.context_processor
+    def inject_global_functions():
+        from tools.support.sponsors import get_sponsors_logic
+        return dict(
+            get_sponsors=get_sponsors_logic,
+            lang=request.cookies.get('lang', 'zh')
+        )
+
     # --- 2. 核心中间件：身份模拟与网关安全校验 ---
     @app.before_request
     def handle_auth_and_security():
@@ -160,7 +169,8 @@ def create_app():
 
     @app.route('/')
     def serve_index():
-        return send_from_directory('frontend', 'index.html')
+        from flask import render_template
+        return render_template('index.html')
 
     @app.route('/login')
     def serve_login():

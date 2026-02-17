@@ -9,7 +9,7 @@ let rxCount = 0;
 let txHistory = [];
 let historyIndex = -1;
 let isTerminalHovered = false;
-let lastLogTime = 0;
+let lastLogTime = Date.now(); 
 let lineBuffer = "";
 let demoTimer = null;
 
@@ -101,7 +101,22 @@ async function toggleConnection() {
 
 function resetTerminal() { clearLog(); seriesData = {}; renderChart(); appendLogStream("System", "View Reset\n"); }
 function toggleChart() { const container = document.getElementById('chartContainer'); const isShow = document.getElementById('showChart')?.checked; if(container) container.classList.toggle('hidden', !isShow); if(isShow) renderChart(); }
-function toggleTimeMode() { const el = document.getElementById('tsMode'); if(el) el.value = el.value === 'abs' ? 'delta' : 'abs'; }
+function toggleTimeMode(explicitMode) { 
+    const el = document.getElementById('tsMode'); 
+    if(!el) return;
+    
+    // 如果没有传入明确模式(点击时间戳时)，则翻转
+    if (explicitMode === undefined) {
+        el.value = el.value === 'abs' ? 'delta' : 'abs'; 
+    } else {
+        // 如果是从下拉框选中的，直接使用选中的值
+        el.value = explicitMode;
+    }
+
+    const msg = el.value === 'abs' ? 'Time: Absolute' : 'Time: Delta (+ms)';
+    if(window.showToast) showToast(msg);
+}
+
 function clearLog() { const term = document.getElementById('terminal'); if(term) term.innerHTML = ""; rxCount = 0; document.getElementById('rxCounter').innerText = "0"; lineBuffer = ""; }
 function showAutoReplyEditor() { document.getElementById('autoReplyEditor')?.classList.remove('hidden'); }
 function hideAutoReplyEditor() { document.getElementById('autoReplyEditor')?.classList.add('hidden'); }
@@ -119,8 +134,12 @@ function appendLogStream(type, text, isHexMode = false, isSim = false) {
         const now = Date.now();
         let timeStr = "";
         const tsMode = document.getElementById('tsMode')?.value || 'abs';
-        if (tsMode === 'delta') { timeStr = `+${lastLogTime ? (now - lastLogTime) : 0}ms`; }
-        else { timeStr = new Date(now).toLocaleTimeString('zh-CN', { hour12: false }); }
+        if (tsMode === 'delta') { 
+            timeStr = `+${lastLogTime ? (now - lastLogTime) : 0}ms`; 
+        } else { 
+            timeStr = new Date(now).toLocaleTimeString('zh-CN', { hour12: false }); 
+        }
+        // 无论何种模式都更新 lastLogTime，保证切换时的增量准确
         lastLogTime = now;
 
         const div = document.createElement('div');
@@ -144,7 +163,11 @@ function appendLogStream(type, text, isHexMode = false, isSim = false) {
     if (type === 'RX' && !isHexMode) {
         processWaveform(text);
         checkAutoReply(text);
-        highlightRules.forEach(rule => { if (text.toUpperCase().includes(rule.word)) lastEntryElement.classList.add(rule.class); });
+        // 性能优化：在循环外转换一次大写
+        const upperText = text.toUpperCase();
+        highlightRules.forEach(rule => { 
+            if (upperText.includes(rule.word)) lastEntryElement.classList.add(rule.class); 
+        });
     }
 }
 
@@ -279,16 +302,54 @@ function initHighlighter() {
 function renderHighlightRules() {
     const container = document.getElementById('highlightRules'); if(!container) return;
     container.innerHTML = highlightRules.map((r, i) => `
-        <div class="dynamic-item text-[10px] group flex justify-between align-items-center"><span class="${r.class}">${r.word}</span><div class="macro-actions"><div class="action-circle delete" onclick="removeHighlight(${i})"><i class="ri-close-line"></i></div></div></div>
+        <div class="dynamic-item text-[10px] group flex justify-between items-center cursor-pointer">
+            <span class="${r.class} font-black px-2 py-0.5 rounded transition-all active:scale-95" 
+                  onclick="cycleColor(${i})" 
+                  title="点击切换颜色">
+                ${r.word}
+            </span>
+            <div class="macro-actions">
+                <div class="action-circle delete" onclick="removeHighlight(${i}, event)">
+                    <i class="ri-close-line"></i>
+                </div>
+            </div>
+        </div>
     `).join('');
 }
-function addHighlightRule() {
-    const word = prompt("Keyword:"); if (!word) return;
-    const type = prompt("1:Red, 2:Green");
-    highlightRules.push({ word: word.toUpperCase(), class: type === '2' ? 'hl-success' : 'hl-error' });
-    localStorage.setItem('serial_highlights', JSON.stringify(highlightRules)); renderHighlightRules();
+
+function cycleColor(index) {
+    const colorClasses = ['hl-error', 'hl-success', 'hl-info', 'hl-warn', 'hl-extra'];
+    let currIdx = colorClasses.indexOf(highlightRules[index].class);
+    // 切换到下一个颜色
+    let nextIdx = (currIdx + 1) % colorClasses.length;
+    highlightRules[index].class = colorClasses[nextIdx];
+    
+    // 保存并重新渲染
+    localStorage.setItem('serial_highlights', JSON.stringify(highlightRules)); 
+    renderHighlightRules();
+    if(window.showToast) showToast("Color Updated");
 }
-function removeHighlight(i) { highlightRules.splice(i, 1); localStorage.setItem('serial_highlights', JSON.stringify(highlightRules)); renderHighlightRules(); }
+
+function removeHighlight(index, event) { 
+    if (event) event.stopPropagation(); // 阻止点击事件冒泡到父级或同级
+    highlightRules.splice(index, 1); 
+    localStorage.setItem('serial_highlights', JSON.stringify(highlightRules)); 
+    renderHighlightRules(); 
+}
+
+function addHighlightRule() {
+    const word = prompt(currentLang === 'zh' ? "请输入要标记的关键词 (Keyword):" : "Enter keyword to highlight:"); 
+    if (!word) return;
+    
+    // 定义可选的颜色类
+    const colorClasses = ['hl-error', 'hl-success', 'hl-info', 'hl-warn', 'hl-extra'];
+    // 根据当前规则数量自动分配下一个颜色，循环使用
+    const nextClass = colorClasses[highlightRules.length % colorClasses.length];
+    
+    highlightRules.push({ word: word.toUpperCase(), class: nextClass });
+    localStorage.setItem('serial_highlights', JSON.stringify(highlightRules)); 
+    renderHighlightRules();
+}
 
 // 7. 发送
 async function sendFromInput() {

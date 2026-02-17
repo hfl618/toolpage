@@ -1,0 +1,57 @@
+<!-- tools/support/templates/support/sponsor_component.html -->
+
+{# 
+   参数说明:
+   placement: 'sidebar' / 'floating'
+   page_id: 页面ID
+   pos_class: 定位样式 (例如 'right-6 bottom-32', 'left-0 top-1/2')
+   width_class: 宽度样式 (例如 'w-40', 'w-64', 'w-full')
+#}
+
+{% set items = get_sponsors(placement, page_id, limit|default(1)) %}
+{% for item in items %}
+<div class="sponsor-{{ placement }} {{ pos_class if placement == 'floating' else '' }} {{ 'fixed z-[90]' if placement == 'floating' else 'relative' }} {{ width_class|default('w-full') }} mb-4">
+    <a href="{{ item.link }}" target="_blank" class="block no-underline group">
+        
+        {% if placement == 'sidebar' %}
+            <!-- 侧边栏：嵌入式方块 -->
+            <div class="border border-gray-100 p-3 bg-white hover:border-gray-300 transition-colors">
+                {% if item.type == 'image' %}
+                    <img src="{{ item.image }}" class="w-full h-auto grayscale-[0.2] group-hover:grayscale-0">
+                {% else %}
+                    <div class="flex items-center gap-3">
+                        <img src="{{ item.image }}" class="w-8 h-8 object-contain opacity-60 group-hover:opacity-100">
+                        <div class="overflow-hidden">
+                            <h4 class="text-[11px] font-bold text-gray-700 truncate">{% if lang == 'en' %}{{ item.title_en }}{% else %}{{ item.title_zh }}{% endif %}</h4>
+                            <p class="text-[9px] text-gray-400 truncate">{% if lang == 'en' %}{{ item.desc_en }}{% else %}{{ item.desc_zh }}{% endif %}</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+        {% elif placement == 'floating' %}
+            <!-- 侧边小窗：支持自定义位置和宽度 -->
+            <div class="border border-gray-100 bg-white/90 backdrop-blur-sm p-3 hover:bg-white transition-all group-hover:border-gray-400 group-hover:shadow-lg">
+                <div class="flex flex-col gap-2">
+                    {% if item.type == 'image' %}
+                        <img src="{{ item.image }}" class="w-full h-auto opacity-80 group-hover:opacity-100">
+                    {% else %}
+                        <div class="flex items-center gap-2 mb-1">
+                            <img src="{{ item.image }}" class="w-5 h-5 object-contain opacity-60">
+                            <span class="text-[9px] text-gray-300 font-black uppercase tracking-tighter">Sponsored</span>
+                        </div>
+                        <h4 class="text-[11px] font-bold text-gray-800 leading-tight">{% if lang == 'en' %}{{ item.title_en }}{% else %}{{ item.title_zh }}{% endif %}</h4>
+                        <p class="text-[10px] text-gray-400 leading-snug">{% if lang == 'en' %}{{ item.desc_en }}{% else %}{{ item.desc_zh }}{% endif %}</p>
+                    {% endif %}
+                </div>
+                <!-- 鼠标悬停时显示的关闭提示(可选) -->
+                <div class="mt-2 pt-2 border-t border-gray-50 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span class="text-[8px] text-gray-300 font-bold uppercase">Click to Open</span>
+                    <i class="ri-external-link-line text-[10px] text-gray-300"></i>
+                </div>
+            </div>
+        {% endif %}
+
+    </a>
+</div>
+{% endfor %}

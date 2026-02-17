@@ -1,0 +1,47 @@
+<!-- tools/support/templates/support/unified_footer.html -->
+{# 
+   参数说明:
+   h_class: 容器高度 (默认 h-12)
+   w_class: 单个方块宽度 (默认 w-full，即跟随网格)
+   grid_class: 布局类 (默认 md:grid-cols-3)
+   container_class: 整个广告区域的容器类 (默认 max-w-7xl mx-auto)
+#}
+<footer class="w-full py-1 px-6 bg-white border-t border-gray-100">
+    <!-- container_class 可以用来控制整个广告组是居中、左对齐，还是限制总宽度 -->
+    <div class="{{ container_class|default('max-w-7xl mx-auto') }}">
+        <div class="grid grid-cols-1 {{ grid_class|default('md:grid-cols-3') }} {{ gap_class|default('gap-2') }}">
+            {% set items = get_sponsors(placement|default('footer_grid'), page_id|default('all'), limit|default(3)) %}
+            {% for item in items %}
+            <a href="{{ item.link }}" target="_blank" class="block no-underline group {{ w_class|default('w-full') }}">
+                <div class="{{ h_class|default('h-12') }} {{ w_class|default('w-full') }} border border-gray-100 bg-white hover:border-gray-200 transition-colors flex items-center overflow-hidden">
+                    {% if item.type == 'image' %}
+                        <img src="{{ item.image }}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                    {% else %}
+                        <div class="px-3 flex items-center gap-3 w-full">
+                            <div class="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-gray-50 border border-gray-50">
+                                <img src="{{ item.image }}" class="w-5 h-5 object-contain opacity-50 group-hover:opacity-100">
+                            </div>
+                            <div class="flex-1 overflow-hidden">
+                                <h4 class="text-[10px] font-bold text-gray-600 truncate mb-0">
+                                    {% if lang == 'en' %}{{ item.title_en }}{% else %}{{ item.title_zh }}{% endif %}
+                                </h4>
+                                <p class="text-[9px] text-gray-400 truncate mb-0">
+                                    {% if lang == 'en' %}{{ item.desc_en }}{% else %}{{ item.desc_zh }}{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <div class="mt-2 pt-2 border-t border-gray-50 flex justify-between items-center text-[8px] text-gray-300 font-bold uppercase tracking-tighter">
+            <span>© 618002.xyz</span>
+            <div class="flex gap-3">
+                <a href="/support" class="hover:text-gray-400 transition-colors">Support</a>
+                <a href="/docs" class="hover:text-gray-400 transition-colors">Ads</a>
+            </div>
+        </div>
+    </div>
+</footer>
