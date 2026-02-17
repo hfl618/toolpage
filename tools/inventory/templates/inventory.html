@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>元器件智能管理系统</title>
+    {% with page_id='inventory' %}{% include 'support/seo_tags.html' %}{% endwith %}
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -193,6 +193,9 @@
     window.addEventListener('DOMContentLoaded', () => { initUser(); initDragAndDrop(); updateBatchBtn(); });
 </script>
 <script src="{{ url_for('inventory.static', filename='js/inventory.js') }}?v={{ range(1,9999)|random }}"></script>
+
+<!-- SEO Text (Visible to Crawlers) -->
+{% with page_id='inventory' %}{% include 'support/seo_hidden.html' %}{% endwith %}
 
 <!-- 演示：统一赞助商底部组件 -->
 {% with placement='footer_grid', page_id='inventory', limit=3 %}

@@ -52,14 +52,20 @@ def create_app():
     @app.context_processor
     def inject_global_functions():
         from tools.support.sponsors import get_sponsors_logic
+        from tools.support.seo_config import get_seo_data
         return dict(
             get_sponsors=get_sponsors_logic,
+            get_seo=get_seo_data,
             lang=request.cookies.get('lang', 'zh')
         )
 
     # --- 2. 核心中间件：身份模拟与网关安全校验 ---
     @app.before_request
     def handle_auth_and_security():
+        # 爬虫识别逻辑 (Google, Bing, Baidu, etc.)
+        ua = request.headers.get('User-Agent', '').lower()
+        is_bot = any(bot in ua for bot in ['googlebot', 'bingbot', 'baiduspider', 'sogou', 'yandex', 'duckduckbot'])
+        
         uid = request.headers.get('X-User-Id')
         if not uid:
             token = request.cookies.get('auth_token')
@@ -74,6 +80,7 @@ def create_app():
         # 白名单
         if request.path == '/' or request.path.startswith('/auth') or \
            request.path == '/health' or request.path == '/proxy_img' or \
+           request.path == '/sitemap.xml' or \
            request.path.startswith('/lvgl_image') or \
            request.path.startswith('/serial') or \
            request.path.startswith('/ble_config') or \
@@ -81,7 +88,10 @@ def create_app():
            request.path.startswith('/static') or request.path.endswith('.html'):
             return
 
+        # 如果不是白名单且没有 UID，但它是爬虫，允许通过（后续在路由中处理数据屏蔽）
         if not uid:
+            if is_bot:
+                return # 允许爬虫进入
             if request.path.startswith('/api/'):
                 return jsonify(success=False, error="Unauthorized"), 401
             return redirect(f'/login.html?next={request.path}')

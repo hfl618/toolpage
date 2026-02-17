@@ -1,0 +1,11 @@
+<!-- tools/support/templates/support/seo_tags.html -->
+{% set seo = get_seo(page_id) %}
+{% if lang == 'en' %}
+    <title>{{ seo.title_en }}</title>
+    <meta name="description" content="{{ seo.desc_en }}">
+    <meta name="keywords" content="{{ seo.key_en }}">
+{% else %}
+    <title>{{ seo.title_zh }}</title>
+    <meta name="description" content="{{ seo.desc_zh }}">
+    <meta name="keywords" content="{{ seo.key_zh }}">
+{% endif %}

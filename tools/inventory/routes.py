@@ -28,7 +28,12 @@ SYSTEM_FIELDS = [
 
 def get_current_uid():
     uid = request.headers.get('X-User-Id')
-    if not uid: abort(401)
+    if not uid:
+        # SEO 增强：如果是搜索引擎爬虫，允许返回 None
+        ua = request.headers.get('User-Agent', '').lower()
+        if any(bot in ua for bot in ['googlebot', 'bingbot', 'baiduspider']):
+            return None
+        abort(401)
     return uid
 
 def smart_match(cols):
@@ -86,6 +91,11 @@ def _perform_delete(id, uid):
 def index():
     import glob
     uid = get_current_uid()
+    
+    # SEO 增强：如果识别为爬虫（uid 为 None），返回不含私密数据的空模板
+    if uid is None:
+        return render_template('inventory.html', items=[], locations=[], q='', filters={}, system_fields=SYSTEM_FIELDS, docs_zh="", docs_en="")
+
     args = request.args
     q, filters = args.get('q', '').strip(), {k: args.get(k, '') for k in ['category', 'name', 'model', 'package', 'location', 'supplier', 'channel', 'buy_time']}
     sql, params = "SELECT * FROM components WHERE user_id = ?", [uid]

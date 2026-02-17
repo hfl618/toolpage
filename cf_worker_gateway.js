@@ -424,17 +424,25 @@ function renderIndex(user) {
     <!-- 🚀 赞助商区域缝合点 -->
     ${renderSponsors()}
 
-    <!-- 🌐 全站 SEO 核心关键词植入 (视觉隐形，爬虫可见) -->
-    <section style="margin-top: 32px; padding: 16px; border-top: 1px dashed #f1f5f9; opacity: 0.15; filter: grayscale(1);">
-        <h2 style="font-size: 10px; font-weight: 900; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Engineers' Toolset Core</h2>
-        <p style="font-size: 9px; line-height: 1.6; color: #94a3b8; font-weight: 500;">
-            本站提供一系列基于现代 Web 技术的工程辅助工具：
-            <strong>Web Serial API 串口调试工具</strong>（实现<strong>免安装浏览器串口助手</strong>功能）、
-            专为嵌入式设计的 <strong>LVGL 图像处理工具</strong>、
-            高效的<strong>元器件智能库存管理</strong>系统、
-            以及便捷的 <strong>BLE 蓝牙在线配置工具</strong>。
-            旨在通过“免驱动、跨平台”的在线方案，为全球嵌入式工程师提供极速数字化工作流。
-        </p>
+    <!-- 🌐 全站多维 SEO 核心关键词植入 (视觉隐形，爬虫可见) -->
+    <section style="margin-top: 40px; padding: 24px; border-top: 1px solid #f1f5f9; opacity: 0.2; filter: grayscale(1);">
+        <h2 style="font-size: 11px; font-weight: 900; color: #64748b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">Global Engineering & Productivity Hub</h2>
+        <div style="font-size: 10px; line-height: 1.8; color: #94a3b8; font-weight: 500;">
+            <p>
+                <strong>618002.xyz</strong> 是一个面向开发者与创客的<strong>全能在线工具集</strong>。
+                核心涵盖：<strong>Web Serial API 串口调试工具</strong>（解决<strong>单片机免驱动调试</strong>痛点）、
+                <strong>元器件智能管理系统</strong>（支持<strong>BOM自动解析</strong>与<strong>二维码仓储管理</strong>）、
+                <strong>LVGL 在线图像转换</strong>（嵌入式UI素材极速处理）、
+                以及 <strong>BLE 蓝牙在线配置助手</strong>。
+            </p>
+            <p style="margin-top: 8px;">
+                我们致力于打造<strong>免安装、跨平台、极速响应</strong>的数字化工作流。无论您是电子工程师、软件开发人员，还是硬件DIY爱好者，
+                都能在此体验到<strong>浏览器直连硬件</strong>的便利。支持 Chrome, Edge 等现代浏览器，适配 Windows, macOS, Linux 及 Android 环境。
+            </p>
+            <p style="margin-top: 8px; border-top: 1px dashed #f1f5f9; pt-4;">
+                Keywords: Online Serial Port, Browser-based Hardware Debugging, Smart Inventory Manager, BOM Parser, LVGL Asset Converter, BLE Provisioning Tool, Indie Dev Toolbox.
+            </p>
+        </div>
     </section>
 
   </main>

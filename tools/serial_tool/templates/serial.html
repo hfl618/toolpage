@@ -1,12 +1,11 @@
 {% extends "support/layout.html" %}
 
-{% block title %}Web Serial API 串口调试工具 - 免安装浏览器串口助手 | 618002.xyz{% endblock %}
+{% block title %}{{ get_seo('serial')['title_zh' if lang != 'en' else 'title_en'] }}{% endblock %}
 {% block app_icon %}S{% endblock %}
 {% block app_name %}<span class="i18n" data-zh="串口调试" data-en="Serial Studio">串口调试</span>{% endblock %}
 
 {% block extra_head %}
-<meta name="description" content="基于 Web Serial API 的免安装浏览器串口调试工具。支持跨平台 HEX/文本收发、波特率自定义及自动化回复，是嵌入式工程师的理想助手。">
-<meta name="keywords" content="Web Serial API, 串口调试工具, 浏览器串口助手, 在线串口助手, 单片机调试, ESP32, STM32">
+{% with page_id='serial' %}{% include 'support/seo_tags.html' %}{% endwith %}
 {% endblock %}
 
 {% block extra_css %}
@@ -206,11 +205,8 @@
             </div>
         </div>
 
-        <!-- SEO Text (Visible to Crawlers, Minimal impact on layout) -->
-        <section style="height: 1px; overflow: hidden; opacity: 0.01; font-size: 8px; padding: 0 20px;">
-            这款Web Serial API 串口调试工具是一款免安装浏览器串口助手。基于原生 Web 技术，实现跨平台驱动自由。
-            This Web Serial API Tool is a driverless online terminal. It enables cross-platform hardware connection directly via your browser.
-        </section>
+        <!-- SEO Text (Visible to Crawlers) -->
+        {% with page_id='serial' %}{% include 'support/seo_hidden.html' %}{% endwith %}
 
         <!-- 极致紧凑的广告位 -->
         <div class="mt-1">

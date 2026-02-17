@@ -1,0 +1,5 @@
+<!-- tools/support/templates/support/seo_hidden.html -->
+{% set seo = get_seo(page_id) %}
+<section style="height: 1px; overflow: hidden; opacity: 0.01; font-size: 8px; padding: 0 20px;">
+    {% if lang == 'en' %}{{ seo.hidden_en }}{% else %}{{ seo.hidden_zh }}{% endif %}
+</section>

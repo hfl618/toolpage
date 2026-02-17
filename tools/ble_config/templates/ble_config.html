@@ -1,8 +1,12 @@
 {% extends "support/layout.html" %}
 
-{% block title %}设备配网 Pro{% endblock %}
+{% block title %}{{ get_seo('ble')['title_zh' if lang != 'en' else 'title_en'] }}{% endblock %}
 {% block app_icon %}<i class="ri-bluetooth-connect-line"></i>{% endblock %}
 {% block app_name %}<span class="i18n" data-zh="设备配网" data-en="BLE Config">设备配网</span>{% endblock %}
+
+{% block extra_head %}
+{% with page_id='ble' %}{% include 'support/seo_tags.html' %}{% endwith %}
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -83,6 +87,12 @@
         </div>
         <div class="flex items-center justify-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-tighter"><i class="ri-lock-2-line"></i> <span>AES-128 End-to-End Encryption</span></div>
     </div>
+</div>
+
+<!-- SEO & Sponsors -->
+<div class="mt-8">
+    {% with page_id='ble' %}{% include 'support/seo_hidden.html' %}{% endwith %}
+    {% with placement='footer_grid', page_id='ble', limit=3 %}{% include 'support/unified_footer.html' %}{% endwith %}
 </div>
 
 <!-- OTA 弹窗 -->

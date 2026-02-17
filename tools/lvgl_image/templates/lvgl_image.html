@@ -1,8 +1,12 @@
 {% extends "support/layout.html" %}
 
-{% block title %}LVGL 图像处理{% endblock %}
+{% block title %}{{ get_seo('lvgl')['title_zh' if lang != 'en' else 'title_en'] }}{% endblock %}
 {% block app_icon %}L{% endblock %}
 {% block app_name %}LVGL Image{% endblock %}
+
+{% block extra_head %}
+{% with page_id='lvgl' %}{% include 'support/seo_tags.html' %}{% endwith %}
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -255,6 +259,12 @@
             </div>
         </div>
     </form>
+
+    <!-- SEO & Sponsors -->
+    <div class="mt-8">
+        {% with page_id='lvgl' %}{% include 'support/seo_hidden.html' %}{% endwith %}
+        {% with placement='footer_grid', page_id='lvgl', limit=3 %}{% include 'support/unified_footer.html' %}{% endwith %}
+    </div>
 {% endblock %}
 
 {% block extra_js %}
