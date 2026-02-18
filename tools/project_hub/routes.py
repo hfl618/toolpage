@@ -9,11 +9,16 @@ project_bp = Blueprint(
     static_folder='static'
 )
 
+from tools.user.routes import get_uid_from_request
+
 def get_current_uid():
-    """统一从 Header 获取用户 ID"""
+    """统一获取用户 ID，支持 Header 和 Cookie"""
     uid = request.headers.get('X-User-Id')
+    if uid: return uid
+    
+    uid = get_uid_from_request()
     if not uid:
-        abort(401, description="Unauthorized: Missing X-User-Id")
+        abort(401, description="Unauthorized")
     return uid
 
 @project_bp.route('/')

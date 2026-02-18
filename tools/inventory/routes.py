@@ -27,14 +27,25 @@ SYSTEM_FIELDS = [
 ]
 
 def get_current_uid():
+    # 1. 优先尝试从 Header 获取 (适配网关/API)
     uid = request.headers.get('X-User-Id')
-    if not uid:
-        # SEO 增强：如果是搜索引擎爬虫，允许返回 None
-        ua = request.headers.get('User-Agent', '').lower()
-        if any(bot in ua for bot in ['googlebot', 'bingbot', 'baiduspider']):
-            return None
-        abort(401)
-    return uid
+    if uid: return uid
+    
+    # 2. 尝试从 JWT Cookie 获取 (适配直连浏览器)
+    from tools.user.routes import get_uid_from_request
+    uid = get_uid_from_request()
+    if uid: return uid
+
+    # 3. SEO 增强：如果是搜索引擎爬虫，允许返回 None
+    ua = request.headers.get('User-Agent', '').lower()
+    if any(bot in ua for bot in ['googlebot', 'bingbot', 'baiduspider']):
+        return None
+    
+    # 4. 最终拦截：如果都不满足且不是 API 请求，重定向到登录
+    if not request.path.startswith('/api/'):
+        return None # 由中间件处理重定向
+    
+    abort(401)
 
 def smart_match(cols):
     mapping = {}

@@ -82,7 +82,7 @@ def login():
                 'auth_token', 
                 token, 
                 httponly=True,           # ❌ JS 无法读取，防御 XSS
-                secure=True,             # ✅ 仅限 HTTPS 传输
+                secure=Config.COOKIE_SECURE, # ✅ 生产环境强制 HTTPS
                 samesite='Lax',          # 🛡️ 防御 CSRF 跨站请求
                 max_age=Config.JWT_EXP_DELTA,
                 path='/'

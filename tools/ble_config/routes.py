@@ -70,6 +70,8 @@ def ota_proxy_download(file_path):
         print(f"💥 [Proxy Error]: {str(e)}")
         return str(e), 500
 
+from tools.user.routes import get_uid_from_request
+
 @ble_config_bp.route('/')
 def index():
     return render_template('ble_config.html')
@@ -80,18 +82,34 @@ def ota_user():
 
 @ble_config_bp.route('/ota/admin')
 def ota_admin():
+    uid = get_uid_from_request()
+    if not uid:
+        return redirect(f'/login?next={request.path}')
     return render_template('ota_manager.html')
 
 @ble_config_bp.route('/ota/info')
 def ota_info():
-    uid = request.args.get('uid') or request.headers.get('X-User-Id')
-    current_uid = request.headers.get('X-User-Id')
-    if not uid: return jsonify({"error": "Missing UID"}), 401
-    latest = get_json_from_r2(f"ota/{uid}/latest.json") or {}
+    # 优先从 URL 参数获取 (用于查看他人分享的 OTA 空间)
+    uid = request.args.get('uid')
+    # 其次从当前登录状态获取
+    current_uid = get_uid_from_request()
+    
+    # 如果都没提供，则报错
+    target_uid = uid or current_uid
+    if not target_uid: 
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    latest = get_json_from_r2(f"ota/{target_uid}/latest.json") or {}
     for t in latest:
         if isinstance(latest[t], dict) and 'url' in latest[t]:
             latest[t]['url'] = rewrite_url(latest[t]['url'])
-    data = {"uid": uid, "workspace": f"Space #{uid}", "can_edit": str(uid) == str(current_uid), "status": "active" if latest else "empty"}
+            
+    data = {
+        "uid": target_uid, 
+        "workspace": f"Space #{target_uid}", 
+        "can_edit": str(target_uid) == str(current_uid), 
+        "status": "active" if latest else "empty"
+    }
     data.update(latest)
     resp = make_response(jsonify(data))
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
@@ -99,7 +117,7 @@ def ota_info():
 
 @ble_config_bp.route('/ota/upload', methods=['POST'])
 def ota_upload():
-    uid = request.headers.get('X-User-Id') or request.environ.get('HTTP_X_USER_ID')
+    uid = get_uid_from_request()
     if not uid: return jsonify(success=False), 401
     file = request.files.get('file')
     target = request.form.get('target', '').strip().lower()
@@ -120,7 +138,8 @@ def ota_upload():
 
 @ble_config_bp.route('/ota/set_active', methods=['POST'])
 def ota_set_active():
-    uid = request.headers.get('X-User-Id') or request.environ.get('HTTP_X_USER_ID')
+    uid = get_uid_from_request()
+    if not uid: return jsonify(success=False), 401
     index = request.json.get('index')
     action = request.json.get('action')
     history = get_json_from_r2(f"ota/{uid}/history.json") or []
@@ -145,7 +164,7 @@ def ota_set_active():
 
 @ble_config_bp.route('/ota/history')
 def ota_history():
-    uid = request.args.get('uid') or request.headers.get('X-User-Id')
+    uid = request.args.get('uid') or get_uid_from_request()
     if not uid: return jsonify([])
     history = get_json_from_r2(f"ota/{uid}/history.json") or []
     for item in history: item['url'] = rewrite_url(item['url'])
@@ -155,7 +174,8 @@ def ota_history():
 
 @ble_config_bp.route('/ota/delete', methods=['POST'])
 def ota_delete():
-    uid = request.headers.get('X-User-Id') or request.environ.get('HTTP_X_USER_ID')
+    uid = get_uid_from_request()
+    if not uid: return jsonify(success=False), 401
     index = request.json.get('index')
     history = get_json_from_r2(f"ota/{uid}/history.json") or []
     if 0 <= index < len(history):
@@ -171,7 +191,8 @@ def ota_delete():
 
 @ble_config_bp.route('/ota/delete_partition', methods=['POST'])
 def ota_delete_partition():
-    uid = request.headers.get('X-User-Id') or request.environ.get('HTTP_X_USER_ID')
+    uid = get_uid_from_request()
+    if not uid: return jsonify(success=False), 401
     target = request.json.get('target')
     latest = get_json_from_r2(f"ota/{uid}/latest.json") or {}
     if target in latest:

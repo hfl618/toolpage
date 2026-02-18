@@ -79,27 +79,32 @@
      * 通用卡片渲染组件
      * 以后如果要更改全站卡片样式，只需改这一个函数
      */
-    function render(list) {
-      const g = document.getElementById('grid'), e = document.getElementById('empty');
-      const lang = localStorage.getItem('lang') || 'zh';
-      
-      if(list.length === 0) { 
-          g.innerHTML = ''; 
-          e.classList.remove('hidden'); 
-          return; 
-      }
-      e.classList.add('hidden');
-
-      g.innerHTML = list.map(t => `
-        <div class="bento-card p-10 rounded-[36px] cursor-pointer group relative overflow-hidden" onclick="openModal('${t.id}')">
-          <div class="w-16 h-16 ${t.color} rounded-2xl flex items-center justify-center text-white text-3xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
-            <i class="${t.icon}"></i>
-          </div>
-          <h3 class="text-2xl font-black text-slate-900 mb-2 tracking-tight">${lang === 'zh' ? t.title_zh : t.title_en}</h3>
-          <p class="text-slate-400 font-bold text-sm leading-relaxed">${lang === 'zh' ? t.desc_zh : t.desc_en}</p>
-        </div>`).join('');
-    }
-
+            function handleToolClick(url) {
+                const lang = localStorage.getItem('lang') || 'zh';
+                if (url === '#' || !url) {
+                    showToast(lang === 'zh' ? '该功能即将上线，敬请期待！' : 'Feature coming soon!');
+                    return;
+                }
+                
+                // 💡 如果访问的是受限页面且未登录 (这里通过同步 API 判断)
+                // 实际上后端已经做了重定向，这里直接执行跳转即可，体验最顺滑
+                location.href = url;
+            }
+                    function render(list) {
+              const g = document.getElementById('grid'), e = document.getElementById('empty');
+              const lang = localStorage.getItem('lang') || 'zh';
+              if(list.length === 0) { g.innerHTML = ''; e.classList.remove('hidden'); return; }
+              e.classList.add('hidden');
+              g.innerHTML = list.map(t => `
+                <div class="bento-card p-10 rounded-[36px] cursor-pointer group relative overflow-hidden" onclick="openModal('${t.id}')">
+                  <div class="w-16 h-16 ${t.color} rounded-2xl flex items-center justify-center text-white text-3xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
+                    <i class="${t.icon}"></i>
+                  </div>
+                  <h3 class="text-2xl font-black text-slate-900 mb-2 tracking-tight">${lang === 'zh' ? t.title_zh : t.title_en}</h3>
+                  <p class="text-slate-400 font-bold text-sm leading-relaxed">${lang === 'zh' ? t.desc_zh : t.desc_en}</p>
+                </div>`).join('');
+            }
+        
     function filter(c) {
       currentCat = c;
       ['all','dev','ai'].forEach(id => {
@@ -134,7 +139,7 @@
       document.getElementById('modalDesc').innerText = lang === 'zh' ? t.lDesc_zh : t.lDesc_en;
       document.getElementById('modalIcon').className = "w-20 h-20 rounded-3xl flex items-center justify-center text-4xl shadow-inner text-white flex-shrink-0 " + t.color;
       document.getElementById('modalIcon').innerHTML = `<i class="${t.icon}"></i>`;
-      document.getElementById('launchBtn').onclick = () => location.href = t.url;
+      document.getElementById('launchBtn').onclick = () => handleToolClick(t.url);
       
       const commentsHtml = t.comments.map(c => `
         <div class="flex items-center gap-4 p-4 bg-slate-50/50 rounded-2xl border border-white transition-all hover:bg-white hover:shadow-sm">

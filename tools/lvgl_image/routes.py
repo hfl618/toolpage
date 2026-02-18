@@ -13,10 +13,27 @@ lvgl_image_bp = Blueprint('lvgl_image', __name__,
                           template_folder='templates', 
                           static_folder='static')
 
+from tools.user.routes import get_uid_from_request
+
 def get_visitor_id():
-    uid = request.headers.get('X-User-Id')
-    role = request.headers.get('X-User-Role', 'guest')
+    # 1. 尝试获取 UID (支持 Header 和 Cookie)
+    uid = request.headers.get('X-User-Id') or get_uid_from_request()
+    
+    # 2. 尝试获取 Role
+    role = request.headers.get('X-User-Role')
+    if not role and uid:
+        # 如果有 UID 但没 Role Header (说明是直连)，从数据库查一次或简单从 Cookie 逻辑拿
+        try:
+            res = d1.execute("SELECT role FROM users WHERE id = ?", [uid])
+            if res and res.get('results'):
+                role = res['results'][0]['role']
+        except: pass
+    
+    role = role or 'guest'
+    
     if uid: return uid, True, role
+    
+    # 3. 游客处理
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     return f"guest_{ip.split(',')[0]}", False, 'guest'
 

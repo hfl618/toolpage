@@ -62,9 +62,24 @@ def create_app():
         )
 
     # --- 2. 核心中间件：身份模拟与网关安全校验 ---
-    @app.before_request
-    def handle_auth_and_security():
-        # 爬虫识别逻辑 (Google, Bing, Baidu, etc.)
+        # 1. 生产环境下的 IP 安全白名单自动化校验
+        if Config.ENV == 'prod' and request.path != '/health':
+            from tools.support.cloudflare_validator import CloudflareValidator
+            client_ip = request.remote_addr
+            
+            # 💡 增加豁免：如果是本地访问，直接放行
+            if client_ip in ['127.0.0.1', '::1']:
+                pass
+            elif not CloudflareValidator.is_cloudflare_ip(client_ip):
+                return abort(403, description="Forbidden")
+            
+            # 💡 既然确认请求来自 CF，我们就可以放心地信任 CF 传来的用户真实 IP
+            real_user_ip = request.headers.get('CF-Connecting-IP')
+            if real_user_ip:
+                # 这一步是为了让后续业务逻辑（如日志记录）能拿到真正的用户 IP
+                request.environ['REMOTE_ADDR'] = real_user_ip
+
+        # 2. 爬虫识别逻辑
         ua = request.headers.get('User-Agent', '').lower()
         is_bot = any(bot in ua for bot in ['googlebot', 'bingbot', 'baiduspider', 'sogou', 'yandex', 'duckduckbot'])
         
@@ -90,12 +105,14 @@ def create_app():
            request.path.startswith('/static') or request.path.endswith('.html'):
             return
 
-        # 如果不是白名单且没有 UID，但它是爬虫，允许通过
+        # 如果不是白名单且没有 UID
         if not uid:
             if is_bot:
                 return 
+            # 💡 只有以 /api/ 开头的异步请求才返回 401 
             if request.path.startswith('/api/'):
                 return jsonify(success=False, error="Unauthorized"), 401
+            # 💡 所有的页面访问 (包括 /inventory/, /profile) 都重定向到登录
             return redirect(f'/login?next={request.path}')
 
     @app.after_request
