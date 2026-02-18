@@ -24,6 +24,9 @@ def get_help_doc():
     
     if not module.replace('_', '').isalnum(): return jsonify(success=False)
 
+    # 提取子路径作为具体文件名匹配依据
+    sub_path = parts[1] if len(parts) > 1 else ""
+
     try:
         # 兼容根目录和 tools 目录运行
         base_path = os.getcwd()
@@ -38,15 +41,30 @@ def get_help_doc():
         for sd in search_dirs:
             if not os.path.exists(sd):
                 continue
-                
-            # 1. 优先匹配具体语言的模块文档: {module}_{lang}_*.md
+            
+            # 1. 优先匹配带子路径的具体文件: {module}_{lang}_{sub_path}.md
+            if sub_path:
+                specific_pattern = os.path.join(sd, f"{module}_{lang}_{sub_path}.md")
+                specific_files = glob.glob(specific_pattern)
+                if specific_files:
+                    found_file = specific_files[0]
+                    break
+
+            # 2. 匹配带星号的版本: {module}_{lang}_*.md
             pattern = os.path.join(sd, f"{module}_{lang}_*.md")
             files = sorted(glob.glob(pattern))
             if files:
+                # 如果有子路径，尝试在结果中进一步筛选包含子路径的文件
+                if sub_path:
+                    filtered = [f for f in files if sub_path in os.path.basename(f)]
+                    if filtered:
+                        found_file = filtered[-1]
+                        break
+                
                 found_file = files[-1]
                 break
             
-            # 2. 如果没找到对应语言，尝试找英文: {module}_en_*.md
+            # 3. 如果没找到对应语言，尝试找英文: {module}_en_*.md
             if lang == 'zh':
                 pattern_en = os.path.join(sd, f"{module}_en_*.md")
                 files_en = sorted(glob.glob(pattern_en))
@@ -62,6 +80,16 @@ def get_help_doc():
         return jsonify(success=True, content=content)
     except Exception as e:
         return jsonify(success=False, error=str(e))
+
+@support_bp.route('/privacy')
+def privacy():
+    from flask import render_template
+    return render_template('support/legal.html', title="Privacy Policy", doc_type="privacy")
+
+@support_bp.route('/terms')
+def terms():
+    from flask import render_template
+    return render_template('support/legal.html', title="Terms of Service", doc_type="terms")
 
 def get_visitor_id():
     uid = request.headers.get('X-User-Id')

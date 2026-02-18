@@ -88,18 +88,13 @@ def create_app():
            request.path.startswith('/static') or request.path.endswith('.html'):
             return
 
-        # 如果不是白名单且没有 UID，但它是爬虫，允许通过（后续在路由中处理数据屏蔽）
+        # 如果不是白名单且没有 UID，但它是爬虫，允许通过
         if not uid:
             if is_bot:
-                return # 允许爬虫进入
+                return 
             if request.path.startswith('/api/'):
                 return jsonify(success=False, error="Unauthorized"), 401
-            return redirect(f'/login.html?next={request.path}')
-
-        if Config.ENV == 'prod':
-            client_secret = request.headers.get('X-Gateway-Secret')
-            if client_secret and client_secret != Config.GATEWAY_SECRET:
-                return "Forbidden", 403
+            return redirect(f'/login?next={request.path}')
 
     @app.after_request
     def after_request_hook(response):
@@ -184,11 +179,13 @@ def create_app():
 
     @app.route('/login')
     def serve_login():
-        return send_from_directory('frontend', 'login.html')
+        from flask import render_template
+        return render_template('login.html')
 
     @app.route('/profile')
     def serve_profile():
-        return send_from_directory('frontend', 'profile.html')
+        from flask import render_template
+        return render_template('profile.html')
 
     @app.route('/logout')
     def serve_logout():

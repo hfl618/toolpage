@@ -1,0 +1,168 @@
+{% extends "support/layout.html" %}
+
+{% block title %}个人中心 | Core618{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 py-8">
+    <div class="md:col-span-4 space-y-3">
+      <div class="card-apple p-10 text-center relative overflow-hidden rounded-[40px] animate-in fade-in slide-in-from-left-4 duration-700">
+        <div class="absolute top-0 left-0 w-full h-24 bg-slate-900 opacity-5"></div>
+        <div class="relative w-28 h-28 mx-auto z-10 group cursor-pointer" onclick="document.getElementById('avatar-input').click()">
+          <img id="u-avatar" src="" class="w-full h-full rounded-[40px] border-4 border-white shadow-2xl bg-white object-cover">
+          <div class="absolute inset-0 bg-black/40 rounded-[40px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-white text-2xl"><i class="ri-camera-lens-line"></i></div>
+        </div>
+        <input type="file" id="avatar-input" class="hidden" accept="image/*" onchange="uploadAvatar(this)">
+        <h2 id="u-name" class="text-3xl font-black text-slate-900 mt-6 tracking-tight">Loading...</h2>
+        
+        <div id="u-role-tag" class="mt-2 inline-block px-4 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded-xl border border-blue-100 uppercase tracking-widest">MEMBER</div>
+
+        <div class="mt-8 grid grid-cols-2 gap-4 border-t border-gray-50 pt-8">
+          <div><div class="text-2xl font-black text-slate-900" id="stat-days">-</div><div class="text-[10px] text-slate-400 font-black uppercase i18n" data-zh="入驻天数" data-en="Days Joined">入驻天数</div></div>
+          <div><div class="text-2xl font-black text-slate-900" id="stat-count">-</div><div class="text-[10px] text-slate-400 font-black uppercase i18n" data-zh="请求响应" data-en="Responses">请求响应</div></div>
+        </div>
+      </div>
+
+      <div class="card-apple p-2 rounded-[32px] space-y-1 animate-in fade-in duration-700 delay-100">
+        <button onclick="switchTab('main')" id="btn-tab-main" class="w-full flex items-center gap-4 px-6 py-4 text-sm font-black bg-slate-900 text-white rounded-2xl transition shadow-xl shadow-slate-200">
+            <i class="ri-layout-grid-fill"></i> <span class="i18n" data-zh="资源概览" data-en="Overview">资源概览</span>
+        </button>
+        <button onclick="switchTab('settings')" id="btn-tab-settings" class="w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-slate-500 hover:bg-gray-50 rounded-2xl transition">
+            <i class="ri-shield-keyhole-fill"></i> <span class="i18n" data-zh="安全设置" data-en="Settings">安全设置</span>
+        </button>
+        <button onclick="location.href='/logout'" class="w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-red-500 hover:bg-red-50 rounded-2xl transition text-left border-0 bg-transparent">
+            <i class="ri-logout-circle-fill"></i> <span class="i18n" data-zh="退出登录" data-en="Logout">退出登录</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="md:col-span-8 animate-in fade-in slide-in-from-right-4 duration-700">
+      <div id="tab-main" class="space-y-6">
+        <div class="card-apple p-12 rounded-[40px]">
+          <h3 class="font-black text-slate-900 mb-10 text-xl flex items-center gap-3"><i class="ri-bar-chart-2-fill text-blue-500"></i> <span class="i18n" data-zh="数据配额消耗" data-en="Data Quotas">数据配额消耗</span></h3>
+          <div class="space-y-10" id="quota-container">
+              <div class="animate-pulse flex flex-col gap-4"><div class="h-2 w-full bg-gray-100 rounded-full"></div><div class="h-2 w-2/3 bg-gray-100 rounded-full"></div></div>
+          </div>
+        </div>
+        <div class="card-apple p-12 rounded-[40px]">
+          <div class="flex justify-between items-center mb-8">
+            <h3 class="font-black text-slate-900 text-xl tracking-tight i18n" data-zh="最近动态" data-en="Recent Activities">最近动态</h3>
+            <div id="activity-pager" class="flex items-center gap-3 hidden">
+                <button onclick="changePage(-1)" class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition"><i class="ri-arrow-left-s-line"></i></button>
+                <span id="page-info" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">1 / 1</span>
+                <button onclick="changePage(1)" class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition"><i class="ri-arrow-right-s-line"></i></button>
+            </div>
+          </div>
+          <div id="activity-list" class="space-y-4 min-h-[300px]"></div>
+        </div>
+      </div>
+
+      <div id="tab-settings" class="hidden card-apple p-12 rounded-[40px]">
+        <h3 class="font-black text-slate-900 mb-10 text-xl flex items-center gap-3"><i class="ri-lock-password-fill text-indigo-500"></i> <span class="i18n" data-zh="账号安全设置" data-en="Account Security">账号安全设置</span></h3>
+        <div class="space-y-6 text-left">
+          <div class="relative">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 i18n" data-zh="修改用户名" data-en="Change Username">修改用户名</label>
+              <input type="text" id="new-username" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm">
+              <span id="userStatus" class="absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight"></span>
+          </div>
+          <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 i18n" data-zh="重置密码" data-en="Reset Password">重置密码</label><input type="password" id="new-password" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm"></div>
+          <button onclick="updateAccount()" id="saveBtn" class="w-full py-5 bg-slate-900 text-white rounded-2xl font-black shadow-2xl mt-4 hover:bg-slate-800 transition i18n" data-zh="确认修改" data-en="Save Changes">确认修改</button>
+        </div>
+      </div>
+    </div>
+</div>
+
+{% with placement='footer_grid', page_id='profile', limit=3 %}
+    {% include 'support/unified_footer.html' %}
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchTab(t) {
+      document.getElementById('tab-main').classList.toggle('hidden', t!=='main');
+      document.getElementById('tab-settings').classList.toggle('hidden', t!=='settings');
+      document.getElementById('btn-tab-main').className = t==='main' ? 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black bg-slate-900 text-white rounded-2xl shadow-xl' : 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-slate-500 hover:bg-gray-50 rounded-2xl transition';
+      document.getElementById('btn-tab-settings').className = t==='settings' ? 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black bg-slate-900 text-white rounded-2xl shadow-xl' : 'w-full flex items-center gap-4 px-6 py-4 text-sm font-black text-slate-500 hover:bg-gray-50 rounded-2xl transition';
+    }
+
+    document.getElementById('new-username').addEventListener('input', async (e) => {
+        const val = e.target.value.trim(); const status = document.getElementById('userStatus'); if (!val) { status.innerText = ""; return; }
+        try {
+            const r = await fetch(`/auth/check_username?username=${encodeURIComponent(val)}`); const d = await r.json();
+            status.innerText = d.msg; status.className = `absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight ${d.status === 'success' ? 'text-green-500' : 'text-red-400'}`;
+        } catch(e) {}
+    });
+
+    let allActivities = []; let currentPage = 1; const pageSize = 5;
+    function renderActivities() {
+        const list = document.getElementById('activity-list'); const pager = document.getElementById('activity-pager'); const info = document.getElementById('page-info');
+        if (!allActivities.length) { 
+            list.innerHTML = `<p class="text-center text-slate-300 py-10 font-bold">${currentLang==='zh'?'暂无动态记录':'No activities yet'}</p>`; 
+            pager.classList.add('hidden'); return; 
+        }
+        const totalPages = Math.ceil(allActivities.length / pageSize); pager.classList.toggle('hidden', totalPages <= 1); info.innerText = `${currentPage} / ${totalPages}`;
+        const start = (currentPage - 1) * pageSize; const pageData = allActivities.slice(start, start + pageSize);
+        list.innerHTML = pageData.map(a => `
+            <div class="flex items-center gap-5 p-5 bg-gray-50/50 rounded-[28px] border border-transparent hover:border-gray-100 transition shadow-sm animate-in fade-in slide-in-from-right-2 duration-300">
+              <div class="w-12 h-12 ${a.bg} ${a.color} rounded-2xl flex items-center justify-center text-xl"><i class="${a.icon}"></i></div>
+              <div class="flex-1">
+                <p class="text-sm font-black text-slate-700">${a.text}</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">${a.time}</span>
+                    <span class="w-1 h-1 rounded-full bg-slate-200"></span>
+                    <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">${a.date || ''}</span>
+                </div>
+              </div>
+            </div>`).join('');
+    }
+    function changePage(delta) { const totalPages = Math.ceil(allActivities.length / pageSize); const newPage = currentPage + delta; if (newPage >= 1 && newPage <= totalPages) { currentPage = newPage; renderActivities(); } }
+
+    async function sync() {
+      try {
+        const r = await fetch(`/auth/profile_api`); const d = await r.json();
+        if (d.success) {
+          if(d.user) { 
+              const avatarUrl = d.user.avatar ? (d.user.avatar + (d.user.avatar.includes('?') ? '&' : '?') + 'v=' + Date.now()) : ('https://api.dicebear.com/7.x/avataaars/svg?seed=' + d.user.username);
+              document.getElementById('u-name').innerText = d.user.username; 
+              document.getElementById('u-avatar').src = avatarUrl; 
+              document.getElementById('u-role-tag').innerText = d.user.role.toUpperCase() + ' MEMBER';
+          }
+          const s = d.stats || {}; 
+          document.getElementById('stat-days').innerText = s.days || 1; 
+          document.getElementById('stat-count').innerText = s.total_calls || 0;
+          
+          const qContainer = document.getElementById('quota-container');
+          if(d.quotas && d.quotas.length > 0) {
+              if(d.is_single) { 
+                  qContainer.className = "space-y-10"; 
+                  qContainer.innerHTML = d.quotas.map(q => `<div><div class="flex justify-between text-xs font-black mb-3 text-slate-400 uppercase tracking-widest"><span>${q.label}</span><span class="text-slate-900 font-black">${q.used} / ${q.limit}</span></div><div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner"><div class="h-full ${q.color} shadow-lg transition-all duration-1000" style="width: ${Math.min(100, (q.used/q.limit)*100)}%"></div></div></div>`).join(''); 
+              } else { 
+                  qContainer.className = "grid grid-cols-1 sm:grid-cols-3 gap-6"; 
+                  qContainer.innerHTML = d.quotas.map(q => `<div class="bg-slate-50 p-6 rounded-3xl border border-gray-100 hover:bg-white hover:shadow-xl transition-all duration-300"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">${q.label}</p><p class="text-xl font-black text-slate-900">${q.used} <span class="text-slate-300 text-xs font-bold">/ ${q.limit}</span></p></div>`).join(''); 
+              }
+          }
+          if(d.activities) { allActivities = d.activities; currentPage = 1; renderActivities(); }
+        }
+      } catch(e){}
+    }
+    async function uploadAvatar(i) {
+      if(!i.files[0]) return; const f = new FormData(); f.append('file', i.files[0]); 
+      showToast(currentLang==='zh'?'正在上传头像...':'Uploading...');
+      try {
+        const r = await fetch('/auth/upload_avatar', {method:'POST', body:f}); const d = await r.json();
+        if(d.success) { document.getElementById('u-avatar').src = d.url; showToast(currentLang==='zh'?'头像更新成功':'Success'); }
+      } catch(e) { showToast('Error'); }
+    }
+    async function updateAccount() {
+      const u = document.getElementById('new-username').value, p = document.getElementById('new-password').value; if(!u && !p) return showToast(currentLang==='zh'?'未修改任何内容':'No changes');
+      try {
+        const r = await fetch('/auth/update_profile', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u, password:p})}); const d = await r.json();
+        if(d.success) { 
+            showToast(currentLang==='zh'?'修改成功，即将重新登录':'Success, re-logging...'); 
+            setTimeout(()=>location.href='/logout', 1500); 
+        } else showToast(d.error, 'error');
+      } catch(e) { showToast('Error'); }
+    }
+    sync();
+</script>
+{% endblock %}

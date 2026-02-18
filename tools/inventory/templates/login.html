@@ -1,0 +1,102 @@
+{% extends "support/layout.html" %}
+
+{% block title %}身份验证 | Core618{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div class="w-20 h-20 bg-slate-900 text-white rounded-[32px] flex items-center justify-center text-4xl font-black mx-auto mb-10 shadow-2xl shadow-slate-200 cursor-pointer" onclick="location.href='/'">C</div>
+    <h1 class="text-4xl font-black text-slate-900 tracking-tighter mb-4 i18n" data-zh="身份验证" data-en="Authentication">身份验证</h1>
+    <p class="text-slate-400 font-bold mb-12 i18n" 
+       data-zh="请输入您的凭证以访问 Core618 数字化 Hub" 
+       data-en="Please enter your credentials to access Core618 Hub">请输入您的凭证以访问 Core618 数字化 Hub</p>
+    
+    <div class="card-apple p-10 rounded-[40px] text-left">
+        <form id="authForm" class="space-y-4">
+          <div class="relative">
+              <label class="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-1 i18n" data-zh="用户名" data-en="Username">用户名</label>
+              <input type="text" id="username" placeholder="您的账号" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm" required>
+              <span id="userStatus" class="absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight"></span>
+          </div>
+          <div>
+              <label class="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-1 i18n" data-zh="访问密码" data-en="Password">访问密码</label>
+              <input type="password" id="password" placeholder="您的密码" class="w-full mt-2 p-5 rounded-2xl bg-gray-50 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-sm" required>
+          </div>
+          <button type="submit" id="subBtn" class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black text-lg shadow-2xl shadow-slate-200 mt-6 hover:bg-slate-800 transition-all i18n" data-zh="立即进入工作空间" data-en="Launch Workspace">立即进入工作空间</button>
+        </form>
+    </div>
+    <p class="mt-12 text-xs font-black text-slate-300 uppercase tracking-widest">
+        <span id="toggleMsg" class="i18n" data-zh="还没有注册账户?" data-en="Don't have an account?">还没有注册账户?</span> 
+        <a href="#" onclick="toggleMode()" id="toggleBtn" class="text-blue-500 hover:underline i18n" data-zh="点击这里切换" data-en="Switch here">点击这里切换</a>
+    </p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let isLogin = true;
+    const userInput = document.getElementById('username');
+    const userStatus = document.getElementById('userStatus');
+    
+    userInput.addEventListener('input', async () => {
+        if (isLogin) { userStatus.innerText = ""; return; }
+        const val = userInput.value.trim();
+        if (!val) { userStatus.innerText = ""; return; }
+        try {
+            const r = await fetch(`/auth/check_username?username=${encodeURIComponent(val)}`);
+            const d = await r.json();
+            userStatus.innerText = d.msg;
+            userStatus.className = `absolute right-4 bottom-5 text-[10px] font-bold uppercase tracking-tight ${d.status === 'success' ? 'text-green-500' : 'text-red-400'}`;
+        } catch(e) {}
+    });
+
+    function toggleMode() {
+        isLogin = !isLogin; 
+        userStatus.innerText = "";
+        const lang = localStorage.getItem('lang') || 'zh';
+        
+        const btn = document.getElementById('subBtn');
+        const msg = document.getElementById('toggleMsg');
+        const tbtn = document.getElementById('toggleBtn');
+        
+        if(lang === 'zh') {
+            btn.innerText = isLogin ? '立即进入工作空间' : '立即创建新账号';
+            msg.innerText = isLogin ? '还没有注册账户?' : '已有账号?';
+            tbtn.innerText = isLogin ? '点击这里切换' : '返回登录验证';
+        } else {
+            btn.innerText = isLogin ? 'Launch Workspace' : 'Create Account';
+            msg.innerText = isLogin ? "Don't have an account?" : "Already have an account?";
+            tbtn.innerText = isLogin ? 'Switch here' : 'Back to Login';
+        }
+    }
+
+    document.getElementById('authForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = { username: document.getElementById('username').value, password: document.getElementById('password').value };
+      const btn = document.getElementById('subBtn'); 
+      const lang = localStorage.getItem('lang') || 'zh';
+      
+      btn.disabled = true; 
+      btn.innerText = lang === 'zh' ? "正在验证身份..." : "Authenticating...";
+      
+      try {
+        const r = await fetch(isLogin ? '/auth/login' : '/auth/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        if(r.ok) {
+            const urlParams = new URLSearchParams(window.location.search);
+            location.href = urlParams.get('next') || '/';
+        } else { 
+            const d = await r.json(); 
+            showToast(d.error || (lang === 'zh' ? "认证失败" : "Auth Failed"), 'error'); 
+            btn.disabled = false; 
+            toggleMode(); toggleMode(); // Reset text
+        }
+      } catch(e) { 
+          showToast(lang === 'zh' ? "服务器响应异常" : "Server Error", 'error'); 
+          btn.disabled = false; 
+      }
+    });
+</script>
+
+{% with placement='footer_grid', page_id='auth', limit=3 %}
+    {% include 'support/unified_footer.html' %}
+{% endwith %}
+{% endblock %}
