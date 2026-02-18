@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 增量修复：指定网站图标，解决 favicon.ico 404 错误 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%230f172a%22/><text x=%2250%%22 y=%2250%%22 dominant-baseline=%22central%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2260%22 font-weight=%22900%22>6</text></svg>">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         body { background-color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; color: #1e293b; -webkit-font-smoothing: antialiased; }
@@ -175,5 +177,23 @@
     setLanguage(currentLang);
 </script>
 {% block extra_js %}{% endblock %}
+
+<style>
+    /* 增量修复：确保导航栏层级(z-40)在 serial 页面(z-50)之上，并处理下拉菜单遮挡 */
+    nav.glass-nav { z-index: 999 !important; }
+    #userMenu { z-index: 1000 !important; }
+
+    /* 增量优化：缩小导航栏与标题、标题与内容之间的过大间距 */
+    main.max-w-7xl { padding-top: 6rem !important; } /* 顶距从 128px 缩小至 96px */
+    .mb-16 { margin-bottom: 2.5rem !important; }     /* 标题下方间距从 64px 缩小至 40px */
+
+    /* 增量优化：拉开应用网格与下方赞助商/页脚区域的间距 */
+    #grid { margin-bottom: 1rem !important; }
+    footer.w-full { margin-top: 1.5rem !important; }
+
+    /* 增量修复：确保头像修改悬浮框可见 */
+    .group:hover .group-hover\:opacity-100 { opacity: 1 !important; visibility: visible !important; }
+    .w-28.h-28.group { z-index: 50 !important; }
+</style>
 </body>
 </html>

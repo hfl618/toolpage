@@ -16,6 +16,13 @@
         
         <div id="u-role-tag" class="mt-2 inline-block px-4 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded-xl border border-blue-100 uppercase tracking-widest">MEMBER</div>
 
+        <!-- 预留支付接口入口 -->
+        <div id="upgrade-area" class="mt-4 hidden">
+            <button onclick="startCheckout()" class="px-6 py-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] font-black rounded-xl shadow-lg hover:scale-105 transition-all uppercase tracking-widest">
+                <i class="ri-vip-crown-fill"></i> <span class="i18n" data-zh="升级专业版" data-en="Upgrade to Pro">升级专业版</span>
+            </button>
+        </div>
+
         <div class="mt-8 grid grid-cols-2 gap-4 border-t border-gray-50 pt-8">
           <div><div class="text-2xl font-black text-slate-900" id="stat-days">-</div><div class="text-[10px] text-slate-400 font-black uppercase i18n" data-zh="入驻天数" data-en="Days Joined">入驻天数</div></div>
           <div><div class="text-2xl font-black text-slate-900" id="stat-count">-</div><div class="text-[10px] text-slate-400 font-black uppercase i18n" data-zh="请求响应" data-en="Responses">请求响应</div></div>
@@ -126,6 +133,16 @@
               document.getElementById('u-name').innerText = d.user.username; 
               document.getElementById('u-avatar').src = avatarUrl; 
               document.getElementById('u-role-tag').innerText = d.user.role.toUpperCase() + ' MEMBER';
+              
+              // 增量添加：控制升级按钮显示
+              const upArea = document.getElementById('upgrade-area');
+              if(upArea) {
+                  if(d.user.role.toLowerCase() === 'free') {
+                      upArea.classList.remove('hidden');
+                  } else {
+                      upArea.classList.add('hidden');
+                  }
+              }
           }
           const s = d.stats || {}; 
           document.getElementById('stat-days').innerText = s.days || 1; 
@@ -163,6 +180,15 @@
         } else showToast(d.error, 'error');
       } catch(e) { showToast('Error'); }
     }
+
+    // 增量添加：预留支付跳转接口
+    function startCheckout() {
+        const msg = currentLang === 'zh' ? '支付功能正在接入中，敬请期待！' : 'Payment system is being integrated, coming soon!';
+        showToast(msg);
+        // 预留：此处将来填入 Lemon Squeezy Checkout URL
+        // window.location.href = "https://your-store.lemonsqueezy.com/checkout/...";
+    }
+
     sync();
 </script>
 {% endblock %}
