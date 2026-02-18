@@ -40,27 +40,28 @@
 <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"></div>
 <div id="empty" class="hidden text-center py-32"><div class="text-7xl mb-4">🔍</div><p class="text-slate-400 font-black i18n" data-zh="没有找到任何匹配结果" data-en="No matching results found">没有找到任何匹配结果</p></div>
 
-<!-- 详情弹窗 -->
-<div id="modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+  <!-- 详情弹窗 - 比例优化版 -->
+  <div id="modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity" onclick="closeModal()"></div>
-    <div class="relative bg-white w-full max-w-4xl rounded-[40px] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-300">
-        <div class="p-12 md:w-1/2 flex flex-col justify-between">
+    <div class="relative bg-white w-full max-w-2xl rounded-[32px] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-300">
+        <div class="p-8 md:w-1/2 flex flex-col justify-between border-r border-gray-50">
             <div>
-                <div class="flex items-center gap-6 mb-10">
-                    <div id="modalIcon" class="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl shadow-inner text-white flex-shrink-0 bg-slate-900"></div>
-                    <h2 id="modalTitle" class="text-4xl font-black text-slate-900 tracking-tighter leading-tight"></h2>
+                <div class="flex items-center gap-4 mb-8">
+                    <div id="modalIcon" class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner text-white flex-shrink-0"></div>
+                    <h2 id="modalTitle" class="text-2xl font-black text-slate-900 tracking-tight leading-tight"></h2>
                 </div>
-                <p id="modalDesc" class="text-slate-500 font-medium text-lg leading-relaxed mb-8"></p>
+                <p id="modalDesc" class="text-slate-500 font-medium text-sm leading-relaxed mb-8"></p>
             </div>
-            <button id="launchBtn" class="w-full py-5 btn-dark rounded-2xl font-black text-lg shadow-2xl i18n" data-zh="立即进入系统" data-en="Launch System">立即进入系统</button>
+            <button id="launchBtn" class="w-full py-4 btn-dark rounded-xl font-black text-base shadow-xl i18n" data-zh="立即进入系统" data-en="Launch System">立即进入系统</button>
         </div>
-        <div class="p-12 md:w-1/2 bg-slate-50/80 overflow-y-auto max-h-[550px]">
-            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8 border-b border-gray-100 pb-4 i18n" data-zh="系统反馈" data-en="User Feedback">系统反馈</h3>
-            <div id="modalComments" class="space-y-4"></div>
+        <div class="p-8 md:w-1/2 bg-slate-50/50 overflow-y-auto max-h-[450px]">
+            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-gray-100 pb-3 i18n" data-zh="系统反馈" data-en="User Feedback">系统反馈</h3>
+            <div id="modalComments" class="space-y-3"></div>
         </div>
-        <button onclick="closeModal()" class="absolute top-8 right-8 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-400 hover:text-slate-900 transition-all"><i class="ri-close-line text-2xl"></i></button>
+        <button onclick="closeModal()" class="absolute top-6 right-6 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md text-slate-400 hover:text-slate-900 transition-all"><i class="ri-close-line text-xl"></i></button>
     </div>
-</div>
+  </div>
+{% with page_id='index' %}{% include 'support/seo_hidden.html' %}{% endwith %}
 
 {% with placement='footer_grid', page_id='index', limit=3 %}
     {% include 'support/unified_footer.html' %}
@@ -69,26 +70,33 @@
 
 {% block extra_js %}
 <script>
-    const tools = [
-      { id:'stock', title_zh:'元器件管理', title_en:'Inventory', desc_zh:'库存、BOM、扫码一体化', desc_en:'Stock, BOM, QR integrated', lDesc_zh:'全方位数字化仓储解决方案。支持解析 Yageo、XFCN 等 BOM。', lDesc_en:'Full digital warehouse solution. Supports Yageo, XFCN BOM parsing.', icon:'ri-cpu-fill', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-indigo-600', comments:[{zh:'BOM解析准确',en:'Accurate'},{zh:'效率很高',en:'Efficient'}] , url:'/inventory/' },
-      { id:'serial', title_zh:'云端串口调试', title_en:'Serial Studio', desc_zh:'Web Serial API 直连', desc_en:'Hardware debug via web', lDesc_zh:'基于 Web Serial API 的专业串口调试工具。支持波特率高达 2M。', lDesc_en:'Professional web-based serial terminal. Supports up to 2M baud.', icon:'ri-terminal-line', cat:'dev', color:'bg-gradient-to-br from-indigo-500 to-purple-600', comments:[{zh:'无需安装驱动',en:'Driverless'},{zh:'高速稳定',en:'Stable'}], url:'/serial/' },
-      { id:'ble', title_zh:'设备蓝牙配网', title_en:'BLE Config', desc_zh:'Web Bluetooth API 配网', desc_en:'Provision IoT via BLE', lDesc_zh:'基于 Web Bluetooth API 的极简配网工具。', lDesc_en:'Minimalist provisioning tool via Web Bluetooth.', icon:'ri-bluetooth-connect-line', cat:'dev', color:'bg-gradient-to-br from-blue-500 to-cyan-500', comments:[{zh:'配网很快',en:'Very fast'}] , url:'/ble_config/' },
-      { id:'lvgl', title_zh:'LVGL 图像处理', title_en:'LVGL Image', desc_zh:'嵌入式素材转换', desc_en:'Embedded Asset Converter', lDesc_zh:'专为 LVGL 嵌入式图形库设计的图像处理工具。', lDesc_en:'Professional image converter for LVGL.', icon:'ri-image-edit-fill', cat:'dev', color:'bg-gradient-to-br from-emerald-500 to-teal-600', comments:[{zh:'RGB565很好用',en:'Great'}] , url:'/lvgl_image/' },
-      { id:'ai', title_zh:'AI 识别中心', title_en:'AI Analysis', desc_zh:'视觉模型物料分析', desc_en:'Visual Model Analysis', lDesc_zh:'基于最先进的视觉大语言模型。', lDesc_en:'Advanced AI visual analysis.', icon:'ri-eye-fill', cat:'ai', color:'bg-gradient-to-br from-purple-500 to-pink-600', comments:[{zh:'OCR识别极快',en:'Fast OCR'}] , url:'/ai_tools' }
-    ];
-
+    // --- 模块化数据中心：从后端同步工具列表 ---
+    const tools = {{ get_tools() | tojson }};
+    
     let currentCat = 'all';
 
+    /**
+     * 通用卡片渲染组件
+     * 以后如果要更改全站卡片样式，只需改这一个函数
+     */
     function render(list) {
       const g = document.getElementById('grid'), e = document.getElementById('empty');
       const lang = localStorage.getItem('lang') || 'zh';
-      if(list.length === 0) { g.innerHTML = ''; e.classList.remove('hidden'); return; }
+      
+      if(list.length === 0) { 
+          g.innerHTML = ''; 
+          e.classList.remove('hidden'); 
+          return; 
+      }
       e.classList.add('hidden');
+
       g.innerHTML = list.map(t => `
-        <div class="bento-card group relative overflow-hidden" onclick="openModal('${t.id}')">
-          <div class="w-16 h-16 ${t.color} rounded-2xl flex items-center justify-center text-white text-3xl mb-8 shadow-xl group-hover:scale-110 transition-transform"><i class="${t.icon}"></i></div>
-          <h3 class="text-2xl font-black text-slate-900 mb-2 tracking-tight">${lang==='zh'?t.title_zh:t.title_en}</h3>
-          <p class="text-slate-400 font-bold text-sm leading-relaxed">${lang==='zh'?t.desc_zh:t.desc_en}</p>
+        <div class="bento-card p-10 rounded-[36px] cursor-pointer group relative overflow-hidden" onclick="openModal('${t.id}')">
+          <div class="w-16 h-16 ${t.color} rounded-2xl flex items-center justify-center text-white text-3xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
+            <i class="${t.icon}"></i>
+          </div>
+          <h3 class="text-2xl font-black text-slate-900 mb-2 tracking-tight">${lang === 'zh' ? t.title_zh : t.title_en}</h3>
+          <p class="text-slate-400 font-bold text-sm leading-relaxed">${lang === 'zh' ? t.desc_zh : t.desc_en}</p>
         </div>`).join('');
     }
 
@@ -121,15 +129,21 @@
     function openModal(id) {
       const t = tools.find(x => x.id === id);
       const lang = localStorage.getItem('lang') || 'zh';
-      document.getElementById('modalTitle').innerText = lang==='zh'?t.title_zh:t.title_en;
-      document.getElementById('modalDesc').innerText = lang==='zh'?t.lDesc_zh:t.lDesc_en;
+      
+      document.getElementById('modalTitle').innerText = lang === 'zh' ? t.title_zh : t.title_en;
+      document.getElementById('modalDesc').innerText = lang === 'zh' ? t.lDesc_zh : t.lDesc_en;
       document.getElementById('modalIcon').className = "w-20 h-20 rounded-3xl flex items-center justify-center text-4xl shadow-inner text-white flex-shrink-0 " + t.color;
       document.getElementById('modalIcon').innerHTML = `<i class="${t.icon}"></i>`;
       document.getElementById('launchBtn').onclick = () => location.href = t.url;
-      document.getElementById('modalComments').innerHTML = t.comments.map(c => `
-        <div class="bg-white p-5 rounded-3xl border border-gray-100 text-sm text-slate-600 shadow-sm font-bold">
-          <i class="ri-chat-smile-fill text-blue-100 mr-2"></i>${lang==='zh'?c.zh:c.en}
+      
+      const commentsHtml = t.comments.map(c => `
+        <div class="flex items-center gap-4 p-4 bg-slate-50/50 rounded-2xl border border-white transition-all hover:bg-white hover:shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-400">
+            <i class="ri-chat-smile-fill text-lg"></i>
+          </div>
+          <span class="text-[13px] font-bold text-slate-600 leading-tight">${lang === 'zh' ? c.zh : c.en}</span>
         </div>`).join('');
+      document.getElementById('modalComments').innerHTML = commentsHtml;
       document.getElementById('modal').classList.remove('hidden');
     }
 

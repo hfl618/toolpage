@@ -19,9 +19,9 @@ import requests
 from tools.config import Config
 
 def create_app():
-    # 明确指定模板和静态文件路径，适配根目录运行
+    # 明确指定模板路径为根目录 templates，回归正常架构
     app = Flask(__name__, 
-                template_folder='tools/inventory/templates', 
+                template_folder='templates', 
                 static_folder='tools/inventory/static')
     
     app.config.from_object(Config)
@@ -53,9 +53,11 @@ def create_app():
     def inject_global_functions():
         from tools.support.sponsors import get_sponsors_logic
         from tools.support.seo_config import get_seo_data
+        from tools.support.tools_config import get_tools_logic
         return dict(
             get_sponsors=get_sponsors_logic,
             get_seo=get_seo_data,
+            get_tools=get_tools_logic,
             lang=request.cookies.get('lang', 'zh')
         )
 
@@ -187,13 +189,22 @@ def create_app():
         from flask import render_template
         return render_template('profile.html')
 
+    @app.route('/login.html')
+    def redirect_login(): return redirect('/login')
+
+    @app.route('/profile.html')
+    def redirect_profile(): return redirect('/profile')
+
+    @app.route('/index.html')
+    def redirect_index(): return redirect('/')
+
     @app.route('/logout')
     def serve_logout():
         from tools.user.routes import user_bp
         return app.view_functions['user.logout']()
 
     @app.route('/<path:filename>')
-    def serve_frontend(filename):
+    def serve_static_resource(filename):
         # 1. 检查是否是各工具模块的静态文件请求 (例如: serial_tool/static/...)
         parts = filename.split('/')
         if len(parts) >= 3 and parts[1] == 'static':
@@ -204,10 +215,6 @@ def create_app():
                 full_path = os.path.join(blueprint_dir, static_file)
                 if os.path.exists(full_path):
                     return send_from_directory(blueprint_dir, static_file)
-
-        # 2. 检查根 frontend 目录
-        if os.path.exists(os.path.join('frontend', filename)):
-            return send_from_directory('frontend', filename)
         
         return "Not Found", 404
 
@@ -219,19 +226,18 @@ def create_app():
         """自动生成站点地图"""
         from flask import make_response
         base_url = "https://618002.xyz"
-        # 在这里按需添加路径
         paths = [
             "/",               # 首页
             "/serial/",        # 串口工具
             "/inventory/",     # 元器件
             "/lvgl_image/",    # LVGL
             "/ble_config/",    # 蓝牙
-            "/kor/",           # 你提到的新路径
-            "/support/"        # 支持页面
+            "/support/",       # 支持页面
+            "/support/privacy", # 隐私政策
+            "/support/terms"    # 服务条款
         ]
         xml = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
         for path in paths:
-            # 首页权重设为 1.0，其他设为 0.8
             priority = "1.0" if path == "/" else "0.8"
             xml += f'<url><loc>{base_url}{path}</loc><changefreq>weekly</changefreq><priority>{priority}</priority></url>'
         xml += '</urlset>'

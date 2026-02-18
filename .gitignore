@@ -1,5 +1,7 @@
 # 环境与数据
 .env
+config.py
+tools/config.py
 *.sqlite
 local_debug.sqlite
 

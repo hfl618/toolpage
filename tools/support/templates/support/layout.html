@@ -9,9 +9,31 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body { background-color: #fbfbfd; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; color: #1d1d1f; -webkit-font-smoothing: antialiased; }
+        body { background-color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; color: #1e293b; -webkit-font-smoothing: antialiased; }
         .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid rgba(0,0,0,0.05); }
         .card-apple { background: white; border: 1px solid rgba(226, 232, 240, 0.7); border-radius: 24px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); transition: all 0.3s ease; }
+        
+        /* 统一全局黑金按钮样式 - 极简高质感版 */
+        .btn-dark { 
+            background: #0f172a; 
+            color: white; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            border: none; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-dark:hover { 
+            background: #1e293b; 
+            transform: translateY(-2px); 
+            box-shadow: 0 20px 30px -10px rgba(15, 23, 42, 0.3);
+            color: white; 
+        }
+        .btn-dark:active { 
+            transform: scale(0.96); 
+        }
+
         .lang-switcher { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 100px; }
         .lang-btn { padding: 4px 12px; border-radius: 100px; font-size: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; color: #94a3b8; }
         .lang-btn.active { background: white; color: #0071e3; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -77,6 +99,7 @@
 <script>
     function showToast(msg, type='info') {
         const container = document.getElementById('toast-container');
+        if(!container) return;
         const t = document.createElement('div');
         t.className = 'custom-toast';
         t.style.background = type === 'error' ? '#ef4444' : '#1e293b';
@@ -93,7 +116,6 @@
         document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.id === 'lang-' + lang));
         document.querySelectorAll('.i18n').forEach(el => { el.innerText = el.getAttribute('data-' + lang); });
         
-        // Placeholder support
         document.querySelectorAll('.i18n-ph').forEach(el => {
             const ph = el.getAttribute('data-' + lang + '-ph');
             if(ph) el.placeholder = ph;
@@ -107,6 +129,7 @@
         try {
             const r = await fetch('/auth/profile_api');
             const area = document.getElementById('userArea');
+            if(!area) return;
             
             if(r.status === 401) {
                 const loginLabel = currentLang === 'zh' ? '立即登录' : 'LOGIN';
@@ -120,8 +143,7 @@
                 const avatarUrl = user.avatar ? (user.avatar + (user.avatar.includes('?') ? '&' : '?') + 'v=' + Date.now()) : ('https://api.dicebear.com/7.x/avataaars/svg?seed=' + user.username);
                 const profileLabel = currentLang === 'zh' ? '个人中心' : 'Profile';
                 const logoutLabel = currentLang === 'zh' ? '退出登录' : 'Logout';
-                const fromParam = window.location.pathname.split('/')[1] || '';
-                const profileUrl = fromParam ? `/profile?from=${fromParam}` : '/profile';
+                const profileUrl = '/profile';
                 
                 area.innerHTML = `
                     <div class="relative">
@@ -133,7 +155,7 @@
                             </div>
                         </div>
                         <div id="userMenu" class="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 opacity-0 invisible transition-all p-2 z-50 transform origin-top-right">
-                            <div class="px-4 py-2 border-b border-gray-50 mb-1 text-[10px] font-black text-blue-500 uppercase tracking-widest">${user.role} MEMBER</div>
+                            <div class="px-4 py-2 border-b border-gray-50 mb-1 text-[10px] font-black text-blue-500 uppercase tracking-widest">${user.role.toUpperCase()} MEMBER</div>
                             <a href="${profileUrl}" class="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition no-underline"><i class="ri-user-settings-fill"></i> ${profileLabel}</a>
                             <button onclick="location.href='/logout'" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition text-left border-0 bg-transparent"><i class="ri-logout-box-fill"></i> ${logoutLabel}</button>
                         </div>

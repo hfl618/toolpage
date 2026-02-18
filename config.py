@@ -1,12 +1,16 @@
 import os
 
 class Config:
-    SECRET_KEY = '618002_pro_secret_2026'
+    # 优先从环境变量读取，如果没有则使用默认值（仅限非敏感项）
+    SECRET_KEY = os.getenv('SECRET_KEY', 'default-unsafe-key')
     
     # Cloudflare D1 配置
-    CF_ACCOUNT_ID = "1473d81a1c18df1443cbaa3adf41da73"
-    CF_D1_DATABASE_ID = "09e84079-e114-4f23-93be-2c155f004376"
-    CF_API_TOKEN = "R0DkjZtXtrtWx-q9R0FZ0x60R1wgHT-KwJfuhw4w"
+    CF_ACCOUNT_ID = os.getenv('CF_ACCOUNT_ID')
+    CF_D1_DATABASE_ID = os.getenv('CF_D1_DATABASE_ID')
+    CF_API_TOKEN = os.getenv('CF_API_TOKEN')
+
+    # Lemon Squeezy 支付安全
+    LS_WEBHOOK_SECRET = os.getenv('LS_WEBHOOK_SECRET', 'your-default-secret-here')
     
     # 静态资源路径
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))

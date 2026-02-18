@@ -14,12 +14,31 @@ FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 
 user_bp = Blueprint('user', __name__)
 
-# --- 辅助工具：模拟 Worker 的解析逻辑 ---
+from functools import lru_cache
+
+# --- 1. 性能优化：缓存高频配置 (5分钟有效期模拟) ---
+@lru_cache(maxsize=128)
+def get_cached_tool_config(path, role):
+    """
+    缓存工具限额配置，减少数据库读取压力
+    注意：在真实生产中，如果配置更改需清除缓存或使用 Redis
+    """
+    res = d1.execute("SELECT * FROM tool_configs WHERE path = ?", [path])
+    cfg = res.get('results', [])[0] if res and res.get('results') else None
+    if not cfg: return None
+    
+    limit = cfg['daily_limit_pro'] if role == 'pro' else cfg['daily_limit_free']
+    return {
+        "limit": limit,
+        "label": cfg.get('label', path),
+        "color": cfg.get('color', 'bg-blue-500'),
+        "limit_type": cfg['limit_type']
+    }
+
+# --- 辅助工具：获取当前登录 UID ---
 def get_uid_from_request():
-    """本地调试保底：如果 Header 没传 UID，尝试从 Cookie 解析"""
     uid = request.headers.get('X-User-Id')
     if uid: return uid
-    
     token = request.cookies.get('auth_token')
     if token:
         try:
@@ -29,25 +48,7 @@ def get_uid_from_request():
     return None
 
 # ==========================================
-# 🏠 页面渲染路由 (让 Flask 在本地也能显示前端)
-# ==========================================
-
-@user_bp.route('/')
-def local_index():
-    return send_from_directory(FRONTEND_DIR, 'index.html')
-
-@user_bp.route('/login')
-def local_login():
-    return send_from_directory(FRONTEND_DIR, 'login.html')
-
-@user_bp.route('/profile')
-def local_profile():
-    uid = get_uid_from_request()
-    if not uid: return redirect('/login')
-    return send_from_directory(FRONTEND_DIR, 'profile.html')
-
-# ==========================================
-# 🔐 身份验证 API
+# 🔐 身份验证 API (仅保留逻辑接口)
 # ==========================================
 
 @user_bp.route('/login', methods=['POST'])
@@ -75,8 +76,17 @@ def login():
             }
             token = jwt.encode(payload, Config.SECRET_KEY, algorithm="HS256")
             resp = make_response(jsonify({"success": True, "msg": "登录成功"}))
-            domain = Config.COOKIE_DOMAIN if Config.COOKIE_DOMAIN else None
-            resp.set_cookie('auth_token', token, httponly=True, secure=Config.COOKIE_SECURE, domain=domain, path='/', samesite='Lax')
+            
+            # --- 🛡️ Cookie 核心加固 ---
+            resp.set_cookie(
+                'auth_token', 
+                token, 
+                httponly=True,           # ❌ JS 无法读取，防御 XSS
+                secure=True,             # ✅ 仅限 HTTPS 传输
+                samesite='Lax',          # 🛡️ 防御 CSRF 跨站请求
+                max_age=Config.JWT_EXP_DELTA,
+                path='/'
+            )
             return resp
     return jsonify({"error": "用户名或密码错误"}), 401
 
@@ -258,6 +268,50 @@ def logout():
     resp = make_response(redirect('/login'))
     resp.set_cookie('auth_token', '', expires=0, path='/')
     return resp
+
+import hmac
+import hashlib
+
+@user_bp.route('/webhook/payment', methods=['POST'])
+def payment_webhook():
+    """
+    生产级：Lemon Squeezy 支付回调接口 (带签名校验)
+    """
+    # 1. 获取原始请求体和签名头
+    raw_payload = request.get_data()
+    signature = request.headers.get('X-Lsq-Signature')
+    
+    if not signature:
+        return jsonify(success=False, error="Missing signature"), 401
+
+    # 2. 验证签名 (HMAC-SHA256)
+    secret = Config.LS_WEBHOOK_SECRET.encode('utf-8')
+    digest = hmac.new(secret, raw_payload, hashlib.sha256).hexdigest()
+    
+    if not hmac.compare_digest(digest, signature):
+        return jsonify(success=False, error="Invalid signature"), 401
+
+    # 3. 签名验证成功，解析业务逻辑
+    data = request.json
+    event_name = data.get('meta', {}).get('event_name')
+    
+    # 支付成功或订阅成功事件
+    if event_name in ['order_created', 'subscription_created']:
+        # 尝试从自定义数据中提取 user_id
+        custom_data = data.get('meta', {}).get('custom', {})
+        uid = custom_data.get('user_id')
+        
+        if uid:
+            try:
+                # 🚀 执行升级
+                d1.execute("UPDATE users SET role = 'pro' WHERE id = ?", [uid])
+                # 记录日志或通知用户
+                print(f"User {uid} upgraded via Lemon Squeezy.")
+                return jsonify(success=True, message="Upgraded"), 200
+            except Exception as e:
+                return jsonify(success=False, error=str(e)), 500
+                
+    return jsonify(success=True), 200
 
 @user_bp.route('/check_username')
 def check_username():
